@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: Isaac Twisted-RL – Knot Tying Project
+version: 1.2.0
+date-released: 2025-04-18
+authors:
+- family-names: Louis
+  given-names: Le Lay
+  orcid: https://orcid.org/0009-0007-7638-1769
+- family-names: Muammer
+  given-names: Bay
+  orcid: https://orcid.org/0009-0000-7812-540X
+keywords:
+  - reinforcement learning
+  - sim2real
+  - robotics
+  - Isaac Lab
+  - knot tying
+  - rope manipulation
+license: BSD-3-Clause

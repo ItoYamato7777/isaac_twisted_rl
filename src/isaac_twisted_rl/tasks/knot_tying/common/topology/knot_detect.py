@@ -59,7 +59,7 @@ import itertools
 
 import torch
 
-from .intersections import IntersectionBatch
+from .intersections import PAD, IntersectionBatch
 
 # ---------------------------------------------------------------- 位相クラス
 # 報酬ラダーの段。0 は「ラダーに乗っていない」も兼ねる。
@@ -203,6 +203,135 @@ def topology_class(batch: IntersectionBatch) -> torch.Tensor:
     cls = torch.where(inter2, torch.full_like(count, CLASS_INTERLEAVED2), cls)
     cls = torch.where(overhand, torch.full_like(count, CLASS_OVERHAND), cls)
     return cls
+
+
+# ------------------------------------------------------- R2 (ライデマイスター II) 除去
+#
+# v2-R2 で追加した。v2 以前はここを通らない (既存の関数は一切変えていない)。
+#
+# ## なぜ必要か (v2 の実測)
+#
+# `is_interleaved_two` は部分列判定なので、交差が 3 つ以上あると
+# **その中の 2 つ** が交互・同符号なら成立する。先端で輪を上から跨ぐだけ
+# (先端側が 3 交差とも上) の `1U4+_2U5-_3U6+_4O1+_5O2-_6O3+` では、
+# 交差 A (1,4) と C (3,6) が交互・同符号の組を成して class 2 と判定される。
+# 実際には B と C (または A と B) が R2 で消せるので、中身は輪 1 つ (class 1)。
+# 上から掴んで上へ置く pick&place ではこの「掛け渡し」が最も作りやすく、
+# v2 の方策はこれで `success_c2` を稼いでいた疑いが強い。
+#
+# 逆に、先端を輪の中へ **上から** 置いた状態 (`1U3+_2U4-_3O1+_4O2-`) は
+# v2 でも class 0 だが、交差数 2 のまま `offladder` の罰を受けていた。
+# R2 除去後は交差 0 (= 何も無い) と正しく扱われる。
+#
+# ## 判定 (Gauss 符号上の R2)
+#
+# 交差 X = (p, q) と Y = (r, s) について
+#
+# * 片方の紐上で X と Y が隣り合う (|p - r| == 1) **かつ**
+#   もう片方の紐上でも隣り合う (|q - s| == 1)。(p と s、q と r の対応も見る)
+# * その隣り合った 2 点で **同じ紐が両方とも上** (もう片方は両方とも下)。
+#
+# を満たせば、2 本の弧は他の交差を挟まずに 2 点で交わる二角形を成し、
+# 上の弧をそのまま持ち上げて外せる (R2)。上下が交互になっている組は
+# 決して消さないので、**交代結び目である固結び (三葉) は絶対に削られない**。
+#
+# 厳密な R2 は「二角形の内側に何も無い」ことも要求するが、Gauss 符号だけでは
+# 見えない。内側に入り得るのは交差を持たずに弧へ入り込めない以上
+# 「ロープの自由端の切れ端」か「X に付いた R1 の輪」だけで、どちらも
+# 上下が単調なので外しても位相は変わらない (開いた紐なので端は抜ける)。
+#
+# ## 除去の順序
+#
+# 1 ラウンドで env ごとに 1 組 (添字が最小の組) だけ消し、番号を振り直して
+# 繰り返す。消せる組が無くなるか、交差が 1 つ以下になるまで回る。
+
+
+def _r2_pair_mask(batch: IntersectionBatch) -> torch.Tensor:
+    """R2 で消せる交差の組 `(num_envs, M, M)` bool (対角は False)。"""
+    order = batch.order
+    valid = batch.valid_mask
+    p = order[..., 0]
+    q = order[..., 1]
+    # order[..., 0] は seg_i 側の点。data[..., 2] は seg_i が上なら +1。
+    p_over = batch.data[..., 2] == 1
+    q_over = ~p_over
+
+    px, qx, pox = p.unsqueeze(2), q.unsqueeze(2), p_over.unsqueeze(2)
+    py, qy, poy, qoy = p.unsqueeze(1), q.unsqueeze(1), p_over.unsqueeze(1), q_over.unsqueeze(1)
+
+    def adj(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+        return (a - b).abs() == 1
+
+    # 対応 1: p<->r, q<->s。p 側の紐が X, Y の両方で同じ上下。
+    same = adj(px, py) & adj(qx, qy) & (pox == poy)
+    # 対応 2: p<->s, q<->r。
+    cross = adj(px, qy) & adj(qx, py) & (pox == qoy)
+
+    num_slots = order.shape[1]
+    eye = torch.eye(num_slots, dtype=torch.bool, device=order.device).unsqueeze(0)
+    both_valid = valid.unsqueeze(2) & valid.unsqueeze(1)
+    return (same | cross) & both_valid & ~eye
+
+
+def _drop_crossings(batch: IntersectionBatch, drop: torch.Tensor) -> IntersectionBatch:
+    """`drop` `(num_envs, M)` が True の交差を除き、詰め直して点番号を振り直す。"""
+    keep = batch.valid_mask & ~drop
+    num_envs, num_slots = keep.shape
+    device = keep.device
+
+    # 点番号の振り直し: 残る点のうち自分より小さいものの個数 + 1。
+    pts = batch.order.reshape(num_envs, 2 * num_slots)  # (B, 2M)
+    keep2 = keep.repeat_interleave(2, dim=1)  # order の [m, 0], [m, 1] と並びを揃える
+    big = torch.full_like(pts, 1 << 30)
+    live = torch.where(keep2, pts, big)
+    new_pts = (live.unsqueeze(-1) > live.unsqueeze(-2)).sum(dim=-1) + 1
+    new_order = new_pts.reshape(num_envs, num_slots, 2)
+
+    # 残る交差を前へ寄せる (安定ソートなので相対順は保たれる)。
+    sel = torch.argsort((~keep).to(torch.int8), dim=1, stable=True)
+    count = keep.sum(dim=1).to(torch.int64)
+    data = batch.data.gather(1, sel.unsqueeze(-1).expand(-1, -1, 4))
+    order = new_order.gather(1, sel.unsqueeze(-1).expand(-1, -1, 2))
+
+    valid = torch.arange(num_slots, device=device).unsqueeze(0) < count.unsqueeze(1)
+    data = torch.where(valid.unsqueeze(-1), data, torch.full_like(data, PAD))
+    order = torch.where(valid.unsqueeze(-1), order, torch.full_like(order, PAD))
+    return IntersectionBatch(data, order, count)
+
+
+def reduce_r2(batch: IntersectionBatch) -> IntersectionBatch:
+    """R2 で消せる交差の組を消せなくなるまで取り除いた `IntersectionBatch`。
+
+    入力は変更しない (新しいテンソルを返す)。env ごとの Python ループは無く、
+    ラウンド数 (高々 `M // 2`) だけ回る。交差数の上限までの 1 ラウンドごとに
+    `.any()` で打ち切り判定をするので、GPU 同期はラウンド数ぶん発生する。
+    消せる組が無ければ 1 回の判定だけで入力そのものを返す。
+
+    `data` の `seg_i` / `seg_j` は元のポリラインのセグメント番号のまま残るので、
+    `crossing_positions` などの幾何的な復元にもそのまま使える。
+    """
+    num_slots = batch.max_crossings
+    for _ in range(num_slots // 2):
+        mask = _r2_pair_mask(batch)
+        has = mask.flatten(1).any(dim=1)  # (B,)
+        if not bool(has.any()):
+            break
+        # 添字が最小の組 (X < Y の行優先) を 1 つ選ぶ。
+        flat = mask.flatten(1).to(torch.int8)
+        first = flat.argmax(dim=1)
+        x = first // num_slots
+        y = first % num_slots
+        drop = torch.zeros_like(batch.valid_mask)
+        rows = torch.arange(batch.num_envs, device=drop.device)
+        drop[rows, x] = has
+        drop[rows, y] = has
+        batch = _drop_crossings(batch, drop)
+    return batch
+
+
+def r2_removed_count(batch: IntersectionBatch, reduced: IntersectionBatch) -> torch.Tensor:
+    """R2 で消えた交差数 `(num_envs,)`。ログ用。"""
+    return batch.count - reduced.count
 
 
 def class_one_hot(batch: IntersectionBatch) -> torch.Tensor:

@@ -7,6 +7,7 @@ TWISTED-RL (itoyama_twisted_rl リポジトリ) の MuJoCo 実装を Isaac Lab �
     uv run train --task Isaac-Twisted-RL-Twist-v0 --headless   # 交差を 1 つ作る
     uv run train --task Isaac-Twisted-RL-Twist-v1 --headless   # 固結び (学習失敗)
     uv run train --task Isaac-Twisted-RL-Twist-v2 --headless   # 固結び (作り直し)
+    uv run train --task Isaac-Twisted-RL-Twist-v2-R2 --headless   # v2 + R2 除去で段を判定
 
 構成と設計方針、バージョンの増やし方は `README.md` を参照。
 
@@ -31,7 +32,17 @@ import gymnasium as gym
 
 # 登録するバージョン。**新しいバージョンを足すときはここに 1 行足すだけ**
 # (`versions/vN/` に env_cfg.py と agents/ を置いたうえで)。
-_VERSIONS = ("v0", "v1", "v2")
+_VERSIONS = ("v0", "v1", "v2", "v2-R2")
+
+
+def _version_package(ver: str) -> str:
+    """タスク ID のバージョン表記 -> `versions/` 配下のパッケージ名。
+
+    `v2-R2` のようにハイフンを含む表記はそのままでは Python の
+    パッケージ名にできないので `v2_r2` に写す。`v0`〜`v2` は恒等写像。
+    """
+    return ver.replace("-", "_").lower()
+
 
 # ロープのプリセット。学習に使うのは `Twist` で、他 3 つは比較用ベースライン。
 _ROPE_PRESETS = ("Twist", "Simple", "Stiff", "Fine")
@@ -57,6 +68,11 @@ _AGENT_VARIANTS: dict[str, dict[str, str]] = {
         "-RNN": "KnotTyingRNNPPORunnerCfg",
         "-LSTM": "KnotTyingLSTMPPORunnerCfg",
     },
+    "v2-R2": {
+        "": "KnotTyingPPORunnerCfg",
+        "-RNN": "KnotTyingRNNPPORunnerCfg",
+        "-LSTM": "KnotTyingLSTMPPORunnerCfg",
+    },
 }
 
 _DEFAULT_VARIANTS = {"": "KnotTyingPPORunnerCfg"}
@@ -68,7 +84,7 @@ _DEFAULT_VARIANTS = {"": "KnotTyingPPORunnerCfg"}
 # (上の docstring の注意を参照)。文字列にしておけば、実際の import は
 # `gym.make` の時点まで遅延される。
 for _ver in _VERSIONS:
-    _pkg = f"{__name__}.versions.{_ver}"
+    _pkg = f"{__name__}.versions.{_version_package(_ver)}"
     _variants = _AGENT_VARIANTS.get(_ver, _DEFAULT_VARIANTS)
     for _preset in _ROPE_PRESETS:
         for _suffix, _runner in _variants.items():

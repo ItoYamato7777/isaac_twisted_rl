@@ -178,6 +178,9 @@ class RopeTopologyExtractor:
 
         self._nodes: torch.Tensor | None = None
         self._batch: tp.IntersectionBatch | None = None
+        # `batch` を R2 除去したもの。v2-R2 以降だけが使うので遅延計算にして、
+        # 使わないバージョンには 1 ms も足さない (update() ごとに捨てる)。
+        self._reduced_batch: tp.IntersectionBatch | None = None
         # update() ごとに捨てる「今の batch に対する p-data」。
         self._p_data_now: dict[bool, list[str]] = {}
         # update() をまたいで生き残る「交差の内容 -> 文字列」のキャッシュ。
@@ -232,9 +235,25 @@ class RopeTopologyExtractor:
             nodes = tp.subdivide_segments(nodes, self.subdivide)
         self._nodes = nodes
         self._batch = tp.segment_intersections(nodes)
+        self._reduced_batch = None
         # 文字列そのものは捨てるが、内容キーのキャッシュは残す (下の p_data 参照)。
         self._p_data_now.clear()
         return self._batch
+
+    @property
+    def reduced_batch(self) -> tp.IntersectionBatch:
+        """`batch` から R2 で消せる交差の組を除いたもの (`tp.reduce_r2`)。
+
+        同じ `update()` の中では 1 回しか計算しない。報酬・観測・ログの
+        複数の項が同じものを読むため。
+        """
+        if self._reduced_batch is None:
+            self._reduced_batch = tp.reduce_r2(self.batch)
+        return self._reduced_batch
+
+    def ladder_batch(self, reduce_r2: bool) -> tp.IntersectionBatch:
+        """報酬ラダーの判定に使う batch。`reduce_r2` で R2 除去版を選ぶ。"""
+        return self.reduced_batch if reduce_r2 else self.batch
 
     @property
     def count(self) -> torch.Tensor:
@@ -271,6 +290,10 @@ class RopeTopologyExtractor:
         if short not in self._p_data_now:
             self._p_data_now[short] = tp.p_data_from_batch(self.batch, short=short, cache=self._p_data_cache)
         return self._p_data_now[short]
+
+    def p_data_r2(self, short: bool = True) -> list[str]:
+        """`reduced_batch` の p-data。`p_data` と同じく **毎ステップ全環境で呼ばないこと**。"""
+        return tp.p_data_from_batch(self.reduced_batch, short=short, cache=self._p_data_cache)
 
     # ------------------------------------------------------------ 順序の検算
     def check_link_order(self, rope: Articulation, rtol: float = 0.5) -> float:

@@ -17,3 +17,4 @@ from .observations import *  # noqa: F401, F403
 from .phases import GraspLimits, PhaseDurations  # noqa: F401
 from .rewards import *  # noqa: F401, F403
 from .terminations import *  # noqa: F401, F403
+from .topology_log import TopologyStats, log_topology_stats  # noqa: F401

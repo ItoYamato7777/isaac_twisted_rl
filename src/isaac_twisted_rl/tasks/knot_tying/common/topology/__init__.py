@@ -34,7 +34,7 @@ Isaac Sim を起動せずに `pytest` 単体で検証できる。Isaac Lab の
     intersections.py    バッチ化 2D 自己交差検出 (テンソル層)
     state_2_topology.py 交差リスト -> AbstractState -> p-data (記号層)
     polyline.py         ポリラインの前処理 (節点生成・中心寄せ・細分・再標本化)
-    knot_detect.py      固結びの判定と報酬ラダーの段 (テンソル層のみ)
+    knot_detect.py      固結びの判定と報酬ラダーの段・R2 除去 (テンソル層のみ)
 """
 
 from .intersections import (
@@ -57,6 +57,8 @@ from .knot_detect import (
     is_interleaved_two,
     is_overhand,
     partner_gaps,
+    r2_removed_count,
+    reduce_r2,
     sign_consistent,
     topology_class,
 )
@@ -106,6 +108,8 @@ __all__ = [
     "polyline_from_link_centers",
     "polyline_to_p_data",
     "polyline_to_topology",
+    "r2_removed_count",
+    "reduce_r2",
     "resample_polyline",
     "segment_intersections",
     "sign_consistent",

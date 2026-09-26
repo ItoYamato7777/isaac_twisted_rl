@@ -186,14 +186,21 @@ def crossing_features(
     return out.reshape(env.num_envs, -1)
 
 
-def knot_class_one_hot(env: ManagerBasedRLEnv, rope_cfg: SceneEntityCfg = SceneEntityCfg("rope")) -> torch.Tensor:
+def knot_class_one_hot(
+    env: ManagerBasedRLEnv,
+    rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+    reduce_r2: bool = False,
+) -> torch.Tensor:
     """位相クラスの one-hot `(num_envs, 4)`。報酬ラダーの段をそのまま観測に渡す。
 
     段は `{交差なし/行き止まり, 交差 1, 絡み 2 交差, 固結び}`
     (`topology/knot_detect.py`)。報酬が同じ量で計算されるので、方策から
     「今どの段にいるか」が直接見えるようにしておく。
+
+    `reduce_r2=True` (v2-R2) では報酬と同じく R2 除去後の段を渡す
+    (次元は 4 のまま変わらないので、v2 のチェックポイントから暖機開始できる)。
     """
-    return tp.class_one_hot(get_extractor(env, rope_cfg.name).batch)
+    return tp.class_one_hot(get_extractor(env, rope_cfg.name).ladder_batch(reduce_r2))
 
 
 def hand_position(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("gripper")) -> torch.Tensor:

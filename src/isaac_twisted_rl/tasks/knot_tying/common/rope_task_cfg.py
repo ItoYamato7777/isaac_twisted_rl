@@ -22,6 +22,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from isaaclab.utils import configclass
 
 from .env_cfg_base import KnotTyingEnvCfg
@@ -141,7 +143,11 @@ _PLAY_NUM_ENVS = 9
 """Play 環境の数。GUI で見るだけなので絞る。"""
 
 
-def make_preset_cfgs(base_cls: type, module_name: str) -> dict[str, type]:
+def make_preset_cfgs(
+    base_cls: type,
+    module_name: str,
+    play_post_init: Callable[[KnotTyingEnvCfg], None] | None = None,
+) -> dict[str, type]:
     """バージョンの基底クラスから、プリセット別の設定クラス 8 個を作る。
 
     返すのは ``{"TwistEnvCfg": <class>, "TwistPlayEnvCfg": <class>, ...}``。
@@ -158,6 +164,11 @@ def make_preset_cfgs(base_cls: type, module_name: str) -> dict[str, type]:
         module_name: 生成したクラスに付ける ``__module__``。呼び出し側の
             ``__name__`` を渡す。これが合っていないと Hydra や
             `dump_yaml` がクラスを解決できない。
+        play_post_init: Play 用クラスだけに追加で掛ける設定変更 (省略可)。
+            Play の `__post_init__` の **最後** (プリセット適用と環境数の
+            絞り込みの後) に呼ばれる。v2-R2 が「Play のときだけ p-data を
+            表示する」ために追加した。バージョン側の `__post_init__` は
+            プリセット適用より前に走るので、そこでは Play か否かを区別できない。
     """
     out: dict[str, type] = {}
     for preset, doc in _PRESET_DOCS.items():
@@ -193,6 +204,8 @@ def make_preset_cfgs(base_cls: type, module_name: str) -> dict[str, type]:
                 _base.__post_init__(self)
                 self.scene.num_envs = _PLAY_NUM_ENVS
                 self.sim.render_interval = _PLAY_RENDER_STEPS
+                if play_post_init is not None:
+                    play_post_init(self)
 
             return __post_init__
 

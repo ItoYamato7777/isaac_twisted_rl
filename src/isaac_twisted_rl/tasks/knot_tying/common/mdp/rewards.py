@@ -66,6 +66,7 @@ def crossing_achieved(
     settled_height_diameters: float = 3.0,
     rope_diameter: float = 0.02,
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+    reduce_r2: bool = False,
 ) -> torch.Tensor:
     """目標の交差数に達し、かつロープが床に落ちているか `(num_envs,)`。
 
@@ -76,7 +77,7 @@ def crossing_achieved(
     ハンドに吊られていれば 0.2 m 以上になり、この条件で弾かれる。
     """
     extractor = get_extractor(env, rope_cfg.name)
-    reached = extractor.count >= min_crossings
+    reached = extractor.ladder_batch(reduce_r2).count >= min_crossings
     settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
     return (reached & settled).float()
 
@@ -87,6 +88,7 @@ def knot_class_shaping(
     gamma: float = 0.98,
     potentials: tuple[float, ...] = (0.0, 0.35, 0.70, 1.0),
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+    reduce_r2: bool = False,
 ) -> torch.Tensor:
     """位相ラダーのポテンシャル整形 `(num_envs,)`。密報酬。
 
@@ -114,11 +116,16 @@ def knot_class_shaping(
 
     `Φ(s)` は `PickPlaceAction.class_at_action_start` から読む
     (手を打つ前に確定させてある値)。`Φ(s')` は手を打ち終えた現在の状態。
+
+    `reduce_r2=True` (v2-R2) では前後とも R2 除去後の位相で段を決める
+    (`topology/knot_detect.py` の `reduce_r2`)。前後で判定器を揃えないと
+    `F` がポテンシャル差にならないので、`before` も R2 版を読む。
     """
     extractor = get_extractor(env, rope_cfg.name)
     table = torch.tensor(potentials, dtype=torch.float32, device=extractor.count.device)
-    before = _pick_place_term(env, action_name).class_at_action_start
-    after = tp.topology_class(extractor.batch)
+    term = _pick_place_term(env, action_name)
+    before = term.class_r2_at_action_start if reduce_r2 else term.class_at_action_start
+    after = tp.topology_class(extractor.ladder_batch(reduce_r2))
     return gamma * table[after] - table[before]
 
 
@@ -127,6 +134,7 @@ def overhand_achieved(
     settled_height_diameters: float = 3.0,
     rope_diameter: float = 0.02,
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+    reduce_r2: bool = False,
 ) -> torch.Tensor:
     """固結びができ、かつロープが床に落ちているか `(num_envs,)`。疎報酬。
 
@@ -141,7 +149,7 @@ def overhand_achieved(
     `relax` なので報酬計算時点でハンドは既に離れているが、二重にかける。
     """
     extractor = get_extractor(env, rope_cfg.name)
-    reached = tp.is_overhand(extractor.batch)
+    reached = tp.is_overhand(extractor.ladder_batch(reduce_r2))
     settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
     return (reached & settled).float()
 
@@ -151,6 +159,7 @@ def interleaved2_achieved(
     settled_height_diameters: float = 3.0,
     rope_diameter: float = 0.02,
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+    reduce_r2: bool = False,
 ) -> torch.Tensor:
     """2 交差が絡んだ状態ができ、かつロープが床に落ちているか `(num_envs,)`。疎報酬。
 
@@ -181,9 +190,16 @@ def interleaved2_achieved(
 
     `settled_height_diameters` の意図は `overhand_achieved` と同じで、
     ハンドで吊って絡みを見せかける方策を学習させないための保険。
+
+    ## `reduce_r2` (v2-R2)
+
+    部分列判定のため、既定 (False) では交差 3 つ以上の中の 2 つが交互・同符号
+    なら成立してしまう。先端で輪を上から跨いだだけの状態 (R2 で輪 1 つに
+    戻る) もここで class 2 と判定され、v2 の方策はこれで報酬を得ていた疑いが
+    強い。True なら R2 で消せる組を除いてから判定する。
     """
     extractor = get_extractor(env, rope_cfg.name)
-    reached = tp.is_interleaved_two(extractor.batch)
+    reached = tp.is_interleaved_two(extractor.ladder_batch(reduce_r2))
     settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
     return (reached & settled).float()
 
@@ -191,6 +207,7 @@ def interleaved2_achieved(
 def offladder_penalty(
     env: ManagerBasedRLEnv,
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+    reduce_r2: bool = False,
 ) -> torch.Tensor:
     """交差はあるがラダーに乗っていない `(num_envs,)`。軽い罰則。
 
@@ -200,10 +217,15 @@ def offladder_penalty(
 
     旧 `crossing_progress` (Δ交差数) が持っていた抜け道
     (R1 を 3 回ひねれば交差数 3) を塞ぐ役割でもある。
+
+    `reduce_r2=True` (v2-R2) では R2 除去後の交差数・クラスで判定する。
+    先端を輪の上へ置いただけ (R2 で交差 0 に戻る) の状態は「行き止まり」
+    ではなく「何もしていない」なので罰しない。
     """
     extractor = get_extractor(env, rope_cfg.name)
-    cls = tp.topology_class(extractor.batch)
-    return ((extractor.count >= 2) & (cls == tp.CLASS_TRIVIAL)).float()
+    batch = extractor.ladder_batch(reduce_r2)
+    cls = tp.topology_class(batch)
+    return ((batch.count >= 2) & (cls == tp.CLASS_TRIVIAL)).float()
 
 
 def grasp_distance_penalty(
@@ -265,6 +287,13 @@ def diverged_by_class(
 
     重み 0.0 の報酬項として登録し、`Episode_Reward/diverged_class{0..3}` に
     class 別の発散率を出すためだけに存在する (学習には寄与しない)。
+
+    .. warning::
+        **重み 0.0 では実際には呼ばれない。** Isaac Lab の
+        `RewardManager.compute()` は重み 0 の項をスキップするため、
+        v2 の `Episode_Reward/diverged_class*` は一度も記録されていない
+        (2026-09-24 の v2 run で確認)。v2-R2 以降は
+        `topology_log.TopologyStats` の `div_cls*` を使うこと。
     `RewardManager` は項ごとに `Episode_Reward/<name>` を自動でログするので、
     新しい集計インフラを作らずに済む。
 

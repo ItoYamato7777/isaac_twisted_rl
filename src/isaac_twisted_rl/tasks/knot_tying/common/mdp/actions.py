@@ -166,6 +166,11 @@ class PickPlaceAction(ActionTerm):
         # -- 報酬へ持ち越す量 (rewards.py が action_manager 経由で読む)
         self._count_at_start = torch.zeros(num_envs, dtype=torch.long, device=dev)
         self._class_at_start = torch.zeros(num_envs, dtype=torch.long, device=dev)
+        # R2 除去版のクラス (v2-R2 以降)。手を始める前の batch を参照で控えて
+        # おき、読まれたときだけ計算する。抽出器は update() ごとに新しい
+        # テンソルを作るので、参照を持つだけで「手を打つ前」が保存される。
+        self._batch_at_start = None
+        self._class_r2_at_start: torch.Tensor | None = None
         self._grasp_dist = torch.zeros(num_envs, device=dev)
         self._invalid = torch.zeros(num_envs, dtype=torch.bool, device=dev)
 
@@ -203,6 +208,23 @@ class PickPlaceAction(ActionTerm):
         既にロープが動いてしまっていて「手を打つ前」が取れない。
         """
         return self._class_at_start
+
+    @property
+    def class_r2_at_action_start(self) -> torch.Tensor:
+        """`class_at_action_start` の R2 除去版 `(num_envs,)`。v2-R2 の整形報酬が使う。
+
+        `Φ(s)` と `Φ(s')` は **同じ判定器** で測らないとポテンシャル整形の
+        前提が崩れるので、`reduce_r2=True` の項はこちらを読むこと。
+        まだ 1 手も打っていない (reset 直後) なら 0 (= trivial) を返す。
+        """
+        if self._class_r2_at_start is None:
+            from .. import topology as tp
+
+            if self._batch_at_start is None:
+                self._class_r2_at_start = torch.zeros_like(self._class_at_start)
+            else:
+                self._class_r2_at_start = tp.topology_class(tp.reduce_r2(self._batch_at_start))
+        return self._class_r2_at_start
 
     @property
     def grasp_distance(self) -> torch.Tensor:
@@ -281,6 +303,8 @@ class PickPlaceAction(ActionTerm):
         # -- 報酬用に「手を始める前の交差数」を控える
         self._count_at_start = self._current_crossing_count()
         self._class_at_start = self._current_topology_class()
+        self._batch_at_start = self._current_batch()
+        self._class_r2_at_start = None
         self._grasp_dist = torch.zeros_like(self._grasp_dist)
 
         # -- フェーズ列を先頭から始める
@@ -528,6 +552,12 @@ class PickPlaceAction(ActionTerm):
         from .observations import get_extractor
 
         return tp.topology_class(get_extractor(self._env).batch).clone()
+
+    def _current_batch(self):
+        """現在の `IntersectionBatch` (参照)。`class_r2_at_action_start` の遅延計算用。"""
+        from .observations import get_extractor
+
+        return get_extractor(self._env).batch
 
 
 @configclass

@@ -122,6 +122,57 @@ v2 の `diverged_class0..3` は重み 0 で登録していたので一度も計�
 TensorBoard にも出ていない。v2 の設定は比較のため変えず、`rewards.diverged_by_class`
 の docstring に警告を追記した。v2-R2 では `div_cls*` として出している。
 
+## 発散した手の報酬 (2026-09-27 修正)
+
+### 何が起きたか
+
+最初の run (`logs/rsl_rl/knot_tying_v2_r2/2026-09-26_15-57-53`) は iteration 1 で
+`Episode_Reward/grasp_shaping` が **−107.8**、`Loss/value_function` が **7.2e9** になり、
+適応学習率が下限 1e-5 まで落ちた。**この run は比較に使えない。**
+
+原因の連鎖 (ランダム方策 512 環境 x 24 手で実測):
+
+1. 手の途中 (`close` 終了時) にロープが「有限だが巨大な座標」へ吹き飛び、
+   把持距離が **97 m** と記録される (`nan_to_num` は NaN / Inf しか消さない)。
+2. 手の終わりにはロープが NaN になり `diverged` で終了するが、同じ手の報酬は
+   計算されるので `grasp_shaping` が 97 m ぶんの罰 (−0.05 x 97) を払う。
+3. 発散した手では位相・高さも出鱈目なので、`shaping` や `success_*` も
+   意味の無い値を払い得る。
+
+正常な手の終わりは、xy が env 原点から最大 1.52 m、リンク速度が最大 3.3 m/s、
+把持距離が最大 0.25 m だった。
+
+### 何を変えたか (重み・正常な手の報酬は v2 と同一)
+
+| 項目 | 変更 |
+|---|---|
+| 終了 `diverged` | NaN / 高さ 5 m に加え、**水平距離 3.0 m / リンク速度 20 m/s** を超えたら発散 |
+| `grasp_shaping` | 距離を **直径の 15 倍 (0.30 m) で頭打ち**。発散した手は 0 |
+| `shaping` | 発散した手は `Φ(s') = 0` (終端) として **−Φ(s)** を払う。0 にはしない (登った段を失う損失を残す) |
+| `success_c1/c2`, `success`, `offladder`, `held_up` | 発散した手は 0 |
+| `failure` | NaN だけでなく上の `diverged` 判定も失敗に数える (発散の罰はここに一本化) |
+| 観測 `rope_link_pos` | 保険として `[-3, 3]` m にクリップ (次元は同じ) |
+| ログ `div_cls*` | `diverged` と同じ基準で数える |
+
+「発散した手」の判定は `mdp.diverged_now` で、終了項 `diverged` の関数と params を
+そのまま呼び直す (閾値は `env_cfg.TerminationsCfg` の 1 か所だけ)。
+
+**`termination_manager.get_term("diverged")` は使えない。** `_term_dones` は
+「直近のエピソードを終わらせた項」を持ち続けるので、前のエピソードが発散で
+終わった環境でも True を返す (実測: 本当の発散 3.4% に対して 17.5% が True)。
+
+`common/mdp/` の各項には「既定値なら従来どおり」の引数 (`diverged_term`、
+`max_distance_diameters`、`max_xy_distance`、`max_link_speed`) を足しただけなので、
+v0〜v2 の挙動は変わらない。
+
+### 確認
+
+* ランダム方策 (512 環境 x 24 手): 非有限になった 434 手をすべて発散と判定。
+  発散した手の報酬は `failure` −0.1 と `shaping` −Φ(s) だけで、他の項は 0。
+  `grasp_shaping` の最小は −0.015。
+* PPO 3 iteration (1024 環境): `Loss/value_function` 0.454 → 0.459 → 0.474、
+  `Episode_Reward/grasp_shaping` −0.0001〜−0.0002 で安定。
+
 ## この版で解決しないこと (次の課題)
 
 本物の C2 (OU / UO) には **先端をどこかで紐の下にくぐらせる** 交差が要る。

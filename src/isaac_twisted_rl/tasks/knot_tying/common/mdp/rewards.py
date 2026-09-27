@@ -34,6 +34,7 @@ from isaaclab.managers import SceneEntityCfg
 from .. import topology as tp
 from . import phases
 from .observations import get_extractor, rope_zmax
+from .terminations import diverged_now
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -42,6 +43,18 @@ if TYPE_CHECKING:
 def _pick_place_term(env: ManagerBasedRLEnv, action_name: str):
     """`PickPlaceAction` 本体を取り出す (報酬へ持ち越した量を読むため)。"""
     return env.action_manager.get_term(action_name)
+
+
+def _zero_if_diverged(env: ManagerBasedRLEnv, value: torch.Tensor, diverged_term: str | None) -> torch.Tensor:
+    """`diverged_term` が指定されていれば、この手で発散した環境の値を 0 にする。
+
+    発散した手のロープ座標は NaN か巨大な有限値で、そこから測った位相・高さ・
+    把持距離は意味を持たない (v2-R2 の修正。`README.md` の「発散した手の報酬」)。
+    None なら何もしない (v0〜v2 の挙動)。
+    """
+    if diverged_term is None:
+        return value
+    return torch.where(diverged_now(env, diverged_term), torch.zeros_like(value), value)
 
 
 def crossing_progress(
@@ -67,6 +80,7 @@ def crossing_achieved(
     rope_diameter: float = 0.02,
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
     reduce_r2: bool = False,
+    diverged_term: str | None = None,
 ) -> torch.Tensor:
     """目標の交差数に達し、かつロープが床に落ちているか `(num_envs,)`。
 
@@ -79,7 +93,7 @@ def crossing_achieved(
     extractor = get_extractor(env, rope_cfg.name)
     reached = extractor.ladder_batch(reduce_r2).count >= min_crossings
     settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
-    return (reached & settled).float()
+    return _zero_if_diverged(env, (reached & settled).float(), diverged_term)
 
 
 def knot_class_shaping(
@@ -89,6 +103,7 @@ def knot_class_shaping(
     potentials: tuple[float, ...] = (0.0, 0.35, 0.70, 1.0),
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
     reduce_r2: bool = False,
+    diverged_term: str | None = None,
 ) -> torch.Tensor:
     """位相ラダーのポテンシャル整形 `(num_envs,)`。密報酬。
 
@@ -120,13 +135,25 @@ def knot_class_shaping(
     `reduce_r2=True` (v2-R2) では前後とも R2 除去後の位相で段を決める
     (`topology/knot_detect.py` の `reduce_r2`)。前後で判定器を揃えないと
     `F` がポテンシャル差にならないので、`before` も R2 版を読む。
+
+    ## `diverged_term` (v2-R2)
+
+    指定すると、その手で発散した環境では `Φ(s') = 0` とする (`F = −Φ(s)`)。
+    発散はエピソードの終端 (bootstrap しない) なので、終端状態のポテンシャルを
+    0 と置くのがポテンシャル整形の正しい扱い。**0 にはしない** — そうすると
+    「登った段から発散で降りる」ことの損失 `−Φ(s)` が消えてしまう。
+    指定しない (v0〜v2) と、発散したロープ座標から測った出鱈目な段で
+    `Φ(s')` を払ってしまう。
     """
     extractor = get_extractor(env, rope_cfg.name)
     table = torch.tensor(potentials, dtype=torch.float32, device=extractor.count.device)
     term = _pick_place_term(env, action_name)
     before = term.class_r2_at_action_start if reduce_r2 else term.class_at_action_start
     after = tp.topology_class(extractor.ladder_batch(reduce_r2))
-    return gamma * table[after] - table[before]
+    phi_after = table[after]
+    if diverged_term is not None:
+        phi_after = torch.where(diverged_now(env, diverged_term), torch.zeros_like(phi_after), phi_after)
+    return gamma * phi_after - table[before]
 
 
 def overhand_achieved(
@@ -135,6 +162,7 @@ def overhand_achieved(
     rope_diameter: float = 0.02,
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
     reduce_r2: bool = False,
+    diverged_term: str | None = None,
 ) -> torch.Tensor:
     """固結びができ、かつロープが床に落ちているか `(num_envs,)`。疎報酬。
 
@@ -151,7 +179,7 @@ def overhand_achieved(
     extractor = get_extractor(env, rope_cfg.name)
     reached = tp.is_overhand(extractor.ladder_batch(reduce_r2))
     settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
-    return (reached & settled).float()
+    return _zero_if_diverged(env, (reached & settled).float(), diverged_term)
 
 
 def interleaved2_achieved(
@@ -160,6 +188,7 @@ def interleaved2_achieved(
     rope_diameter: float = 0.02,
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
     reduce_r2: bool = False,
+    diverged_term: str | None = None,
 ) -> torch.Tensor:
     """2 交差が絡んだ状態ができ、かつロープが床に落ちているか `(num_envs,)`。疎報酬。
 
@@ -201,13 +230,14 @@ def interleaved2_achieved(
     extractor = get_extractor(env, rope_cfg.name)
     reached = tp.is_interleaved_two(extractor.ladder_batch(reduce_r2))
     settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
-    return (reached & settled).float()
+    return _zero_if_diverged(env, (reached & settled).float(), diverged_term)
 
 
 def offladder_penalty(
     env: ManagerBasedRLEnv,
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
     reduce_r2: bool = False,
+    diverged_term: str | None = None,
 ) -> torch.Tensor:
     """交差はあるがラダーに乗っていない `(num_envs,)`。軽い罰則。
 
@@ -225,34 +255,62 @@ def offladder_penalty(
     extractor = get_extractor(env, rope_cfg.name)
     batch = extractor.ladder_batch(reduce_r2)
     cls = tp.topology_class(batch)
-    return ((batch.count >= 2) & (cls == tp.CLASS_TRIVIAL)).float()
+    return _zero_if_diverged(env, ((batch.count >= 2) & (cls == tp.CLASS_TRIVIAL)).float(), diverged_term)
 
 
 def grasp_distance_penalty(
     env: ManagerBasedRLEnv,
     action_name: str = "pick_place",
+    max_distance_diameters: float | None = None,
+    rope_diameter: float = 0.02,
+    diverged_term: str | None = None,
 ) -> torch.Tensor:
     """指を閉じた時点での 指先とロープの距離 `(num_envs,)` [m]。整形報酬。
 
     「狙ったリンクを実際に掴めたか」を連続量で表す。負の重みを掛けて使う。
     掴めていれば 0 に近く、空振りしていればロープまでの距離ぶん罰が入る。
+
+    ## 上限と発散のマスク (v2-R2 で追加。既定の None は v0〜v2 と同じ無制限)
+
+    距離は `close` 終了時に測るので、**その瞬間にロープが吹き飛んでいると
+    巨大な有限値** が入る (`nan_to_num` は NaN / Inf しか消さない)。
+    v2-R2 の最初の run はこれで `Episode_Reward/grasp_shaping` が −107.8、
+    `Loss/value_function` が 7.2e9 になり、適応学習率が下限まで落ちた。
+    ランダム方策の実測では正常な手の距離は最大 0.25 m、発散した手では
+    97 m が記録された (2026-09-27, 512 環境 x 24 手)。
+
+    * `max_distance_diameters`: ロープ直径の何倍で頭打ちにするか。
+    * `diverged_term`: この手で発散した環境は 0 にする (罰は `failure` が持つ)。
+
+    上限だけでなくマスクも要るのは、`close` で吹き飛んだロープが手の終わりまでに
+    有限・範囲内へ戻る場合と、戻らず発散と判定される場合の両方があるため。
     """
-    return _pick_place_term(env, action_name).grasp_distance
+    dist = _pick_place_term(env, action_name).grasp_distance
+    if max_distance_diameters is not None:
+        dist = dist.clamp(max=max_distance_diameters * rope_diameter)
+    return _zero_if_diverged(env, dist, diverged_term)
 
 
 def action_failed(
     env: ManagerBasedRLEnv,
     action_name: str = "pick_place",
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+    diverged_term: str | None = None,
 ) -> torch.Tensor:
     """手を実行できなかった / ロープが発散した `(num_envs,)`。罰則。
 
     `next_action.md` 4.5 の NaN 対策の報酬側。終了判定 (`terminations.rope_diverged`)
     と対になっていて、こちらは「その手は失敗だった」という信号を与える。
+
+    `diverged_term` (v2-R2) を指定すると、NaN だけでなくその終了項の判定
+    (有限のまま吹き飛んだロープを含む) も失敗に数える。報酬側で発散した手の
+    他の項を 0 にするので、発散の罰はこの項に一本化される。
     """
     invalid = _pick_place_term(env, action_name).invalid_action
     extractor = get_extractor(env, rope_cfg.name)
     diverged = ~torch.isfinite(extractor.nodes).all(dim=-1).all(dim=-1)
+    if diverged_term is not None:
+        diverged = diverged | diverged_now(env, diverged_term)
     return (invalid | diverged).float()
 
 
@@ -261,6 +319,7 @@ def held_up_penalty(
     height_diameters: float = 5.0,
     rope_diameter: float = 0.02,
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+    diverged_term: str | None = None,
 ) -> torch.Tensor:
     """手の終わりにロープが浮いたままか `(num_envs,)`。罰則。
 
@@ -269,7 +328,7 @@ def held_up_penalty(
     ことを **学習曲線ではなくログで** 気付けるようにする狙いもある
     (この項だけが立ち上がったら物理パラメータを疑う)。
     """
-    return (rope_zmax(env, rope_cfg) > height_diameters * rope_diameter).float()
+    return _zero_if_diverged(env, (rope_zmax(env, rope_cfg) > height_diameters * rope_diameter).float(), diverged_term)
 
 
 def diverged_by_class(

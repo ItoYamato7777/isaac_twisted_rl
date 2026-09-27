@@ -47,6 +47,7 @@ from isaaclab.managers import ManagerTermBase, RewardTermCfg, SceneEntityCfg
 
 from .. import topology as tp
 from .observations import get_extractor
+from .terminations import diverged_now
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -78,6 +79,9 @@ class TopologyStats(ManagerTermBase):
         print_envs: 0 より大きければ、先頭からこの数の環境について
             毎手 p-data (R2 除去前 / 後) とクラスを標準出力へ出す。
             **Play 専用**。記号層を回すので学習では 0 のままにすること。
+        diverged_term: `div_cls*` の発散の判定に使う終了項の名前。None なら
+            NaN だけを発散と数える。指定すると終了判定と同じ基準
+            (有限のまま吹き飛んだロープも含む) になる (`terminations.diverged_now`)。
     """
 
     def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):
@@ -95,6 +99,7 @@ class TopologyStats(ManagerTermBase):
         action_name: str = "pick_place",
         rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
         print_envs: int = 0,
+        diverged_term: str | None = None,
     ) -> torch.Tensor:
         extractor = get_extractor(env, rope_cfg.name)
         raw = extractor.batch
@@ -104,7 +109,10 @@ class TopologyStats(ManagerTermBase):
 
         term = env.action_manager.get_term(action_name)
         cls_start = term.class_r2_at_action_start
-        diverged = ~torch.isfinite(extractor.nodes).all(dim=-1).all(dim=-1)
+        if diverged_term is None:
+            diverged = ~torch.isfinite(extractor.nodes).all(dim=-1).all(dim=-1)
+        else:
+            diverged = diverged_now(env, diverged_term)
 
         c2, c3 = tp.CLASS_INTERLEAVED2, tp.CLASS_OVERHAND
         values = {

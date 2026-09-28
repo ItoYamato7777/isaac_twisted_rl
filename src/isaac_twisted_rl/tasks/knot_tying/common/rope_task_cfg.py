@@ -80,6 +80,7 @@ def _apply_rope(cfg: KnotTyingEnvCfg, rope_name: str) -> RopeSpec:
         rope_length=spec.rope_length,
         rope_diameter=spec.diameter,
         durations=cfg.durations,
+        limits=cfg.grasp_limits,
     )
 
     # -- 報酬のうち、ロープ寸法に依存する閾値
@@ -95,9 +96,13 @@ def _apply_rope(cfg: KnotTyingEnvCfg, rope_name: str) -> RopeSpec:
     # が組む順序が `_base.__post_init__(self)` -> `_apply_rope(self, preset)`
     # なので、バージョン側の `__post_init__` が走る時点ではまだ
     # プリセットが決まっていない。
-    for _term in cfg.rewards.__dict__.values():
-        if hasattr(_term, "params") and "rope_diameter" in _term.params:
-            _term.params["rope_diameter"] = spec.diameter
+    #
+    # 終了項も同じく埋める (v3 の `knot_tied` = `ladder_class_reached` が床判定に使う)。
+    # v2-R2 までの終了項は `rope_diameter` を持たないので挙動は変わらない。
+    for _group in (cfg.rewards, cfg.terminations):
+        for _term in _group.__dict__.values():
+            if hasattr(_term, "params") and "rope_diameter" in _term.params:
+                _term.params["rope_diameter"] = spec.diameter
 
     return spec
 

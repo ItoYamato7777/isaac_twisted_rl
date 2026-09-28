@@ -136,6 +136,14 @@ class KnotTyingEnvCfg(ManagerBasedRLEnvCfg):
     durations: phases.PhaseDurations = phases.PhaseDurations()
     """1 手を構成するフェーズの尺。decimation はこの合計から決まる。"""
 
+    grasp_limits: phases.GraspLimits = phases.GraspLimits()
+    """行動のチャネルを物理量へ変換するときの範囲 (`PickPlaceActionCfg.limits` へ渡る)。
+
+    v3 で追加した (既定値は従来の `GraspLimits()` なので v0〜v2-R2 は変わらない)。
+    `actions.pick_place` はプリセット適用 (`rope_task_cfg._apply_rope`) で作られるので、
+    バージョン側の設定からはここを通して変える (`durations` と同じ経路)。
+    """
+
     actions_per_episode: int = MISSING
     """1 エピソードで打てる手の数。
 

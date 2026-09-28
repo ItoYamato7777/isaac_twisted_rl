@@ -11,6 +11,7 @@ uv run train --task Isaac-Twisted-RL-Twist-v0 --headless   # 交差を 1 つ作�
 uv run train --task Isaac-Twisted-RL-Twist-v1 --headless   # 固結び (学習失敗)
 uv run train --task Isaac-Twisted-RL-Twist-v2 --headless   # 固結び (作り直し)
 uv run train --task Isaac-Twisted-RL-Twist-v2-R2 --headless   # v2 + R2 除去で段を判定
+uv run train --task Isaac-Twisted-RL-Knot-v3 --headless    # 論文の中核を取り込んだ版 (Knot で学習)
 ```
 
 ## バージョン一覧
@@ -25,6 +26,7 @@ uv run train --task Isaac-Twisted-RL-Twist-v2-R2 --headless   # v2 + R2 除去�
 | `v1` | **固結び (overhand knot)** を作る (**学習は失敗した**) | 8 手 | [versions/v1/README.md](versions/v1/README.md) |
 | `v2` | 固結び。v1 の失敗を実測から特定して作り直したもの | 6 手 | [versions/v2/README.md](versions/v2/README.md) |
 | `v2-R2` | v2 の報酬ラダーを **R2 除去後の位相**で判定する (v2 の C2 は偽物だった) | 6 手 | [versions/v2_r2/README.md](versions/v2_r2/README.md) |
+| `v3` | 論文の中核を取り込む: **到達状態アーカイブからのリセット・固結びで終了・BFS 距離のポテンシャル** (Report §7 P1)。学習は `Knot` | 12 手 (成功で終了) | [versions/v3/README.md](versions/v3/README.md) |
 
 v1 は 4000 iteration の設定に対し 157 で打ち切られ、報酬が下降を続けた。
 原因は「疎報酬 (`overhand_achieved`) が一度も発火せず、PPO が受け取る勾配が
@@ -33,7 +35,7 @@ v1 は 4000 iteration の設定に対し 157 で打ち切られ、報酬が下�
 (詳細と TensorBoard の実測値は [versions/v2/README.md](versions/v2/README.md))。
 
 各バージョンには 5 つのロープのプリセットがある
-(`Twist` / `Simple` / `Stiff` / `Fine` / `Knot`)。**学習に使うのは `Twist`** で、
+(`Twist` / `Simple` / `Stiff` / `Fine` / `Knot`)。**v2-R2 までの学習は `Twist`、v3 は `Knot`** で、
 `Simple` / `Stiff` / `Fine` は比較用ベースライン。`Knot` は `Twist` と同じ材料で
 28 リンク (1.14 m) に延ばした固結び用で、**台本で固結びが結べることを確かめた
 唯一のプリセット** (ゲート 1。`Twist` は長さが足りない。詳細は
@@ -44,19 +46,20 @@ v1 は 4000 iteration の設定に対し 157 で打ち切られ、報酬が下�
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-{v0,v1}          # 20 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2[-RNN|-LSTM]   # 30 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2-R2[-RNN|-LSTM]   # 30 タスク
+Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v3[-RNN|-LSTM]   # 30 タスク
 ```
 
 `v2-R2` のようにハイフンを含むバージョン表記は、パッケージ名では
 `versions/v2_r2/` になる (`__init__.py` の `_version_package`)。
 
-v2 だけは **1 つの環境設定に対してエージェント設定が 3 つ**ある
+v2 以降は **1 つの環境設定に対してエージェント設定が 3 つ**ある
 (MLP / GRU / LSTM)。接尾辞なしが MLP、`-RNN` が GRU、`-LSTM` が LSTM。
 `OnPolicyRunner` は方策を 1 つしか作れないので、ネットワーク構造を比べるには
 同じ env に別の agent cfg を登録するしかない (`_AGENT_VARIANTS` 参照)。
 
-学習ログはバージョンごと、**さらに v2 は変種ごと**に分かれる:
+学習ログはバージョンごと、**さらに v2 以降は変種ごと**に分かれる:
 `logs/rsl_rl/knot_tying_v0/` / `knot_tying_v1/` / `knot_tying_v2/` /
-`knot_tying_v2_rnn/` / `knot_tying_v2_lstm/` / `knot_tying_v2_r2{,_rnn,_lstm}/`。混ざっていると `--resume` で
+`knot_tying_v2_rnn/` / `knot_tying_v2_lstm/` / `knot_tying_v2_r2{,_rnn,_lstm}/` / `knot_tying_v3{,_rnn,_lstm}/`。混ざっていると `--resume` で
 誤って別バージョン・別構造のチェックポイントを読んでしまうため
 (`load_state_dict` は `strict=True` なので、構造が違えば `RuntimeError`)。
 
@@ -70,6 +73,7 @@ knot_tying/
 │   ├── env_cfg_base.py     シーン・物理・decimation (KnotTyingEnvCfg)
 │   ├── rope_task_cfg.py    プリセット別クラスを作るファクトリ (make_preset_cfgs)
 │   ├── rope_state.py       Articulation <-> topology/ の接続層
+│   ├── state_archive.py    到達状態アーカイブ (純 torch、v3)
 │   ├── mdp/                MDP 項のライブラリ (**全バージョンの項を集める**)
 │   │   ├── phases.py         1 手を構成する 12 フェーズの尺と定数
 │   │   ├── actions.py        PickPlaceAction (実装の中心)
@@ -77,6 +81,7 @@ knot_tying/
 │   │   ├── rewards.py        報酬項
 │   │   ├── terminations.py   終了判定 (NaN 対策)
 │   │   ├── topology_log.py   位相ラダーの集計ログと Play 時の p-data 表示 (v2-R2)
+│   │   ├── archive.py        アーカイブからのリセット・保存・ログ (v3)
 │   │   └── events.py         起動時イベント (摩擦材 bind, body 順序検算)
 │   ├── topology/           3D 点列 -> 位相 (交差・p-data・結び目判定)。
 │   │                       isaaclab を import しないので Sim 無しでテストできる
@@ -87,7 +92,8 @@ knot_tying/
 │   ├── v0/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}
 │   ├── v1/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}
 │   ├── v2/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← 3 変種
-│   └── v2_r2/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v2 を継承、判定器だけ差し替え
+│   ├── v2_r2/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v2 を継承、判定器だけ差し替え
+│   └── v3/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v2-R2 を継承、リセット・終了・報酬を差し替え
 │
 └── demos/            ← RL 環境から import されない独立スクリプト
 ```
@@ -144,7 +150,7 @@ uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py 
 uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py --task Isaac-Twisted-RL-Knot-v2-R2 --num_envs 128 --jitter 0.25 --headless --replay_actions
 
 # 位相まわりの単体テスト (Isaac Sim を起動せずに走る)
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/test_knot_tying_topology.py tests/test_knot_detect.py tests/test_r2_reduce.py
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/
 ```
 
 ## 注意: Kit 起動前に import されるファイル

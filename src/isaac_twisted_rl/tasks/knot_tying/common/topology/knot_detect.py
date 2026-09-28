@@ -81,9 +81,20 @@ MAX_CROSSINGS_CONSIDERED = 8
 """部分列探索で見る交差数の上限。
 
 ロープがぐしゃぐしゃになった環境で C(count, 3) が爆発するのを防ぐ。
-8 なら 56 通り。実機で結び目が成立しているときの交差数は 3〜7 程度なので
-実用上の取りこぼしは無い (`README.md` の計測項目 `count` ヒストグラムで
-監視すること)。
+8 なら 56 通り。
+
+## 打ち切る前に gap 1 の交差を後ろへ回す (2026-09-28 修正、全バージョンに効く)
+
+以前は先頭 8 スロットをそのまま使っていた。スロットは `(seg_i, seg_j)` の
+辞書順 = **頭側のセグメントから順** なので、交差が 9 個以上あると尻尾側の
+交差が探索から漏れ、結び目が紐のどちら側にあるかで判定が変わっていた
+(`paper/Report.md` §6.3。三葉結び + 頭側の R1 ループ 6 個で `is_overhand` が
+False、尻尾側なら True)。
+
+gap 1 の交差 (R1 のねじれ) は、どの部分列を取っても 2 点が隣り合ったまま
+なので gap k ≥ 2 の条件を **決して満たさない**。これを後ろへ回してから
+打ち切れば、結果は変えずに見落としだけが減る。それでも gap ≥ 2 の交差が
+8 個を超える環境は `subsequence_truncated` で数えられる (v3 のログ `r2_trunc`)。
 """
 
 
@@ -132,6 +143,37 @@ def sign_consistent(batch: IntersectionBatch) -> torch.Tensor:
     return (batch.writhe.abs() == count) & (count > 0)
 
 
+def _useless_for_subsequence(batch: IntersectionBatch) -> torch.Tensor:
+    """部分列判定で決して使われない交差 `(num_envs, M)` bool (無効な行と gap 1 の交差)。"""
+    return ~batch.valid_mask | (partner_gaps(batch) == 1)
+
+
+def _candidate_slots(batch: IntersectionBatch) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """部分列探索に使う先頭 `MAX_CROSSINGS_CONSIDERED` スロットの `(order, data, valid)`。
+
+    交差がそれより多いときは、gap 1 の交差を後ろへ回してから打ち切る
+    (`MAX_CROSSINGS_CONSIDERED` の docstring)。安定ソートなので、残る交差の
+    相対順は変わらない。点番号は振り直さない (部分列の中で順位を取り直すため不要)。
+    """
+    num_slots = batch.order.shape[1]
+    limit = MAX_CROSSINGS_CONSIDERED
+    if num_slots <= limit:
+        return batch.order, batch.data, batch.valid_mask
+    sel = torch.argsort(_useless_for_subsequence(batch).to(torch.int8), dim=1, stable=True)[:, :limit]
+    order = batch.order.gather(1, sel.unsqueeze(-1).expand(-1, -1, 2))
+    data = batch.data.gather(1, sel.unsqueeze(-1).expand(-1, -1, 4))
+    valid = batch.valid_mask.gather(1, sel) & (partner_gaps(batch).gather(1, sel) != 1)
+    return order, data, valid
+
+
+def subsequence_truncated(batch: IntersectionBatch) -> torch.Tensor:
+    """gap ≥ 2 の交差が `MAX_CROSSINGS_CONSIDERED` を超え、部分列探索で漏れが出うる env `(num_envs,)`。
+
+    ログ用 (v3 の `r2_trunc`)。これが増えるなら上限を上げることを検討する。
+    """
+    return (~_useless_for_subsequence(batch)).sum(dim=1) > MAX_CROSSINGS_CONSIDERED
+
+
 def has_knot_subsequence(batch: IntersectionBatch, k: int = 3) -> torch.Tensor:
     """k 個組で「交互・同符号」を成す部分列が在るか `(num_envs,)` bool。
 
@@ -144,23 +186,23 @@ def has_knot_subsequence(batch: IntersectionBatch, k: int = 3) -> torch.Tensor:
 
     env ごとの Python ループは持たない。全て `(B, T, ...)` の一括演算。
     """
-    order = batch.order
+    order, data, valid_mask = _candidate_slots(batch)
     device = order.device
     num_envs = order.shape[0]
-    num_slots = min(order.shape[1], MAX_CROSSINGS_CONSIDERED)
+    num_slots = order.shape[1]
     if num_slots < k:
         return torch.zeros(num_envs, dtype=torch.bool, device=device)
 
     sub = _subsets(num_slots, k, device)  # (T, k)
 
-    valid = batch.valid_mask[:, :num_slots][:, sub]  # (B, T, k)
+    valid = valid_mask[:, sub]  # (B, T, k)
     all_valid = valid.all(dim=-1)
 
-    signs = batch.data[:, :num_slots, 3][:, sub]  # (B, T, k)
+    signs = data[:, :, 3][:, sub]  # (B, T, k)
     same_sign = (signs == signs[..., :1]).all(dim=-1)
 
     # 選んだ k 交差の点番号 2k 個。部分列の中だけで順位を取り直す。
-    picked = order[:, :num_slots][:, sub].reshape(num_envs, -1, 2 * k)  # (B, T, 2k)
+    picked = order[:, sub].reshape(num_envs, -1, 2 * k)  # (B, T, 2k)
     ordered, _ = picked.sort(dim=-1)
     # 点番号が重複していたら (別の交差が同じ点を共有) その組は無効。
     distinct = (ordered[..., 1:] > ordered[..., :-1]).all(dim=-1)

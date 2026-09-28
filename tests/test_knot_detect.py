@@ -582,3 +582,49 @@ def test_making_and_breaking_a_knot_is_not_profitable():
 def test_potential_table_matches_class_count():
     """ポテンシャル表の長さが位相クラス数と一致する。"""
     assert len(_POTENTIALS) == kd.NUM_CLASSES
+
+
+# ---------------------------------------------------------------- 8 スロット打ち切り (Report §6.3)
+
+
+def _trefoil_with_r1_loops(num_loops: int, at_head: bool):
+    """三葉結び (上下交互・同符号) に、独立した R1 ループを `num_loops` 個足した交差リスト。
+
+    `paper/Report.md` 付録 A-2 の再現。セグメント番号は点番号をそのまま使うので、
+    スロットの辞書順 = 紐の始点側からの順になる (実機の `segment_intersections` と同じ)。
+    """
+    items, orders = [], []
+    loops = [(2 * t + 1, 2 * t + 2) for t in range(num_loops)]
+    base = 2 * num_loops if at_head else 0
+    trefoil = [(base + 1, base + 4, 1), (base + 2, base + 5, -1), (base + 3, base + 6, 1)]
+    if not at_head:
+        loops = [(6 + p, 6 + q) for p, q in loops]
+    for p, q in loops:
+        items.append((p, q, 1, 1))
+        orders.append((p, q))
+    for p, q, over in trefoil:
+        items.append((p, q, over, 1))
+        orders.append((p, q))
+    ranked = sorted(zip(items, orders))
+    return [x for x, _ in ranked], [o for _, o in ranked]
+
+
+@pytest.mark.parametrize("num_loops", [5, 6, 7, 9])
+@pytest.mark.parametrize("at_head", [True, False])
+def test_overhand_found_regardless_of_r1_loop_side(num_loops: int, at_head: bool):
+    """R1 ループが頭側にあっても尻尾側にあっても固結びを見つける (以前は頭側 6 個で失敗した)。"""
+    batch = tp.IntersectionBatch.from_lists([_trefoil_with_r1_loops(num_loops, at_head)])
+    assert int(batch.count.item()) == num_loops + 3
+    assert bool(kd.is_overhand(batch).item())
+    assert int(kd.topology_class(tp.reduce_r2(batch)).item()) == kd.CLASS_OVERHAND
+    assert not bool(kd.subsequence_truncated(batch).item())
+
+
+def test_subsequence_truncated_counts_only_useful_crossings():
+    """gap ≥ 2 の交差が上限を超えたときだけ True。"""
+    many = [(p, p + 2, 1 if p % 2 else -1, 1) for p in range(1, 20, 4)]  # gap 2 の交差を多数
+    items = [(p, q, o, s) for p, q, o, s in many] + [(p + 1, p + 3, 1, 1) for p, *_ in many]
+    orders = [(p, q) for p, q, *_ in items]
+    batch = tp.IntersectionBatch.from_lists([(sorted(items), sorted(orders))])
+    useful = int((kd.partner_gaps(batch) >= 2).sum().item())
+    assert bool(kd.subsequence_truncated(batch).item()) == (useful > kd.MAX_CROSSINGS_CONSIDERED)

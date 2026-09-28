@@ -170,6 +170,7 @@ class PickPlaceAction(ActionTerm):
         # おき、読まれたときだけ計算する。抽出器は update() ごとに新しい
         # テンソルを作るので、参照を持つだけで「手を打つ前」が保存される。
         self._batch_at_start = None
+        self._reduced_batch_at_start = None
         self._class_r2_at_start: torch.Tensor | None = None
         self._grasp_dist = torch.zeros(num_envs, device=dev)
         self._invalid = torch.zeros(num_envs, dtype=torch.bool, device=dev)
@@ -220,11 +221,30 @@ class PickPlaceAction(ActionTerm):
         if self._class_r2_at_start is None:
             from .. import topology as tp
 
-            if self._batch_at_start is None:
+            reduced = self.reduced_batch_at_action_start
+            if reduced is None:
                 self._class_r2_at_start = torch.zeros_like(self._class_at_start)
             else:
-                self._class_r2_at_start = tp.topology_class(tp.reduce_r2(self._batch_at_start))
+                self._class_r2_at_start = tp.topology_class(reduced)
         return self._class_r2_at_start
+
+    @property
+    def batch_at_action_start(self):
+        """手を始めた時点の交差 (`IntersectionBatch`、R2 除去前)。まだ 1 手も打っていなければ None。"""
+        return self._batch_at_start
+
+    @property
+    def reduced_batch_at_action_start(self):
+        """手を始めた時点の交差を R2 除去したもの (`IntersectionBatch`)。まだ 1 手も打っていなければ None。
+
+        v3 の BFS ポテンシャル (`knot_class_shaping(potential="bfs")`) が `Φ(s)` を
+        引くのに使う。R2 除去は重いので読まれたときだけ計算し、同じ手の中では使い回す。
+        """
+        if self._reduced_batch_at_start is None and self._batch_at_start is not None:
+            from .. import topology as tp
+
+            self._reduced_batch_at_start = tp.reduce_r2(self._batch_at_start)
+        return self._reduced_batch_at_start
 
     @property
     def grasp_distance(self) -> torch.Tensor:
@@ -304,6 +324,7 @@ class PickPlaceAction(ActionTerm):
         self._count_at_start = self._current_crossing_count()
         self._class_at_start = self._current_topology_class()
         self._batch_at_start = self._current_batch()
+        self._reduced_batch_at_start = None
         self._class_r2_at_start = None
         self._grasp_dist = torch.zeros_like(self._grasp_dist)
 

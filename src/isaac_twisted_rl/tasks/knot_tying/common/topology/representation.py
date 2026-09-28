@@ -331,3 +331,294 @@ class AbstractState:
         for f in self.faces:
             if f.edge >= 2 * idx:
                 f.edge -= 2
+
+    def copy(self) -> AbstractState:
+        """独立した複製。`copy.deepcopy` より 1 桁速い (BFS の展開で大量に呼ぶ)。"""
+        new = AbstractState.__new__(AbstractState)
+        new.points = [Point(p.over, p.under, p.sign) for p in self.points]
+        new.edges = [Edge(e.face, e.next, e.prev) for e in self.edges]
+        new.faces = [Face(f.edge) for f in self.faces]
+        return new
+
+    # ------------------------------------------------ 位相移動 (v3 で移植)
+    #
+    # 以下 3 つは移植元 (`twisted_rl` の `representation.py`) の `cross` /
+    # `Reide1` / `Reide2` をそのまま写したもの。**ロジックは 1 行も変えていない**
+    # (変えたのは `pdb.set_trace()` を例外にしたことと、コメントの日本語化だけ)。
+    # 高レベルの位相グラフ (`knot_graph.py`) の BFS が使う。
+    #
+    # どれも「移動できたら self を書き換えて True、できなければ False」を返す。
+    # False のとき self が元のままである保証は移植元にも無い (途中まで書き換えて
+    # から戻す経路がある) ので、**必ず `copy()` した状態に対して呼ぶこと**。
+
+    def cross(self, over_idx: int, under_idx: int, sign: int = 1) -> bool:
+        """端のセグメントを別のセグメントの上 (または下) へ渡し、交差を 1 つ作る。
+
+        セグメント `[over_idx, over_idx+1]` が `[under_idx, under_idx+1]` の上を通る。
+        どちらか一方は端のセグメント (0 か pts) でなければならず、2 つのセグメントは
+        同じ面 (ループ) に接していなければならない。
+        """
+        if (over_idx > 0) and (under_idx > 0) and (over_idx < self.pts) and (under_idx < self.pts):
+            return False
+
+        if over_idx == under_idx:
+            return False  # R1 を使う
+
+        # 2 つのセグメントが同じ面に接していないと、別の交差を先に作らない限り渡せない。
+        prev_over_left = self.edges[2 * over_idx].face
+        prev_over_right = self.edges[2 * over_idx + 1].face
+        prev_under_left = self.edges[2 * under_idx].face
+        prev_under_right = self.edges[2 * under_idx + 1].face
+        if (
+            (prev_over_left != prev_under_left)
+            and (prev_over_right != prev_under_left)
+            and (prev_over_left != prev_under_right)
+            and (prev_over_right != prev_under_right)
+        ):
+            return False
+
+        if over_idx < under_idx:
+            self.addPoint(over_idx + 1)
+            self.addPoint(under_idx + 2)
+            over_idx += 1
+            under_idx += 2
+        else:
+            self.addPoint(under_idx + 1)
+            self.addPoint(over_idx + 2)
+            over_idx += 2
+            under_idx += 1
+
+        # 符号は「どちらが上か」と「共有する面が中央のセグメントの左右どちらか」で決まる。
+        if (over_idx in [1, self.pts]) and (under_idx in [1, self.pts]):
+            from_face = self.edges[0].face
+            enter_face = from_face
+            if (sign == 1) == (over_idx == self.pts):
+                from_face_edges = [2 * (under_idx - 1), 2 * under_idx]
+                enter_face_edges = [2 * under_idx + 1, 2 * under_idx - 1]
+            else:
+                enter_face_edges = [2 * (under_idx - 1), 2 * under_idx]
+                from_face_edges = [2 * under_idx + 1, 2 * under_idx - 1]
+            end_idx = over_idx
+        elif over_idx in [1, self.pts]:
+            input_sign = sign
+            sign = -1 if (prev_under_left == prev_over_left) == (over_idx == 1) else 1
+            if input_sign != sign:
+                self.removePoint(max(over_idx, under_idx))
+                self.removePoint(min(over_idx, under_idx))
+                return False
+            from_face = self.edges[2 * over_idx].face
+            if prev_over_left == prev_under_left:
+                enter_face = self.edges[2 * under_idx + 1].face
+                enter_face_edges = [2 * under_idx + 1, 2 * under_idx - 1]
+                from_face_edges = [2 * (under_idx - 1), 2 * under_idx]
+            else:
+                enter_face = self.edges[2 * under_idx].face
+                enter_face_edges = [2 * (under_idx - 1), 2 * under_idx]
+                from_face_edges = [2 * under_idx + 1, 2 * under_idx - 1]
+            end_idx = over_idx
+        elif under_idx in [1, self.pts]:
+            input_sign = sign
+            sign = 1 if (prev_under_left == prev_over_left) == (under_idx == 1) else -1
+            if input_sign != sign:
+                self.removePoint(max(over_idx, under_idx))
+                self.removePoint(min(over_idx, under_idx))
+                return False
+            from_face = self.edges[2 * under_idx].face
+            if prev_under_left == prev_over_left:
+                enter_face = self.edges[2 * over_idx + 1].face
+                enter_face_edges = [2 * over_idx + 1, 2 * over_idx - 1]
+                from_face_edges = [2 * (over_idx - 1), 2 * over_idx]
+            else:
+                enter_face = self.edges[2 * over_idx].face
+                enter_face_edges = [2 * (over_idx - 1), 2 * over_idx]
+                from_face_edges = [2 * over_idx + 1, 2 * over_idx - 1]
+            end_idx = under_idx
+        if end_idx == 1:
+            end_edges = [3, 1, 0, 2]
+        else:
+            end_edges = [2 * self.pts - 2, 2 * self.pts, 2 * self.pts + 1, 2 * self.pts - 1]
+
+        self.point_intersect(over_idx, under_idx, sign)
+
+        self.link_edges(enter_face_edges[0], end_edges[1])
+        self.link_edges(end_edges[2], enter_face_edges[1])
+        self.link_edges(from_face_edges[0], end_edges[3])
+        self.link_edges(end_edges[0], from_face_edges[1])
+
+        self.edges[end_edges[1]].face = enter_face
+        self.edges[end_edges[2]].face = enter_face
+        new_face_idx = len(self.faces)
+        self.reindex_face(end_edges[0], new_face_idx)
+        self.faces.append(Face(end_edges[0]))
+        old_face_idx = self.edges[end_edges[3]].face
+        if self.edges[self.faces[old_face_idx].edge].face != old_face_idx:
+            self.faces[old_face_idx].edge = end_edges[3]
+        return True
+
+    def Reide1(self, idx: int, sign: int, left: int) -> bool:  # noqa: N802 (移植元の名前を維持)
+        """セグメント `[idx, idx+1]` に R1 の輪を作る。
+
+        Args:
+            idx: 輪を作るセグメント。
+            sign: 新しい交差の符号。
+            left: 輪が元のセグメントの左側なら 1、右側なら -1。
+        """
+        self.addPoint(idx + 1)
+        self.addPoint(idx + 2)
+        if sign == left:
+            self.point_intersect(idx + 2, idx + 1, sign)
+        else:
+            self.point_intersect(idx + 1, idx + 2, sign)
+
+        if left == 1:
+            old_face_edges = [2 * idx, 2 * (idx + 1) + 1, 2 * (idx + 2), 2 * (idx + 2) + 1, 2 * idx + 1]
+            new_face_edge = 2 * (idx + 1)
+        else:
+            old_face_edges = [2 * (idx + 2) + 1, 2 * (idx + 1), 2 * idx + 1, 2 * idx, 2 * (idx + 2)]
+            new_face_edge = 2 * (idx + 1) + 1
+
+        self.link_edges(old_face_edges[0], old_face_edges[1])
+        self.link_edges(old_face_edges[1], old_face_edges[2])
+        self.link_edges(old_face_edges[3], old_face_edges[4])
+        self.link_edges(new_face_edge, new_face_edge)
+        self.edges[old_face_edges[1]].face = self.edges[old_face_edges[0]].face
+        self.edges[new_face_edge].face = len(self.faces)
+        self.faces.append(Face(new_face_edge))
+        return True
+
+    def Reide2(self, over_idx: int, under_idx: int, left: int = 1, over_before_under: int = 1) -> bool:  # noqa: N802
+        """セグメント `[over_idx, over_idx+1]` を `[under_idx, under_idx+1]` の上へ重ね、交差を 2 つ作る。
+
+        `over_idx == under_idx` のときは、`over_before_under == 1` なら前半を後半の上へ重ねる。
+        """
+        # R2 を定義するには両端が同じ面に接していなければならない。
+        if self.edges[0].face != self.edges[-1].face:
+            return False
+        # 処理を簡単にするため、両端を仮の辺で繋いでおく (最後に undo で外す)。
+        self.link_edges(2 * self.pts, 0)
+        self.link_edges(1, 2 * self.pts + 1)
+        temp_face_idx = len(self.faces) + 5
+        self.reindex_face(0, temp_face_idx)
+
+        def undo():
+            self.reindex_face(0, self.edges[1].face)
+            self.link_edges(1, 0)
+            self.link_edges(2 * self.pts, 2 * self.pts + 1)
+
+        # 2 つのセグメントが面を共有していなければ移動できない。左右両方を共有して
+        # いる場合は `left` で上のセグメントのどちら側から渡るかを選ぶ。
+        faces = [
+            self.edges[2 * over_idx].face,
+            self.edges[2 * over_idx + 1].face,
+            self.edges[2 * under_idx].face,
+            self.edges[2 * under_idx + 1].face,
+        ]
+        if len(set(faces)) == 4:
+            undo()
+            return False
+        if len(set(faces)) < 2:
+            undo()
+            return False
+
+        shared_face = None
+        if faces[0] == faces[2] or faces[0] == faces[3]:
+            shared_face = faces[0]
+        if faces[1] == faces[2] or faces[1] == faces[3]:
+            if shared_face is None or (left == -1):
+                shared_face = faces[1]
+
+        if shared_face == faces[0] and left == -1:
+            undo()
+            return False
+        if shared_face == faces[1] and left == 1:
+            undo()
+            return False
+
+        if over_idx > under_idx and over_before_under == 1:
+            undo()
+            return False
+        if over_idx < under_idx and over_before_under == -1:
+            undo()
+            return False
+
+        if over_before_under == 1:
+            self.addPoint(over_idx + 1)
+            self.addPoint(over_idx + 2)
+            self.addPoint(under_idx + 3)
+            self.addPoint(under_idx + 4)
+            under_idx += 2
+        else:
+            self.addPoint(under_idx + 1)
+            self.addPoint(under_idx + 2)
+            self.addPoint(over_idx + 3)
+            self.addPoint(over_idx + 4)
+            over_idx += 2
+
+        # どの 2 点が組になり、符号がどうなるかは、共有する面に対するセグメントの向きで決まる。
+        if shared_face == faces[0] and shared_face == faces[3]:
+            self.point_intersect(over_idx + 1, under_idx + 1, -1)
+            self.point_intersect(over_idx + 2, under_idx + 2, 1)
+            f1_edges = [2 * over_idx, 2 * under_idx + 1]
+            f2_edges = [2 * under_idx, 2 * (over_idx + 1), 2 * (under_idx + 2)]
+            f3_edges = [2 * (over_idx + 2) + 1, 2 * (under_idx + 1) + 1, 2 * (over_idx) + 1]
+            f4_edges = [2 * (under_idx + 2) + 1, 2 * (over_idx + 2)]
+            f5_edges = [2 * (under_idx + 1), 2 * (over_idx + 1) + 1]
+        elif shared_face == faces[0] and shared_face == faces[2]:
+            self.point_intersect(over_idx + 1, under_idx + 2, 1)
+            self.point_intersect(over_idx + 2, under_idx + 1, -1)
+            f1_edges = [2 * over_idx, 2 * (under_idx + 2)]
+            f2_edges = [2 * (under_idx + 2) + 1, 2 * (over_idx + 1), 2 * (under_idx) + 1]
+            f3_edges = [2 * (over_idx + 2) + 1, 2 * (under_idx + 1), 2 * (over_idx) + 1]
+            f4_edges = [2 * (under_idx), 2 * (over_idx + 2)]
+            f5_edges = [2 * (under_idx + 1) + 1, 2 * (over_idx + 1) + 1]
+        elif shared_face == faces[1] and shared_face == faces[2]:
+            self.point_intersect(over_idx + 1, under_idx + 1, 1)
+            self.point_intersect(over_idx + 2, under_idx + 2, -1)
+            f1_edges = [2 * under_idx, 2 * over_idx + 1]
+            f2_edges = [2 * (under_idx + 2) + 1, 2 * (over_idx + 1) + 1, 2 * (under_idx) + 1]
+            f3_edges = [2 * (over_idx), 2 * (under_idx + 1), 2 * (over_idx + 2)]
+            f4_edges = [2 * (over_idx + 2) + 1, 2 * (under_idx + 2)]
+            f5_edges = [2 * (under_idx + 1) + 1, 2 * (over_idx + 1)]
+        elif shared_face == faces[1] and shared_face == faces[3]:
+            self.point_intersect(over_idx + 1, under_idx + 2, -1)
+            self.point_intersect(over_idx + 2, under_idx + 1, 1)
+            f1_edges = [2 * (over_idx + 2) + 1, 2 * (under_idx) + 1]
+            f2_edges = [2 * (under_idx), 2 * (over_idx + 1) + 1, 2 * (under_idx + 2)]
+            f3_edges = [2 * (over_idx), 2 * (under_idx + 1) + 1, 2 * (over_idx + 2)]
+            f4_edges = [2 * (under_idx + 2) + 1, 2 * over_idx + 1]
+            f5_edges = [2 * (under_idx + 1), 2 * (over_idx + 1)]
+        else:
+            # 移植元は pdb.set_trace() で止めていた (到達しないはずの分岐)。
+            raise RuntimeError("Reide2: 共有する面の組み合わせが想定外")
+        self.link_edges(f1_edges[0], f1_edges[1])
+        self.link_edges(f2_edges[0], f2_edges[1])
+        self.link_edges(f2_edges[1], f2_edges[2])
+        self.link_edges(f3_edges[0], f3_edges[1])
+        self.link_edges(f3_edges[1], f3_edges[2])
+        self.link_edges(f4_edges[0], f4_edges[1])
+        self.link_edges(f5_edges[0], f5_edges[1])
+        self.link_edges(f5_edges[1], f5_edges[0])
+
+        self.edges[f2_edges[1]].face = self.edges[f2_edges[0]].face
+        self.edges[f3_edges[1]].face = self.edges[f3_edges[0]].face
+        f4_idx = len(self.faces)
+        self.reindex_face(f4_edges[0], f4_idx)
+        self.faces.append(Face(f4_edges[0]))
+        f5_idx = len(self.faces)
+        self.reindex_face(f5_edges[0], f5_idx)
+        self.faces.append(Face(f5_edges[0]))
+        f1_idx = self.edges[f1_edges[0]].face
+        if f1_idx == temp_face_idx:
+            if self.edges[0].face != f1_idx:
+                # f4 と f1 を入れ替える
+                self.reindex_face(f4_edges[0], f1_idx)
+                self.reindex_face(f1_edges[0], f4_idx)
+                self.faces[f4_idx].edge = f1_edges[0]
+            if self.edges[0].face != f1_idx:
+                raise RuntimeError("something is wrong with R2 switch face")
+        else:
+            if self.edges[self.faces[f1_idx].edge].face != f1_idx:
+                self.faces[f1_idx].edge = f1_edges[0]
+        # 両端の仮の辺を外す。
+        undo()
+        return True

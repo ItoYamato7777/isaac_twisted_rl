@@ -19,7 +19,8 @@ import torch
 
 from isaaclab.managers import SceneEntityCfg
 
-from .observations import get_extractor
+from .. import topology as tp
+from .observations import get_extractor, rope_zmax
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -105,3 +106,33 @@ def topology_reached(
     続ける方針にしてある。カリキュラムを組むときのために用意しておく。
     """
     return get_extractor(env, rope_cfg.name).count >= min_crossings
+
+
+def ladder_class_reached(
+    env: ManagerBasedRLEnv,
+    min_class: int = tp.CLASS_OVERHAND,
+    reduce_r2: bool = True,
+    settled_height_diameters: float = 3.0,
+    rope_diameter: float = 0.02,
+    diverged_term: str | None = None,
+    rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+) -> torch.Tensor:
+    """位相ラダーの段が `min_class` 以上に達し、ロープが床に落ちている `(num_envs,)`。v3 で追加。
+
+    v3 の「成功で終了」(`paper/Report.md` §7 P1-2、TWISTED-RL の 1 遷移 = 1 エピソード)。
+    `time_out=False` の終了項として使うので、PPO はここで bootstrap しない。
+
+    `topology_reached` (交差数版) と違い、段は報酬と同じ `topology_class`
+    (既定は R2 除去後) で判定する。床に落ちているかの条件と発散のマスクも
+    `overhand_achieved` / `LadderProgressBonus` と揃えてある。報酬が払われない
+    状態で終わったり、報酬が払われたのに続いたりしないようにするため。
+
+    `rope_diameter` は `rope_task_cfg._apply_rope` がプリセットの値で埋める。
+    """
+    extractor = get_extractor(env, rope_cfg.name)
+    reached = tp.topology_class(extractor.ladder_batch(reduce_r2)) >= min_class
+    settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
+    done = reached & settled
+    if diverged_term is not None:
+        done &= ~diverged_now(env, diverged_term)
+    return done

@@ -25,11 +25,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import torch
 
-from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import ManagerTermBase, RewardTermCfg, SceneEntityCfg
 
 from .. import topology as tp
 from . import phases
@@ -104,6 +105,7 @@ def knot_class_shaping(
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
     reduce_r2: bool = False,
     diverged_term: str | None = None,
+    potential: str = "class",
 ) -> torch.Tensor:
     """位相ラダーのポテンシャル整形 `(num_envs,)`。密報酬。
 
@@ -144,16 +146,107 @@ def knot_class_shaping(
     「登った段から発散で降りる」ことの損失 `−Φ(s)` が消えてしまう。
     指定しない (v0〜v2) と、発散したロープ座標から測った出鱈目な段で
     `Φ(s')` を払ってしまう。
+
+    ## `potential` (v3)
+
+    * `"class"` (既定): 上の 4 クラスのラダー。`potentials` で値を決める。
+    * `"bfs"`: `max(p-data グラフ上の BFS 距離の値, R2 除去後のラダーの class / 3)`
+      (`topology/knot_graph.py`)。`potentials` は使わない。`reduce_r2=True` が必須。
+      BFS は R2 除去前の p-data で引くので、ゲート 1 の cover 後の状態 (R2 除去後は
+      C1 と同じ) を 2/3 に評価できる。ラダーより下がる状態は無い。
+
+    成功で終了するエピソード (v3 の `knot_tied`) でも `Φ(s')` は実際の値のまま払う。
+    終端のポテンシャルを 0 とする流儀もあるが、そうすると固結びを作った手に
+    `−Φ(s)` の罰が乗ってしまう。発散 (上記) とは逆に、成功を罰する理由は無い。
     """
     extractor = get_extractor(env, rope_cfg.name)
-    table = torch.tensor(potentials, dtype=torch.float32, device=extractor.count.device)
     term = _pick_place_term(env, action_name)
-    before = term.class_r2_at_action_start if reduce_r2 else term.class_at_action_start
-    after = tp.topology_class(extractor.ladder_batch(reduce_r2))
-    phi_after = table[after]
+    if potential == "class":
+        table = torch.tensor(potentials, dtype=torch.float32, device=extractor.count.device)
+        before = term.class_r2_at_action_start if reduce_r2 else term.class_at_action_start
+        after = tp.topology_class(extractor.ladder_batch(reduce_r2))
+        phi_before, phi_after = table[before], table[after]
+    elif potential == "bfs":
+        if not reduce_r2:
+            raise ValueError("knot_class_shaping(potential='bfs') は reduce_r2=True で使うこと")
+        pot = tp.get_bfs_potential(extractor.count.device)
+        phi_after = pot(extractor.batch, extractor.reduced_batch)
+        raw_before = term.batch_at_action_start
+        if raw_before is None:
+            phi_before = torch.zeros_like(phi_after)
+        else:
+            phi_before = pot(raw_before, term.reduced_batch_at_action_start)
+    else:
+        raise ValueError(f"potential は 'class' か 'bfs' (got {potential!r})")
     if diverged_term is not None:
         phi_after = torch.where(diverged_now(env, diverged_term), torch.zeros_like(phi_after), phi_after)
-    return gamma * phi_after - table[before]
+    return gamma * phi_after - phi_before
+
+
+class LadderProgressBonus(ManagerTermBase):
+    """ラダーの段を **エピソード内で初めて** 上がった手にだけ払う疎報酬 `(num_envs,)`。v3 で追加。
+
+    v2 / v2-R2 の `success_c1/c2/success` は、条件を満たしている間 **毎手** 払われた。
+    6 手で割引して足すと「1 手目で C1 を作って維持するだけ」で約 2.9 になり、
+    C1 を壊す危険を冒して C2 を狙うより得になる (`paper/Report.md` §5.5)。
+    判定に抜け道があると、それも毎手繰り返し悪用される (v2 の偽の C2)。
+
+    TWISTED-RL は「目標に達したら +1 で終了」で、居座りようがない。ここでは
+    3 段の値はそのまま、支払いを「エピソード内の最高段を更新した手」だけにする:
+
+    * env ごとに `best` (そのエピソードで到達した最高段) を持つ。reset で未定 (−1) にし、
+      最初の手で「手を打つ前の段」から初期化する。**アーカイブから C1 / C2 で始めた
+      env は、その段がはじめから `best`** なので、もらえるのはそれより上の段だけ。
+    * 手の後の段 `after` が `best` を超え、床に落ちていて、発散していなければ
+      `bonuses[best+1] + ... + bonuses[after]` を払う (段を飛ばしたら合計を払う)。
+    * 段を落としてから登り直しても、2 度目は払わない。
+
+    段はすべて `topology_class` (既定は R2 除去後) から取る。v2-R2 の `success_c1` は
+    「交差数 ≥ 1」、ラダーの class 1 は「交差数 == 1」と定義がずれていた
+    (Report §6.4) が、この項は 1 つの判定器だけを使うので食い違わない。
+
+    params:
+        bonuses: 段 0〜3 に上がったときの報酬。既定は v2 の重みと同じ値 (段 0 は常に 0)。
+        reduce_r2 / settled_height_diameters / rope_diameter / diverged_term:
+            `overhand_achieved` と同じ意味。
+    """
+
+    def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        self._best = torch.full((env.num_envs,), -1, dtype=torch.long, device=env.device)
+
+    def reset(self, env_ids: Sequence[int] | None = None) -> None:
+        if env_ids is None:
+            env_ids = slice(None)
+        self._best[env_ids] = -1
+
+    def __call__(
+        self,
+        env: ManagerBasedRLEnv,
+        bonuses: tuple[float, ...] = (0.0, 0.5, 1.5, 3.0),
+        action_name: str = "pick_place",
+        rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+        reduce_r2: bool = True,
+        settled_height_diameters: float = 3.0,
+        rope_diameter: float = 0.02,
+        diverged_term: str | None = None,
+    ) -> torch.Tensor:
+        extractor = get_extractor(env, rope_cfg.name)
+        term = _pick_place_term(env, action_name)
+        before = term.class_r2_at_action_start if reduce_r2 else term.class_at_action_start
+        best = torch.where(self._best < 0, before, torch.maximum(self._best, before))
+
+        after = tp.topology_class(extractor.ladder_batch(reduce_r2))
+        settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
+        climbed = (after > best) & settled
+        if diverged_term is not None:
+            climbed &= ~diverged_now(env, diverged_term)
+
+        # 累積和の差で「best+1 .. after の合計」を出す。
+        cum = torch.cumsum(torch.tensor(bonuses, dtype=torch.float32, device=env.device), dim=0)
+        paid = torch.where(climbed, cum[after] - cum[best], torch.zeros_like(cum[after]))
+        self._best = torch.where(climbed, after, best)
+        return paid
 
 
 def overhand_achieved(

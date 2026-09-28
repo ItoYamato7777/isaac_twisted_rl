@@ -35,6 +35,7 @@ Isaac Sim を起動せずに `pytest` 単体で検証できる。Isaac Lab の
     state_2_topology.py 交差リスト -> AbstractState -> p-data (記号層)
     polyline.py         ポリラインの前処理 (節点生成・中心寄せ・細分・再標本化)
     knot_detect.py      固結びの判定と報酬ラダーの段・R2 除去 (テンソル層のみ)
+    knot_graph.py       R1/R2/cross の位相グラフと固結びまでの BFS 距離 (v3、交差 4 個まで)
 """
 
 from .intersections import (
@@ -60,7 +61,19 @@ from .knot_detect import (
     r2_removed_count,
     reduce_r2,
     sign_consistent,
+    subsequence_truncated,
     topology_class,
+)
+from .knot_graph import (
+    OVERHAND_P_DATA,
+    BfsPotential,
+    batch_keys,
+    distance_to_overhand,
+    enumerate_graph,
+    get_bfs_potential,
+    p_data_key,
+    p_data_to_lists,
+    potential_table,
 )
 from .polyline import (
     center_xy,
@@ -81,6 +94,8 @@ from .state_2_topology import (
 
 __all__ = [
     "AbstractState",
+    "BfsPotential",
+    "OVERHAND_P_DATA",
     "CLASS_INTERLEAVED2",
     "CLASS_OVERHAND",
     "CLASS_SINGLE",
@@ -93,27 +108,35 @@ __all__ = [
     "NUM_CLASSES",
     "PAD",
     "Point",
+    "batch_keys",
     "batch_p_data",
     "batch_polyline_to_topology",
     "center_xy",
     "class_one_hot",
     "crossing_positions",
+    "distance_to_overhand",
+    "enumerate_graph",
+    "get_bfs_potential",
     "has_duplicate_segments",
     "has_knot_subsequence",
     "intersections_to_topology",
     "is_interleaved_two",
     "is_overhand",
     "p_data_from_batch",
+    "p_data_key",
+    "p_data_to_lists",
     "partner_gaps",
     "polyline_from_link_centers",
     "polyline_to_p_data",
     "polyline_to_topology",
+    "potential_table",
     "r2_removed_count",
     "reduce_r2",
     "resample_polyline",
     "segment_intersections",
     "sign_consistent",
     "subdivide_segments",
+    "subsequence_truncated",
     "topology_class",
     "topology_from_batch",
 ]

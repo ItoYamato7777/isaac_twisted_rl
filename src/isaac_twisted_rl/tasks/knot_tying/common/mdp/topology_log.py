@@ -31,6 +31,7 @@ v2 の `diverged_class0..3` は重み 0 で登録してあるので、実際に�
 | `r2_cls0..3` | R2 除去後のクラス分布 |
 | `raw_count` / `r2_count` | 除去前 / 後の交差数の平均 |
 | `div_cls0..3` | **手を始めた時点の** R2 除去後クラス別の発散率 |
+| `r2_trunc` | R2 除去後に gap ≥ 2 の交差が 8 個を超え、部分列探索で漏れが出うる率 (2026-09-28 追加) |
 
 `fake_c2` が大きく `r2_c2` が小さいなら、v2 と同じく「輪に通さず上から
 掛け渡す」方策に寄っているということ。
@@ -65,6 +66,7 @@ _STAT_KEYS = (
     "r2_count",
     *(f"r2_cls{k}" for k in range(tp.NUM_CLASSES)),
     *(f"div_cls{k}" for k in range(tp.NUM_CLASSES)),
+    "r2_trunc",
 )
 
 
@@ -125,6 +127,7 @@ class TopologyStats(ManagerTermBase):
             "r2_removed": tp.r2_removed_count(raw, red),
             "raw_count": raw.count,
             "r2_count": red.count,
+            "r2_trunc": tp.subsequence_truncated(red),
         }
         for k in range(tp.NUM_CLASSES):
             values[f"r2_cls{k}"] = r2_cls == k

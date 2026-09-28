@@ -1,0 +1,915 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TWISTED 逆モデルと位相探索</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;700&family=Zen+Old+Mincho:wght@600;700&display=swap">
+<style>
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --surface-2:#e9eeec; --ink:#162023; --ink-2:#3b474b; --muted:#667276;
+  --rule:#d3dbd8; --rule-strong:#b7c2bf;
+  --rope:#1d6b73; --rope-2:#8fb9bc; --rope-soft:#dcecec; --hl:#bf5a1c; --hl-soft:#f8e6d9;
+  --good:#1f7a36; --bad:#b83232;
+  --p-yan:#2a78d6; --p-tw:#eb6834; --p-trl:#1baf7a;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4;
+  --grid:#e1e5e3; --axis:#bcc5c2;
+  --f-display:"Zen Old Mincho","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"IBM Plex Sans JP","Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f1415; --surface:#161d1f; --surface-2:#1e2729; --ink:#e6ecea; --ink-2:#c3ccca; --muted:#8d989b;
+    --rule:#2a3437; --rule-strong:#3b484b;
+    --rope:#62b8bf; --rope-2:#2f6166; --rope-soft:#1b3438; --hl:#f0a25f; --hl-soft:#3a2818;
+    --good:#4cc36a; --bad:#ef7373;
+    --p-yan:#3987e5; --p-tw:#d95926; --p-trl:#199e70;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+    --grid:#253033; --axis:#3a474a;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1415; --surface:#161d1f; --surface-2:#1e2729; --ink:#e6ecea; --ink-2:#c3ccca; --muted:#8d989b;
+  --rule:#2a3437; --rule-strong:#3b484b;
+  --rope:#62b8bf; --rope-2:#2f6166; --rope-soft:#1b3438; --hl:#f0a25f; --hl-soft:#3a2818;
+  --good:#4cc36a; --bad:#ef7373;
+  --p-yan:#3987e5; --p-tw:#d95926; --p-trl:#199e70;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+  --grid:#253033; --axis:#3a474a;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.85;
+  padding-inline:16px;}
+a{color:var(--rope);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--hl);outline-offset:2px;border-radius:4px}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+code{background:var(--surface-2);padding:.08em .35em;border-radius:4px}
+
+/* site bar */
+.sitebar{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding-block:14px;
+  border-bottom:1px solid var(--rule);font-size:14px}
+.sitebar .brand{font-family:var(--f-display);font-weight:700;font-size:16px;color:var(--ink);text-decoration:none;margin-right:auto}
+.sitebar nav{display:flex;flex-wrap:wrap;gap:4px 4px}
+.sitebar nav a{color:var(--ink-2);text-decoration:none;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:6px}
+.sitebar nav a:hover{background:var(--surface-2)}
+.sitebar nav a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.dot.yan{background:var(--p-yan)} .dot.tw{background:var(--p-tw)} .dot.trl{background:var(--p-trl)}
+
+/* hero */
+.hero{max-width:1180px;margin:0 auto;padding-block:40px 28px;display:grid;gap:14px}
+.eyebrow{font-size:13px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.hero h1{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,4.6vw,46px);line-height:1.3;margin:0;text-wrap:balance;letter-spacing:.01em}
+.hero .orig{font-size:15px;color:var(--ink-2);margin:0;font-style:italic}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:14px;color:var(--ink-2);margin:0;padding:0;list-style:none}
+.meta b{color:var(--muted);font-weight:500;margin-right:6px}
+
+/* layout */
+.layout{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:32px;padding-block:8px 80px}
+@media (min-width:1080px){.layout{grid-template-columns:210px minmax(0,1fr)}}
+.toc{font-size:14px}
+.toc details{border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface);padding:10px 14px}
+.toc summary{cursor:pointer;font-weight:600}
+.toc ol{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:2px;counter-reset:toc}
+.toc li a{display:block;color:var(--ink-2);text-decoration:none;padding:3px 8px;border-radius:6px;line-height:1.5}
+.toc li a:hover{background:var(--surface-2);color:var(--ink)}
+@media (min-width:1080px){
+  .toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start;max-height:calc(100vh - 32px);overflow:auto}
+  .toc details{border:0;background:none;padding:0}
+  .toc summary{list-style:none;color:var(--muted);font-size:12px;letter-spacing:.12em;font-weight:500;pointer-events:none}
+  .toc summary::-webkit-details-marker{display:none}
+}
+main{min-width:0;max-width:820px}
+main > section{padding-block:18px 8px;border-top:1px solid var(--rule)}
+main > section:first-child{border-top:0}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(23px,3vw,29px);line-height:1.4;margin:22px 0 10px;text-wrap:balance}
+h2 .num{font-family:var(--f-mono);font-size:.6em;color:var(--muted);margin-right:10px;vertical-align:.18em;font-weight:500}
+h3{font-size:18px;line-height:1.5;margin:28px 0 6px;text-wrap:balance}
+h4{font-size:15px;margin:18px 0 4px;color:var(--ink-2)}
+p{margin:10px 0}
+main ul,main ol{padding-left:1.4em;margin:10px 0}
+main li{margin:4px 0}
+strong{font-weight:700}
+.lead{font-size:17px;color:var(--ink-2)}
+.muted{color:var(--muted)}
+.small{font-size:13.5px;line-height:1.7}
+
+/* tldr */
+.tldr{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:18px 22px;margin:8px 0 6px}
+.tldr h2{margin-top:0;font-size:20px}
+.tldr ol{margin:6px 0 0}
+
+/* source chip + interpretation flag */
+.src{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);border:1px solid var(--rule);border-radius:4px;padding:0 5px;margin-left:4px;white-space:nowrap;vertical-align:.1em}
+.interp{display:inline-block;font-size:11.5px;font-weight:600;color:var(--hl);border:1px solid var(--hl);border-radius:4px;padding:0 5px;margin-right:6px;vertical-align:.1em;letter-spacing:.05em}
+.callout{border-left:3px solid var(--hl);background:var(--hl-soft);padding:10px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+.callout.rope{border-left-color:var(--rope);background:var(--rope-soft)}
+.callout p{margin:6px 0}
+
+/* figures */
+figure{margin:20px 0;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:16px}
+figure .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+figure svg{display:block;width:100%;height:auto}
+figure .scroll > svg{min-width:var(--minw,0px)}
+figcaption{font-size:13.5px;line-height:1.7;color:var(--ink-2);margin-top:12px}
+figcaption b{color:var(--ink)}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+svg .t-muted{fill:var(--muted)} svg .t-hl{fill:var(--hl)} svg .t-rope{fill:var(--rope)}
+svg .mono{font-family:var(--f-mono)}
+svg .rope{fill:none;stroke:var(--rope);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+svg .rope.butt{stroke-linecap:butt}
+svg .halo{fill:none;stroke:var(--surface);stroke-width:14;stroke-linecap:butt}
+svg .rope.hl{stroke:var(--hl)}
+svg .box{fill:var(--surface);stroke:var(--rule-strong);stroke-width:1.2}
+svg .box2{fill:var(--surface-2);stroke:var(--rule-strong);stroke-width:1}
+svg .boxr{fill:var(--rope-soft);stroke:var(--rope);stroke-width:1.2}
+svg .boxh{fill:var(--hl-soft);stroke:var(--hl);stroke-width:1.2}
+svg .ln{fill:none;stroke:var(--ink-2);stroke-width:1.4}
+svg .ln-m{fill:none;stroke:var(--muted);stroke-width:1.2}
+svg .ln-h{fill:none;stroke:var(--hl);stroke-width:1.8}
+svg .ln-r{fill:none;stroke:var(--rope);stroke-width:1.8}
+svg .dash{stroke-dasharray:5 4}
+svg .fill-ink{fill:var(--ink-2)} svg .fill-hl{fill:var(--hl)} svg .fill-rope{fill:var(--rope)} svg .fill-muted{fill:var(--muted)}
+svg .fill-surface{fill:var(--surface)} svg .fill-s2{fill:var(--surface-2)}
+svg .table{fill:none;stroke:var(--muted);stroke-width:1.2}
+
+/* p-data table */
+.pdata{font-family:var(--f-mono);font-size:13px;border-collapse:collapse;margin:6px auto 0}
+.pdata td,.pdata th{padding:1px 6px;text-align:center;font-variant-numeric:tabular-nums}
+.pdata th{font-family:var(--f-body);font-weight:500;color:var(--muted);font-size:11px;text-align:right;padding-right:10px}
+.pdata .o{color:var(--hl);font-weight:600}
+
+/* grids */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}
+.grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:12px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 16px}
+.panel h4{margin-top:0}
+.panel p{margin:6px 0;font-size:14.5px;line-height:1.75}
+.panel.plain{background:none}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;margin:14px 0;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)}
+table.tbl{border-collapse:collapse;width:100%;font-size:14px;line-height:1.6}
+.tbl th,.tbl td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+.tbl thead th{font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.04em;background:var(--surface-2);white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.num,.tbl th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl .best{font-weight:700;color:var(--ink)}
+.tbl th[scope="row"]{font-weight:600;white-space:nowrap}
+
+/* formula & code */
+.formula{font-family:var(--f-mono);font-size:14px;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;overflow-x:auto;white-space:pre;line-height:1.7;margin:12px 0}
+.algo{font-family:var(--f-mono);font-size:13.5px;line-height:1.75;margin:0;padding:0;list-style:none;counter-reset:ln}
+.algo li{counter-increment:ln;position:relative;padding-left:2.6em;margin:0}
+.algo li::before{content:counter(ln);color:var(--muted);text-align:right;position:absolute;left:0;width:1.8em}
+.algo li.in1{padding-left:4.2em} .algo li.in2{padding-left:5.8em}
+.algo .kw{color:var(--rope);font-weight:600}
+.algo-pair{display:grid;grid-template-columns:minmax(0,1fr);gap:0;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface);overflow:hidden}
+.algo-pair > div{padding:14px 16px}
+.algo-pair > div + div{border-top:1px solid var(--rule)}
+@media (min-width:760px){.algo-pair{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}.algo-pair > div + div{border-top:0;border-left:1px solid var(--rule)}}
+.algo-notes{font-size:14px;line-height:1.7;margin:0;padding-left:1.2em}
+.algo-notes li{margin:6px 0}
+
+/* definition list */
+dl.gloss{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin:12px 0;border-top:1px solid var(--rule)}
+dl.gloss > div{display:grid;grid-template-columns:minmax(0,1fr);gap:2px 18px;padding:10px 0;border-bottom:1px solid var(--rule)}
+@media (min-width:640px){dl.gloss > div{grid-template-columns:190px minmax(0,1fr)}}
+dl.gloss dt{font-weight:700}
+dl.gloss dd{margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.75}
+
+/* stat strip */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:12px;margin:14px 0}
+.stat{border-top:2px solid var(--ink);padding-top:8px}
+.stat .v{font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1.2}
+.stat .k{font-size:13px;color:var(--ink-2);line-height:1.5}
+
+/* next links */
+.nextprev{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin-top:22px}
+.nextprev a{display:block;border:1px solid var(--rule);background:var(--surface);border-radius:var(--radius);padding:12px 16px;text-decoration:none;color:var(--ink)}
+.nextprev a:hover{border-color:var(--rope)}
+.nextprev small{display:block;color:var(--muted);font-size:12px}
+
+/* charts */
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .ax text,.chart text{font-size:11.5px;fill:var(--muted);font-family:var(--f-body)}
+.chart .ax line{stroke:var(--grid);stroke-width:1}
+.chart .base{stroke:var(--axis);stroke-width:1}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--ink-2);margin:0 0 8px;padding:0;list-style:none}
+.legend li{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.legend i.line{height:3px;border-radius:2px;width:16px}
+.tip{position:absolute;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--rule-strong);border-radius:8px;padding:6px 10px;
+  font-size:12.5px;line-height:1.55;box-shadow:0 4px 14px rgba(0,0,0,.12);white-space:nowrap;z-index:5}
+.tip b{font-weight:600}
+.tip .row{display:flex;align-items:center;gap:6px}
+.tip i{width:9px;height:9px;border-radius:2px;display:inline-block}
+details.data{margin-top:10px;font-size:13px}
+details.data summary{cursor:pointer;color:var(--ink-2)}
+details.data .tbl-wrap{margin:8px 0 0}
+details.data table.tbl{font-size:12.5px}
+details.data .tbl th,details.data .tbl td{padding:4px 10px}
+
+/* lineage cards */
+.papers{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px;margin:16px 0}
+.paper{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:16px 18px;text-decoration:none;color:var(--ink)}
+.paper:hover{border-color:var(--rope)}
+.paper .yr{font-family:var(--f-mono);font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.paper h3{margin:0;font-family:var(--f-display);font-size:20px}
+.paper p{margin:0;font-size:14px;line-height:1.7;color:var(--ink-2)}
+.paper .go{margin-top:auto;font-size:13.5px;color:var(--rope);font-weight:600}
+
+footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padding-block:20px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.paper,.nextprev a{transition:border-color .15s}}
+</style>
+<script>
+(function(){
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent){
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(parent, x, y, s, attrs){
+    var t = el("text", Object.assign({x:x, y:y}, attrs || {}), parent);
+    t.textContent = s;
+    return t;
+  }
+  function legend(host, series, line){
+    var ul = document.createElement("ul");
+    ul.className = "legend";
+    series.forEach(function(s){
+      var li = document.createElement("li");
+      var i = document.createElement("i");
+      if (line) i.className = "line";
+      i.style.background = s.color;
+      li.appendChild(i);
+      li.appendChild(document.createTextNode(s.name));
+      ul.appendChild(li);
+    });
+    host.parentNode.insertBefore(ul, host);
+  }
+  function tipBox(host){
+    var d = document.createElement("div");
+    d.className = "tip"; d.hidden = true;
+    host.appendChild(d);
+    return d;
+  }
+  function placeTip(tip, host, x, y){
+    tip.hidden = false;
+    var w = tip.offsetWidth, hw = host.clientWidth;
+    var left = x + 14;
+    if (left + w > hw) left = x - w - 14;
+    if (left < 0) left = 0;
+    tip.style.left = left + "px";
+    tip.style.top = Math.max(0, y - 10) + "px";
+  }
+  function tipRows(title, rows){
+    var h = "<b>" + title + "</b>";
+    rows.forEach(function(r){
+      h += '<div class="row"><i style="background:' + r.color + '"></i>' + r.name + '：<b>' + r.value + "</b></div>";
+    });
+    return h;
+  }
+  function roundTop(x, y, w, h, r){
+    if (h <= 0) return "";
+    r = Math.min(r, w / 2, h);
+    return "M" + x + "," + (y + h) + "V" + (y + r) + "Q" + x + "," + y + " " + (x + r) + "," + y +
+      "H" + (x + w - r) + "Q" + (x + w) + "," + y + " " + (x + w) + "," + (y + r) + "V" + (y + h) + "Z";
+  }
+
+  function barChart(id, cfg){
+    var host = document.getElementById(id);
+    if (!host) return;
+    legend(host, cfg.series, false);
+    var tip = tipBox(host);
+    var svg;
+    function draw(){
+      if (svg) svg.remove();
+      var W = host.clientWidth || 600;
+      var narrow = W < 520;
+      var n = cfg.cats.length, m = cfg.series.length;
+      var top = cfg.bands ? 30 : 26;
+      var gwEst = (W - 46) / n;
+      var rotate = gwEst < (cfg.labelW || 72);
+      var bottom = rotate ? 62 : 30;
+      var H = (narrow ? 250 : 290) + (rotate ? 30 : 0);
+      var L = 40, R = 6;
+      var pw = W - L - R, ph = H - top - bottom;
+      svg = el("svg", {viewBox:"0 0 " + W + " " + H, width:W, height:H, role:"img", "aria-label":cfg.aria || ""});
+      host.insertBefore(svg, tip);
+      var max = cfg.max, y = function(v){ return top + ph - v / max * ph; };
+      var ax = el("g", {"class":"ax"}, svg);
+      cfg.ticks.forEach(function(t){
+        el("line", {x1:L, x2:W - R, y1:y(t), y2:y(t)}, ax);
+        txt(ax, L - 6, y(t) + 4, cfg.fmtTick ? cfg.fmtTick(t) : t, {"text-anchor":"end"});
+      });
+      var gw = pw / n;
+      var bw = Math.max(3, Math.min(cfg.barMax || 20, (gw * 0.82) / m - 2));
+      var groupW = m * bw + (m - 1) * 2;
+      if (cfg.bands){
+        cfg.bands.forEach(function(b, bi){
+          var x0 = L + b.from * gw, x1 = L + (b.to + 1) * gw;
+          if (bi > 0) el("line", {x1:x0, x2:x0, y1:top - 22, y2:top + ph, "class":"base", "stroke-dasharray":"3 3"}, svg);
+          txt(svg, (x0 + x1) / 2, top - 10, b.label, {"text-anchor":"middle", "font-size":"11px"});
+        });
+      }
+      var hits = [];
+      cfg.cats.forEach(function(c, i){
+        var gx = L + i * gw + (gw - groupW) / 2;
+        var hl = el("rect", {x:L + i * gw + 1, y:top, width:gw - 2, height:ph, rx:4, fill:"var(--surface-2)", opacity:0}, svg);
+        cfg.series.forEach(function(s, j){
+          var v = s.vals[i];
+          if (v == null) return;
+          var h = Math.max(v > 0 ? 1 : 0, top + ph - y(v));
+          el("path", {d:roundTop(gx + j * (bw + 2), top + ph - h, bw, h, 3), fill:s.color}, svg);
+        });
+        var lx = L + i * gw + gw / 2, ly = top + ph + 16;
+        if (rotate) txt(svg, lx + 4, ly - 2, c, {"text-anchor":"end", transform:"rotate(-40 " + (lx + 4) + " " + (ly - 2) + ")", "font-size":"11px"});
+        else txt(svg, lx, ly + 2, c, {"text-anchor":"middle"});
+        hits.push({x:L + i * gw, w:gw, hl:hl, i:i});
+      });
+      el("line", {x1:L, x2:W - R, y1:top + ph, y2:top + ph, "class":"base"}, svg);
+      if (cfg.yLabel) txt(svg, 4, cfg.bands ? top - 22 : 12, cfg.yLabel, {"font-size":"11px"});
+      hits.forEach(function(hh){
+        var r = el("rect", {x:hh.x, y:top, width:hh.w, height:ph + bottom, fill:"transparent"}, svg);
+        function show(ev){
+          hits.forEach(function(o){ o.hl.setAttribute("opacity", 0); });
+          hh.hl.setAttribute("opacity", 1);
+          tip.innerHTML = tipRows(cfg.cats[hh.i], cfg.series.map(function(s){
+            return {name:s.name, color:s.color, value:s.vals[hh.i] == null ? "—" : (cfg.fmt ? cfg.fmt(s.vals[hh.i]) : s.vals[hh.i])};
+          }));
+          var bb = host.getBoundingClientRect();
+          placeTip(tip, host, (ev.clientX || bb.left + hh.x) - bb.left, (ev.clientY || bb.top + top) - bb.top);
+        }
+        r.addEventListener("pointermove", show);
+        r.addEventListener("pointerdown", show);
+        r.addEventListener("pointerleave", function(){ tip.hidden = true; hh.hl.setAttribute("opacity", 0); });
+      });
+    }
+    draw();
+    var last = host.clientWidth;
+    if (window.ResizeObserver) new ResizeObserver(function(){ if (host.clientWidth !== last){ last = host.clientWidth; draw(); } }).observe(host);
+  }
+
+  function stepChart(id, cfg){
+    var host = document.getElementById(id);
+    if (!host) return;
+    legend(host, cfg.series, true);
+    var tip = tipBox(host);
+    var svg;
+    function valAt(pts, x){
+      var v = cfg.startY == null ? 0 : cfg.startY;
+      for (var i = 0; i < pts.length; i++){ if (pts[i][0] <= x) v = pts[i][1]; else break; }
+      return v;
+    }
+    function draw(){
+      if (svg) svg.remove();
+      var W = host.clientWidth || 600;
+      var narrow = W < 520;
+      var H = narrow ? 264 : 304;
+      var L = 40, R = 14, T = 26, B = 42;
+      var pw = W - L - R, ph = H - T - B;
+      svg = el("svg", {viewBox:"0 0 " + W + " " + H, width:W, height:H, role:"img", "aria-label":cfg.aria || ""});
+      host.insertBefore(svg, tip);
+      var x = function(v){ return L + v / cfg.xMax * pw; };
+      var y = function(v){ return T + ph - v / cfg.yMax * ph; };
+      var ax = el("g", {"class":"ax"}, svg);
+      cfg.yTicks.forEach(function(t){
+        el("line", {x1:L, x2:W - R, y1:y(t), y2:y(t)}, ax);
+        txt(ax, L - 6, y(t) + 4, cfg.fmtY ? cfg.fmtY(t) : t, {"text-anchor":"end"});
+      });
+      var xt = narrow && cfg.xTicksNarrow ? cfg.xTicksNarrow : cfg.xTicks;
+      xt.forEach(function(t){
+        txt(ax, x(t), T + ph + 16, cfg.fmtX ? cfg.fmtX(t) : t, {"text-anchor":"middle"});
+      });
+      (cfg.vlines || []).forEach(function(v){
+        el("line", {x1:x(v.x), x2:x(v.x), y1:T, y2:T + ph, "class":"base", "stroke-dasharray":"4 3"}, svg);
+        txt(svg, x(v.x) - 4, T + 12, v.label, {"text-anchor":"end", "font-size":"11px"});
+      });
+      el("line", {x1:L, x2:W - R, y1:T + ph, y2:T + ph, "class":"base"}, svg);
+      if (cfg.xLabel) txt(svg, L + pw / 2, H - 4, cfg.xLabel, {"text-anchor":"middle", "font-size":"11px"});
+      if (cfg.yLabel) txt(svg, 4, 12, cfg.yLabel, {"font-size":"11px"});
+      cfg.series.forEach(function(s){
+        var y0 = cfg.startY == null ? 0 : cfg.startY;
+        var d = "M" + x(0) + "," + y(y0), cy = y0;
+        s.pts.forEach(function(p){
+          if (cfg.linear) d += "L" + x(p[0]) + "," + y(p[1]);
+          else d += "H" + x(p[0]) + "V" + y(p[1]);
+          cy = p[1];
+        });
+        var endX = s.end == null ? cfg.xMax : s.end;
+        d += "H" + x(endX);
+        el("path", {d:d, fill:"none", stroke:s.color, "stroke-width":2, "stroke-linejoin":"round", "stroke-dasharray":s.dash || "none"}, svg);
+        el("circle", {cx:x(endX), cy:y(cy), r:3.5, fill:s.color, stroke:"var(--surface)", "stroke-width":2}, svg);
+      });
+      var cross = el("line", {x1:0, x2:0, y1:T, y2:T + ph, stroke:"var(--muted)", "stroke-width":1, opacity:0}, svg);
+      var ov = el("rect", {x:L, y:T, width:pw, height:ph, fill:"transparent"}, svg);
+      function show(ev){
+        var bb = svg.getBoundingClientRect();
+        var px = (ev.clientX - bb.left) * (W / bb.width);
+        var xv = Math.max(0, Math.min(cfg.xMax, (px - L) / pw * cfg.xMax));
+        cross.setAttribute("x1", x(xv)); cross.setAttribute("x2", x(xv)); cross.setAttribute("opacity", 1);
+        tip.innerHTML = tipRows((cfg.fmtTipX ? cfg.fmtTipX(xv) : Math.round(xv)), cfg.series.map(function(s){
+          var endX = s.end == null ? cfg.xMax : s.end;
+          return {name:s.name, color:s.color, value: xv > endX ? "—" : (cfg.fmtTipY ? cfg.fmtTipY(valAt(s.pts, xv)) : valAt(s.pts, xv))};
+        }));
+        var hb = host.getBoundingClientRect();
+        placeTip(tip, host, ev.clientX - hb.left, ev.clientY - hb.top);
+      }
+      ov.addEventListener("pointermove", show);
+      ov.addEventListener("pointerdown", show);
+      ov.addEventListener("pointerleave", function(){ tip.hidden = true; cross.setAttribute("opacity", 0); });
+    }
+    draw();
+    var last = host.clientWidth;
+    if (window.ResizeObserver) new ResizeObserver(function(){ if (host.clientWidth !== last){ last = host.clientWidth; draw(); } }).observe(host);
+  }
+  window.KnotCharts = {bar:barChart, step:stepChart};
+})();
+</script>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-ink"/></marker>
+<marker id="arrM" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-muted"/></marker>
+<marker id="arrH" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-hl"/></marker>
+<marker id="arrR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-rope"/></marker>
+<marker id="tipR" viewBox="0 0 10 10" refX="3" refY="5" markerWidth="3.2" markerHeight="3.2" orient="auto"><path d="M0,0L10,5L0,10z" class="fill-rope"/></marker>
+</defs></svg>
+<header class="sitebar"><a class="brand" href="index.html">紐結び 3 論文の図解</a><nav aria-label="ページ"><a href="index.html">はじめに</a><a href="yan2020.html"><span class="dot yan"></span>Yan2020</a><a href="twisted.html" aria-current="page"><span class="dot tw"></span>TWISTED</a><a href="twisted-rl.html"><span class="dot trl"></span>TWISTED-RL</a></nav></header>
+<div class="hero">
+  <div class="eyebrow"><span class="dot tw"></span>論文 2 / 3 · 2023</div>
+  <h1>デモ無しで結ぶ: 位相の探索と、ランダム操作から学んだ逆モデル</h1>
+  <p class="orig">Hierarchical Planning for Rope Manipulation using Knot Theory and a Learned Inverse Model</p>
+  <ul class="meta">
+    <li><b>著者</b>Matan Sudry, Tom Jurgenson, Aviv Tamar, Erez Karpas</li>
+    <li><b>所属</b>Technion — Israel Institute of Technology</li>
+    <li><b>公開</b>2023 (PDF は AAAI 形式。TWISTED-RL の参考文献では CoRL 2023, PMLR pp. 1596–1609)</li>
+    <li><b>PDF</b><a href="../Twisted.pdf">paper/ 内</a></li>
+  </ul>
+</div>
+
+<div class="layout">
+  <aside class="toc">
+    <details open><summary>このページの内容</summary>
+      <ol>
+        <li><a href="#tldr">一言で言うと</a></li>
+        <li><a href="#problem">問題設定と記号</a></li>
+        <li><a href="#overview">全体像</a></li>
+        <li><a href="#env">シミュレーション環境</a></li>
+        <li><a href="#algo">Algorithm 1 を 1 行ずつ</a></li>
+        <li><a href="#select">開始点の選び方</a></li>
+        <li><a href="#planners">高レベルと低レベルの計画</a></li>
+        <li><a href="#inverse">逆モデル</a></li>
+        <li><a href="#data">データ収集</a></li>
+        <li><a href="#hard">実験 1: 離散化の感度</a></li>
+        <li><a href="#compare">実験 2: 手法の比較</a></li>
+        <li><a href="#friction">実験 3: 摩擦への頑健性</a></li>
+        <li><a href="#unseen">実験 4: 未知の目標</a></li>
+        <li><a href="#limits">限界と次の論文へ</a></li>
+        <li><a href="#gloss">用語集</a></li>
+      </ol>
+    </details>
+  </aside>
+  <main>
+
+<section id="tldr">
+  <div class="tldr">
+    <h2>一言で言うと</h2>
+    <ol>
+      <li>名前は <strong>T</strong>ying <strong>W</strong>ith <strong>I</strong>nverse model and <strong>S</strong>earch in <strong>T</strong>opological space <strong>E</strong>xcluding <strong>D</strong>emos の略。人間のデモを使わずに結び目を結ぶ、階層型の計画アルゴリズム。</li>
+      <li>高レベルは p-data のグラフを BFS して位相状態の列を計画する。低レベルは「今の形と次の位相状態」から曲線を予測する<strong>逆モデル</strong>で候補を 6 本出し、シミュレータで試して遷移を実現する。</li>
+      <li>逆モデルは、到達済みの形からランダムな曲線を打ち、交差が増えた遷移だけを残して集めた 167 万点で学習する (自己教師あり)。</li>
+      <li>探索は、到達した形の木 T を育てながら、交差の多い状態を優先して再出発する。easy の 10 問はすべて 30 分以内に解けたが、medium と hard は解けなかった。SAC+HER は交差 2 でほぼ失敗した。</li>
+    </ol>
+  </div>
+</section>
+
+<section id="problem">
+  <h2><span class="num">01</span>問題設定と記号</h2>
+  <p>焦点は 1 次元物体の操作の<strong>計画</strong>、特に結び目を結ぶことです。結び目は「干し草の山から針を探す」ような問題で、目的の状態に届くには網羅的な探索が要ります。そのため先行研究の多くは人間のデモに頼ってきました。この論文はデモを一切使いません <span class="src">§1</span>。</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>記号</th><th>意味</th></tr></thead>
+    <tbody>
+      <tr><td><code>q ∈ Q ⊆ ℝ<sup>2L+5</sup></code></td><td>L リンクのロープの形。7 次元が真ん中のリンクの位置と姿勢、残り L−1 関節が yaw と pitch</td></tr>
+      <tr><td><code>s ∈ S</code></td><td>位相状態 (p-data)</td></tr>
+      <tr><td><code>Top: Q → S</code></td><td>形から位相状態への写像</td></tr>
+      <tr><td><code>Cross: S → ℤ<sub>≥0</sub></code></td><td>位相状態の交差数。状態の「複雑さ」の指標</td></tr>
+      <tr><td><code>A<sub>R</sub>, P<sub>R</sub>: S × A<sub>R</sub> → S</code></td><td>Reidemeister 移動 (R1, R2, Cross) の集合と、位相状態の遷移関数</td></tr>
+      <tr><td><code>c ∈ C</code></td><td>曲線 (行動)。掴むリンク l ∈ [1, L]、置き先 (x, y)、最高点の高さ z<sub>max</sub></td></tr>
+      <tr><td><code>f: Q × C → Q</code></td><td>曲線を形に適用する遷移関数。実体は MuJoCo のシミュレーション</td></tr>
+    </tbody>
+  </table></div>
+  <p>Reidemeister の定理により、任意の 2 つの位相状態のあいだには Reidemeister 移動の列が存在します <span class="src">§2</span>。問題を「位相状態の上の軌道」と見直すと、ロープの形を直接操作する問題より、ホライズンが短く分岐も少ない問題になります。行動は Yan2020 と同じく曲線 1 本で、この曲線の空間でたいていの Reidemeister 移動を近似できる、という Yan2020 の観察を根拠にしています。</p>
+  <p class="small muted">付録 7.2 では、この問題を TAMP (タスク・動作計画) の形式でも書いています。高レベルは (S, S<sub>0</sub>, S<sub>G</sub>, A<sub>abs</sub>, T<sub>abs</sub>, C<sub>abs</sub>)、低レベルは (Q, Q<sub>0</sub>, Q<sub>G</sub>, A<sub>motion</sub>, F, T<sub>motion</sub>, C<sub>motion</sub>) です。ただし、逆モデルを自己教師ありで学ぶ点と、高レベルに結び目理論を使う点で、既存の TAMP アルゴリズムはそのままでは使えない、としています <span class="src">§3.4</span>。</p>
+</section>
+
+<section id="overview">
+  <h2><span class="num">02</span>全体像</h2>
+  <figure>
+    <div class="scroll" style="--minw:680px">
+    <svg viewBox="0 0 800 440" role="img" aria-label="TWISTED の全体像。高レベル計画が位相状態の列の候補を出し、そこから 1 本を選ぶ。低レベル計画は各段で逆モデルが曲線を提案し MuJoCo で試す。新しく到達した形は到達状態の木 T に加わり、次の反復の出発点になる。">
+      <g font-size="12">
+        <rect x="20" y="16" width="760" height="130" rx="8" class="box" style="fill:none"/>
+        <text x="34" y="38" font-weight="700">高レベル計画</text>
+        <text x="34" y="56" font-size="11" class="t-muted">p-data グラフの BFS</text>
+        <text x="200" y="40" class="t-muted" font-size="11">候補の計画 P</text>
+        <g class="mono" font-size="12">
+          <rect x="200" y="50" width="42" height="26" rx="4" class="box2"/><text x="221" y="68" text-anchor="middle">s0</text>
+          <rect x="258" y="50" width="42" height="26" rx="4" class="box2"/><text x="279" y="68" text-anchor="middle">s1</text>
+          <rect x="316" y="50" width="42" height="26" rx="4" class="box2"/><text x="337" y="68" text-anchor="middle">s2</text>
+          <rect x="374" y="50" width="42" height="26" rx="4" class="boxh"/><text x="395" y="68" text-anchor="middle">sg</text>
+          <rect x="200" y="96" width="42" height="26" rx="4" class="box2"/><text x="221" y="114" text-anchor="middle">s0</text>
+          <rect x="258" y="96" width="42" height="26" rx="4" class="box2"/><text x="279" y="114" text-anchor="middle">s1</text>
+          <rect x="316" y="96" width="42" height="26" rx="4" class="box2"/><text x="337" y="114" text-anchor="middle">s3</text>
+          <rect x="374" y="96" width="42" height="26" rx="4" class="boxh"/><text x="395" y="114" text-anchor="middle">sg</text>
+        </g>
+        <line x1="242" y1="63" x2="256" y2="63" class="ln-m"/><line x1="300" y1="63" x2="314" y2="63" class="ln-m"/><line x1="358" y1="63" x2="372" y2="63" class="ln-m"/>
+        <line x1="242" y1="109" x2="256" y2="109" class="ln-m"/><line x1="300" y1="109" x2="314" y2="109" class="ln-m"/><line x1="358" y1="109" x2="372" y2="109" class="ln-m"/>
+        <line x1="440" y1="85" x2="520" y2="85" class="ln" marker-end="url(#arr)"/>
+        <text x="480" y="76" text-anchor="middle" font-size="11">SelectPlan</text>
+        <text x="540" y="40" class="t-muted" font-size="11">選んだ計画</text>
+        <g class="mono" font-size="12">
+          <rect x="540" y="72" width="42" height="26" rx="4" class="boxr"/><text x="561" y="90" text-anchor="middle">s1</text>
+          <rect x="598" y="72" width="42" height="26" rx="4" class="boxr"/><text x="619" y="90" text-anchor="middle">s3</text>
+          <rect x="656" y="72" width="42" height="26" rx="4" class="boxh"/><text x="677" y="90" text-anchor="middle">sg</text>
+        </g>
+        <line x1="582" y1="85" x2="596" y2="85" class="ln-r"/><line x1="640" y1="85" x2="654" y2="85" class="ln-r"/>
+      </g>
+      <g font-size="12">
+        <rect x="20" y="176" width="290" height="248" rx="8" class="box" style="fill:none"/>
+        <text x="34" y="198" font-weight="700">到達状態の木 T</text>
+        <text x="34" y="216" font-size="11" class="t-muted">頂点 = 形 q とその位相 · 辺 = 曲線 c</text>
+        <circle cx="160" cy="250" r="16" class="box2"/><text x="160" y="254" text-anchor="middle" class="mono">s0</text>
+        <circle cx="90" cy="320" r="16" class="box2"/><text x="90" y="324" text-anchor="middle" class="mono">s5</text>
+        <circle cx="230" cy="320" r="16" class="box2"/><text x="230" y="324" text-anchor="middle" class="mono">s1</text>
+        <circle cx="70" cy="392" r="16" class="box2"/><text x="70" y="396" text-anchor="middle" class="mono">s6</text>
+        <circle cx="180" cy="392" r="16" class="box2"/><text x="180" y="396" text-anchor="middle" class="mono">s4</text>
+        <circle cx="270" cy="392" r="16" class="boxr"/><text x="270" y="396" text-anchor="middle" class="mono">s3</text>
+        <line x1="150" y1="263" x2="100" y2="307" class="ln-m"/><line x1="170" y1="263" x2="220" y2="307" class="ln-m"/>
+        <line x1="84" y1="335" x2="75" y2="377" class="ln-m"/><line x1="222" y1="335" x2="188" y2="377" class="ln-m"/><line x1="238" y1="335" x2="262" y2="377" class="ln-m"/>
+        <g font-size="10" class="mono">
+          <circle cx="178" cy="238" r="7" style="fill:var(--p-trl);opacity:.9"/><text x="190" y="241">q0</text>
+          <circle cx="248" cy="308" r="7" style="fill:var(--p-trl);opacity:.9"/><text x="258" y="311">q1</text>
+          <circle cx="248" cy="332" r="7" style="fill:var(--p-trl);opacity:.9"/><text x="258" y="335">q2</text>
+        </g>
+      </g>
+      <g font-size="12">
+        <rect x="340" y="176" width="440" height="248" rx="8" class="box" style="fill:none"/>
+        <text x="354" y="198" font-weight="700">低レベル計画</text>
+        <text x="354" y="216" font-size="11" class="t-muted">各段で逆モデルが K = 6 本の曲線を提案し、シミュレータで試す</text>
+        <rect x="360" y="238" width="60" height="30" rx="4" class="boxr"/><text x="390" y="258" text-anchor="middle" class="mono">s1→s3</text>
+        <rect x="360" y="290" width="60" height="30" rx="4" class="box2"/><text x="390" y="310" text-anchor="middle" class="mono">q1</text>
+        <rect x="450" y="262" width="96" height="34" rx="6" class="boxr"/><text x="498" y="284" text-anchor="middle">逆モデル</text>
+        <rect x="580" y="262" width="80" height="34" rx="6" class="boxh"/><text x="620" y="284" text-anchor="middle">MuJoCo</text>
+        <rect x="690" y="262" width="70" height="34" rx="4" class="box2"/><text x="725" y="284" text-anchor="middle" class="mono">q′</text>
+        <path d="M420,253 H436 V274 H446" class="ln" marker-end="url(#arr)"/>
+        <path d="M420,305 H436 V284 H446" class="ln" marker-end="url(#arr)"/>
+        <line x1="546" y1="279" x2="576" y2="279" class="ln" marker-end="url(#arr)"/>
+        <text x="561" y="256" text-anchor="middle" font-size="11" class="mono">c₁…c₆</text>
+        <line x1="660" y1="279" x2="686" y2="279" class="ln" marker-end="url(#arr)"/>
+        <text x="560" y="340" text-anchor="middle" font-size="11.5">Top(q′) = s3 なら次の段 (s3 → sg) へ進む</text>
+        <text x="560" y="358" text-anchor="middle" font-size="11.5" class="t-muted">届かなければ失敗を返し、次の反復で別の出発点から</text>
+        <text x="560" y="386" text-anchor="middle" font-size="11.5" class="t-rope">交差が減らなかった形は、狙いと違っても T に加える</text>
+      </g>
+      <path d="M270,176 V160 H560 V150" class="ln" marker-end="url(#arr)"/>
+      <text x="420" y="172" font-size="11" text-anchor="middle">出発点 (s, q) を選ぶ</text>
+      <path d="M340,392 H292" class="ln-r" marker-end="url(#arrR)"/>
+      <path d="M677,100 V140 H720 V172" class="ln" marker-end="url(#arr)"/>
+      <text x="726" y="160" font-size="11">計画を実行</text>
+    </svg>
+    </div>
+    <figcaption><b>TWISTED の反復</b> <span class="src">Fig. 1, Algorithm 1</span>。灰色が位相状態、緑の小さな丸が形 q、ティールの枠が逆モデルと選んだ計画、橙が MuJoCo。反復のたびに、木 T から出発する位相状態・計画・形を選び、低レベル計画で計画を 1 段ずつたどる。途中で得た新しい形は T に加わり、新しい位相状態を初めて見つけたときは、そこから高レベル計画を走らせて P に加える。</figcaption>
+  </figure>
+</section>
+
+<section id="env">
+  <h2><span class="num">03</span>シミュレーション環境</h2>
+  <p>環境は MuJoCo で作り、MuJoCo 既定のロープと、自由に動くエンドエフェクタ (ロボットアームではなく、手先だけが空中を動く) を使います。アームの制御の難しさを切り離し、結び目の複雑さに集中するためです <span class="src">§4.1</span>。</p>
+  <div class="callout">
+    <p><strong>重要な前提</strong>: 計画中に行動を試すのも、評価で成否を判定するのも、同じ MuJoCo 環境です。つまり探索は<strong>完全な世界モデル</strong>を使っています。MuJoCo の環境が f(q, c) の実体です。</p>
+  </div>
+  <p>1 手は「リンク l を掴み、z<sub>max</sub> まで持ち上げ、(x, y) の上まで運び、下ろす」曲線です。図は<a href="index.html#curve">入口ページの §07</a> にあります。</p>
+</section>
+
+<section id="algo">
+  <h2><span class="num">04</span>Algorithm 1 を 1 行ずつ</h2>
+  <p>TWISTED は次の 3 つを繰り返します。(1) 既知の到達可能な形から探索を始め、(2) 高レベルで位相状態と Reidemeister 移動の計画を立て、(3) 低レベルでその計画をたどる。目標に届くか、制限時間が来るまで続けます <span class="src">§4.2</span>。</p>
+  <div class="algo-pair">
+    <div>
+      <p class="small muted" style="margin-top:0">入力: 初期の形 q<sub>init</sub>、目標の位相状態 s<sub>g</sub>　出力: 見つかれば低レベルの計画</p>
+      <ol class="algo">
+        <li><span class="kw">init</span>: T, P</li>
+        <li>s<sub>init</sub> = Top(q<sub>init</sub>)</li>
+        <li>P を s<sub>init</sub> からの計画で満たす</li>
+        <li><span class="kw">while</span> 時間切れでない <span class="kw">do</span></li>
+        <li class="in1">s<sub>sel</sub> = SelectTopologicalState()</li>
+        <li class="in1">P<sub>sel</sub> = SelectPlan(s<sub>sel</sub>)</li>
+        <li class="in1">q<sub>sel</sub> = SelectConfiguration(s<sub>sel</sub>)</li>
+        <li class="in1">found = FollowPlan(q<sub>sel</sub>, P<sub>sel</sub>)</li>
+        <li class="in1"><span class="kw">if</span> found <span class="kw">then</span></li>
+        <li class="in2"><span class="kw">return</span> 計画</li>
+        <li class="in1"><span class="kw">else</span></li>
+        <li class="in2">RandomExpand()</li>
+        <li class="in1"><span class="kw">end if</span></li>
+        <li><span class="kw">end while</span></li>
+      </ol>
+    </div>
+    <div>
+      <ul class="algo-notes">
+        <li><strong>1–3 行</strong>: 2 つのデータ構造を用意する。<strong>T</strong> は到達できた形の木で、頂点は形 q (とその位相 Top(q))、辺は曲線 c。最初は初期の形だけ。<strong>P</strong> は到達済みの位相状態から目標までの高レベル計画の集合。</li>
+        <li><strong>5–7 行</strong>: 出発点を選ぶ。位相状態 s → そこから出る計画 → s に属する形 q の順に選ぶ (<a href="#select">次節</a>)。</li>
+        <li><strong>8 行 FollowPlan</strong>: 計画 s<sub>0</sub>, s<sub>1</sub>, …, s<sub>g</sub> を 1 段ずつたどる。各段で低レベル計画が複数の曲線 c<sub>j</sub> を試す。狙いの s<sub>i+1</sub> と違っても、交差数が減らなかった形 (Cross(s′<sub>j</sub>) ≥ Cross(s<sub>i</sub>)) は T に加える。</li>
+        <li><strong>12 行 RandomExpand</strong>: 反復ごとに確率 p = 0.05 で、T からランダムに形を選び、ランダムな行動を k = 100 回打つ。交差数が減らなかった遷移を T に加える。十分な時間があれば必ず解に届く (完全性) ための仕組み。</li>
+      </ul>
+    </div>
+  </div>
+  <p class="small"><span class="interp">注</span>本文は FollowPlan の条件を「交差の多い形に達したら」と説明した直後に、式では Cross(s′<sub>j</sub>) ≥ Cross(s<sub>i</sub>) (等しい場合を含む) と書いています。ここでは式に合わせました。Algorithm 1 では RandomExpand が else 節 (計画が失敗したとき) に入っていますが、本文では「各反復の後に確率 p で」と書かれています。</p>
+</section>
+
+<section id="select">
+  <h2><span class="num">05</span>出発点の選び方: 交差の多い状態を優先する</h2>
+  <p>素朴には、到達したすべての形から一様に選べば済みます。しかし交差の多い位相状態の形は、交差の少ない状態の形より指数的に少なくしか得られません (状態の数そのものが交差数について指数的に増えるため)。そこで、選択を 3 つの手順に分けます <span class="src">§4.2</span>。</p>
+  <ol>
+    <li><strong>SelectTopologicalState()</strong>: 目標への高レベル計画をもつ、到達済みの位相状態から 1 つ選ぶ。ヒューリスティックは 2 つ。
+      <ul>
+        <li><em>random</em>: 一様に選ぶ。</li>
+        <li><em>prioritize-crosses</em>: 状態 s を <strong>1 + Cross(s)</strong> に比例する確率で選ぶ。より深く探索するため。</li>
+      </ul>
+    </li>
+    <li><strong>SelectPlan(s)</strong>: s から始まる高レベル計画から 1 つ一様に選ぶ。</li>
+    <li><strong>SelectConfiguration(s)</strong>: s に属する形から 1 つ一様に選ぶ。</li>
+  </ol>
+  <figure>
+    <div class="scroll" style="--minw:520px">
+    <svg viewBox="0 0 700 170" role="img" aria-label="prioritize-crosses の計算例。交差数 0, 1, 1, 2 の 4 状態の重みは 1, 2, 2, 3 で、確率は 12.5%, 25%, 25%, 37.5% になる。">
+      <g font-size="12">
+        <text x="20" y="24" font-weight="600">例: 到達済みの位相状態が 4 つあるとき</text>
+        <text x="20" y="62" class="t-muted">random</text>
+        <rect x="140" y="46" width="130" height="26" class="box2"/><rect x="270" y="46" width="130" height="26" class="box2"/><rect x="400" y="46" width="130" height="26" class="box2"/><rect x="530" y="46" width="130" height="26" class="box2"/>
+        <text x="205" y="64" text-anchor="middle" class="mono">sA 25%</text><text x="335" y="64" text-anchor="middle" class="mono">sB 25%</text><text x="465" y="64" text-anchor="middle" class="mono">sC 25%</text><text x="595" y="64" text-anchor="middle" class="mono">sD 25%</text>
+        <text x="20" y="110" class="t-muted">prioritize-crosses</text>
+        <rect x="140" y="94" width="65" height="26" class="box2"/><rect x="205" y="94" width="130" height="26" class="boxr"/><rect x="335" y="94" width="130" height="26" class="boxr"/><rect x="465" y="94" width="195" height="26" class="boxh"/>
+        <text x="172" y="112" text-anchor="middle" class="mono" font-size="11">12.5%</text><text x="270" y="112" text-anchor="middle" class="mono">25%</text><text x="400" y="112" text-anchor="middle" class="mono">25%</text><text x="562" y="112" text-anchor="middle" class="mono">37.5%</text>
+        <text x="172" y="146" text-anchor="middle" class="t-muted" font-size="11">sA: 交差 0</text><text x="270" y="146" text-anchor="middle" class="t-muted" font-size="11">sB: 交差 1</text><text x="400" y="146" text-anchor="middle" class="t-muted" font-size="11">sC: 交差 1</text><text x="562" y="146" text-anchor="middle" class="t-muted" font-size="11">sD: 交差 2</text>
+        <text x="172" y="162" text-anchor="middle" class="mono" font-size="11">重み 1</text><text x="270" y="162" text-anchor="middle" class="mono" font-size="11">重み 2</text><text x="400" y="162" text-anchor="middle" class="mono" font-size="11">重み 2</text><text x="562" y="162" text-anchor="middle" class="mono" font-size="11">重み 3</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>2 つのヒューリスティックの確率の違い</b> (説明のための例)。帯の幅が選ばれる確率。prioritize-crosses では、重み 1 + Cross(s) を合計 8 で割る。</figcaption>
+  </figure>
+  <p>random でも、すでに交差の多い状態が優遇されています。位相状態を一様に選ぶことは、T の形を一様に選ぶのとは違う分布になるからです (交差の少ない状態には形がたくさん溜まっている)。実験では prioritize-crosses (CRS) が random (RND) より有意に良く、以後は CRS を使います (<a href="#compare">実験 2</a>)。</p>
+</section>
+
+<section id="planners">
+  <h2><span class="num">06</span>高レベル計画と低レベル計画</h2>
+  <div class="grid-2">
+    <div class="panel">
+      <h4>高レベル計画: BFS</h4>
+      <p>状態は位相状態 S、行動は Reidemeister 移動 A<sub>R</sub>。有効な Reidemeister 移動を辺として、ある s (初期状態とは限らない) から s<sub>g</sub> までを BFS で探す。</p>
+      <p>交差数が Cross(s<sub>g</sub>) 以上の状態は枝刈りする (目標より複雑な状態を経由しない)。結果は s から s<sub>g</sub> への経路の集合 (空のこともある)。</p>
+      <p class="small muted">原文の条件は Cross(s′) ≥ Cross(s<sub>g</sub>) で、s<sub>g</sub> 自体は当然残すものと読める <span class="src">§4.3</span>。</p>
+    </div>
+    <div class="panel">
+      <h4>低レベル計画: 6 本を試す</h4>
+      <p>状態は形 Q、行動は曲線 C。今の形 q (位相 s) から、計画の次の位相状態 s′ に移る曲線を探す。</p>
+      <p>逆モデルで K = 6 本の曲線を生成し、シミュレータで試す。どれかが s′ に届けば成功で、複数届いたら最初のものを使う。届かなければ失敗を返し、Algorithm 1 の次の反復に戻る <span class="src">§4.3</span>。</p>
+    </div>
+  </div>
+</section>
+
+<section id="inverse">
+  <h2><span class="num">07</span>逆モデル: 曲線を 1 要素ずつ生成する</h2>
+  <p>ある位相遷移を起こす曲線は、曲線全体のごく一部です。ランダムな曲線を少し引いただけでは、狙いの遷移はまず見つかりません。そこで「この遷移を起こしそうな曲線」を提案する逆モデルを学習します <span class="src">§4.4</span>。</p>
+  <p>逆モデルは<strong>自己回帰</strong>型で、曲線を要素ごとに順に生成します。順番は、掴むリンク l (カテゴリ値) → 高さ z<sub>max</sub> → 置き先の x → 置き先の y (いずれも連続値) です。カテゴリ値は多項分布、連続値は正規分布でモデル化します。</p>
+  <figure>
+    <div class="scroll" style="--minw:640px">
+    <svg viewBox="0 0 780 300" role="img" aria-label="自己回帰の逆モデル。共通の入力 (現在の形、次の位相状態、各リンクの位置) を 4 つのサブネットワークに入れる。l を多項分布からサンプルし、それを z_max のサブネットに渡す。同様に z_max を x に、x を y に渡す。">
+      <g font-size="12">
+        <rect x="20" y="20" width="740" height="40" rx="6" class="box2"/>
+        <text x="390" y="45" text-anchor="middle">共通の入力: 今の形 q<tspan baseline-shift="sub" font-size="9">t</tspan> · 次の位相状態 s<tspan baseline-shift="sub" font-size="9">t+1</tspan> · 全 L リンクの座標 (x, y, z)</text>
+        <rect x="40" y="110" width="140" height="56" rx="6" class="boxr"/><text x="110" y="134" text-anchor="middle">サブネット 1</text><text x="110" y="152" text-anchor="middle" font-size="11" class="t-muted">多項分布</text>
+        <rect x="230" y="110" width="140" height="56" rx="6" class="boxr"/><text x="300" y="134" text-anchor="middle">サブネット 2</text><text x="300" y="152" text-anchor="middle" font-size="11" class="t-muted">正規分布</text>
+        <rect x="420" y="110" width="140" height="56" rx="6" class="boxr"/><text x="490" y="134" text-anchor="middle">サブネット 3</text><text x="490" y="152" text-anchor="middle" font-size="11" class="t-muted">正規分布</text>
+        <rect x="610" y="110" width="140" height="56" rx="6" class="boxr"/><text x="680" y="134" text-anchor="middle">サブネット 4</text><text x="680" y="152" text-anchor="middle" font-size="11" class="t-muted">正規分布</text>
+        <line x1="110" y1="60" x2="110" y2="106" class="ln" marker-end="url(#arr)"/>
+        <line x1="300" y1="60" x2="300" y2="106" class="ln" marker-end="url(#arr)"/>
+        <line x1="490" y1="60" x2="490" y2="106" class="ln" marker-end="url(#arr)"/>
+        <line x1="680" y1="60" x2="680" y2="106" class="ln" marker-end="url(#arr)"/>
+        <line x1="110" y1="166" x2="110" y2="206" class="ln" marker-end="url(#arr)"/>
+        <line x1="300" y1="166" x2="300" y2="206" class="ln" marker-end="url(#arr)"/>
+        <line x1="490" y1="166" x2="490" y2="206" class="ln" marker-end="url(#arr)"/>
+        <line x1="680" y1="166" x2="680" y2="206" class="ln" marker-end="url(#arr)"/>
+        <text x="110" y="228" text-anchor="middle" font-size="15" class="mono">l</text>
+        <text x="300" y="228" text-anchor="middle" font-size="15" class="mono">z_max</text>
+        <text x="490" y="228" text-anchor="middle" font-size="15" class="mono">x</text>
+        <text x="680" y="228" text-anchor="middle" font-size="15" class="mono">y</text>
+        <text x="110" y="248" text-anchor="middle" font-size="11" class="t-muted">掴むリンク</text>
+        <text x="300" y="248" text-anchor="middle" font-size="11" class="t-muted">最高点の高さ</text>
+        <text x="490" y="248" text-anchor="middle" font-size="11" class="t-muted">置き先 x</text>
+        <text x="680" y="248" text-anchor="middle" font-size="11" class="t-muted">置き先 y</text>
+        <path d="M130,222 H200 V150 H226" class="ln-h" marker-end="url(#arrH)"/>
+        <path d="M340,222 H396 V150 H416" class="ln-h" marker-end="url(#arrH)"/>
+        <path d="M506,222 H586 V150 H606" class="ln-h" marker-end="url(#arrH)"/>
+        <text x="390" y="286" text-anchor="middle" font-size="11.5" class="t-hl">橙: サンプルした値を後ろのサブネットに入力する (図は直後への線だけを描いた)</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>自己回帰の確率的ネットワーク</b> <span class="src">Fig. 6</span>。各要素を独立したサブネットワーク (重みは共有しない) で予測する。入力は、共通の入力に加えて「それより前に生成した要素すべて」。たとえば z<sub>max</sub> のサブネットは l を入力に受ける。推論では各要素の分布からサンプルして次へ渡す (祖先サンプリング)。</figcaption>
+  </figure>
+  <p>Fig. 6 に描かれたサブネットワーク 1 つの構成は、全結合層 257×512 → 512×1024 → 1024×2048 → 2048×2048 → 2048×2048 → 2048×2 で、層の間に LeakyReLU が入ります。最後の 2 出力が正規分布のパラメータになると読めます <span class="interp">解釈</span>。</p>
+  <h3>学習と推論</h3>
+  <ul>
+    <li><strong>データ</strong>: 遷移 (q, s, s′) に、その遷移を起こした曲線 c のラベルが付いたもの (<a href="#data">次節</a>)。</li>
+    <li><strong>拡張</strong>: Yan2020 の Mirror / Reverse をランダムに集めたデータに適用して水増しする。Yan2020 ではこの変換を人間のデモに使っていた。</li>
+    <li><strong>推論</strong>: 標準の祖先サンプリング。要素ごとに分布を予測し、サンプルして次の要素に入力する。</li>
+  </ul>
+  <div class="callout rope"><p>逆モデルは<strong>次の位相状態 s′ で条件付け</strong>されています。p-data は交差数とともに長くなり、状態の数も爆発するので、データに無い s′ では予測があてになりません。TWISTED-RL はこれを問題視し、状態ではなく「遷移の種類」で条件付けます。</p></div>
+</section>
+
+<section id="data">
+  <h2><span class="num">08</span>データ収集: 到達した形から撃ち直す</h2>
+  <p>結び目を作れる制御器もデモも無い状態で、結び目に関わる動きのデータをどう集めるかが問題になります。ランダムな行動をロープに打っても、結び目らしい形にはほとんどなりません <span class="src">§4.5</span>。</p>
+  <div class="stats">
+    <div class="stat"><div class="v">27</div><div class="k">ランダムウォークで得た交差 3 の状態 (CPU コア 1 つ・1 時間あたり)</div></div>
+    <div class="stat"><div class="v">537</div><div class="k">リセット方式で得た成功遷移 (コア 1 つ・1 時間あたり)</div></div>
+    <div class="stat"><div class="v">167 万</div><div class="k">学習に使ったデータ点</div></div>
+  </div>
+  <figure>
+    <div class="scroll" style="--minw:600px">
+    <svg viewBox="0 0 760 250" role="img" aria-label="データ収集の流れ。到達済みの形の集合 D_Q から形を 1 つ読み込み、ランダムな曲線を打ち、次の形を得る。交差数が増えていれば遷移をデータ D に、新しい形を D_Q に加える。増えていなければ捨てる。">
+      <g font-size="12">
+        <rect x="20" y="90" width="150" height="64" rx="8" class="boxr"/><text x="95" y="116" text-anchor="middle" font-weight="600">D_Q</text><text x="95" y="136" text-anchor="middle" font-size="11">到達済みの形と交差数</text>
+        <rect x="220" y="100" width="110" height="44" rx="6" class="box"/><text x="275" y="120" text-anchor="middle">q<tspan baseline-shift="sub" font-size="9">t</tspan> を読み込む</text><text x="275" y="136" text-anchor="middle" font-size="11" class="t-muted">一様に選ぶ</text>
+        <rect x="370" y="100" width="120" height="44" rx="6" class="box"/><text x="430" y="120" text-anchor="middle">ランダムな曲線</text><text x="430" y="136" text-anchor="middle" class="mono" font-size="11">c_t</text>
+        <rect x="530" y="100" width="90" height="44" rx="6" class="boxh"/><text x="575" y="127" text-anchor="middle">MuJoCo</text>
+        <polygon points="690,72 740,122 690,172 640,122" class="box2"/>
+        <text x="690" y="118" text-anchor="middle" font-size="11">交差数が</text><text x="690" y="132" text-anchor="middle" font-size="11">増えた?</text>
+        <line x1="170" y1="122" x2="216" y2="122" class="ln" marker-end="url(#arr)"/>
+        <line x1="330" y1="122" x2="366" y2="122" class="ln" marker-end="url(#arr)"/>
+        <line x1="490" y1="122" x2="526" y2="122" class="ln" marker-end="url(#arr)"/>
+        <line x1="620" y1="122" x2="638" y2="122" class="ln" marker-end="url(#arr)"/>
+        <path d="M690,72 V30 H95 V86" class="ln-r" marker-end="url(#arrR)"/>
+        <text x="400" y="24" text-anchor="middle" class="t-rope">はい: q<tspan baseline-shift="sub" font-size="9">t+1</tspan> を D_Q に、(q<tspan baseline-shift="sub" font-size="9">t</tspan>, s<tspan baseline-shift="sub" font-size="9">t</tspan>, c<tspan baseline-shift="sub" font-size="9">t</tspan>, q<tspan baseline-shift="sub" font-size="9">t+1</tspan>, s<tspan baseline-shift="sub" font-size="9">t+1</tspan>) を D に加える</text>
+        <path d="M690,172 V210" class="ln-m" marker-end="url(#arrM)"/>
+        <text x="690" y="230" text-anchor="middle" class="t-muted">いいえ: 捨てる</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>リセットつきのデータ収集</b> <span class="src">§4.5</span>。毎回、到達済みの形の集合 D<sub>Q</sub> から出発し直すので、交差の多い形から次の交差を作る遷移が集まる。Cross(s<sub>t+1</sub>) &gt; Cross(s<sub>t</sub>) の遷移だけを残す。</figcaption>
+  </figure>
+  <p>TWISTED-RL の付録によれば、このデータは廃棄率 99% 超のデータセットから 167 万点を取り出したもので、収集した総数は 1 億 6500 万点を超え、3 週間かかりました <span class="src">TWISTED-RL 付録 VIII-B.1</span>。</p>
+</section>
+
+<section id="hard">
+  <h2><span class="num">09</span>実験 1: 行動を離散化するとどうなるか</h2>
+  <p>結び目の問題では行動に非常に高い精度が要ることを確かめるため、曲線の連続値を丸めても同じ位相状態に届くかを測りました <span class="src">§5.1</span>。z<sub>max</sub> は 0.001 刻み、x と y は 0.01 刻みに丸めます。離散化した曲線の空間はすでに 21 × 70 × 100 × 100 = 1470 万通りと大きい空間です。</p>
+  <div class="stats">
+    <div class="stat"><div class="v">1470 万</div><div class="k">離散化した曲線の数 (21 × 70 × 100 × 100)</div></div>
+    <div class="stat"><div class="v">60 万</div><div class="k">検証した遷移 (交差 2 → 交差 3)</div></div>
+    <div class="stat"><div class="v">82%</div><div class="k">丸める前と同じ位相状態に届いた割合</div></div>
+  </div>
+  <p>18% が別の位相になるので、力学は滑らかではなく、行動の小さな違いで行き先の位相が変わります。離散化をさらに細かくすると行動空間がもっと大きくなるので、既存の離散プランナー (MCTS など) にそのまま載せる方法は向かない、と結論しています。</p>
+</section>
+
+<section id="compare">
+  <h2><span class="num">10</span>実験 2: 手法の比較</h2>
+  <p>比較した手法は 5 つです <span class="src">§5.2</span>。</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>手法</th><th>中身</th><th>確かめたいこと</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">low level only</th><td>高レベルの情報を使わない。到達した形からランダムな曲線を打つだけの探索。交差数などの途中のフィードバックも無い</td><td>高レベルの情報がどれだけ効くか</td></tr>
+      <tr><th scope="row">Low + high level</th><td>高レベルの計画はたどるが、逆モデルの代わりにランダムな行動を使う</td><td>「精度の高い提案を少し」と「ランダムに大量に」のどちらが良いか</td></tr>
+      <tr><th scope="row">SAC + HER</th><td>SAC と Hindsight Experience Replay で確率的方策を学習し、逆モデルの代わりに使う</td><td>モデルフリー RL の実力</td></tr>
+      <tr><th scope="row">TWISTED, RND</th><td>完全版。SelectTopologicalState は random</td><td></td></tr>
+      <tr><th scope="row">TWISTED, CRS</th><td>完全版。SelectTopologicalState は prioritize-crosses</td><td></td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>評価の設定</strong>: 集めたデータ D の中での各位相状態 (目標) の出現頻度で問題を 3 段階に分けます。出現回数の多い順に上位 33% を easy、66% までを medium、残りを hard とし、それぞれから 10 問を選びます。制限時間は 1800 秒です。</p>
+  <figure>
+    <div class="chart" id="c-algos"></div>
+    <figcaption><b>easy の 10 問のうち、各時刻までに解けた数</b> <span class="src">Fig. 7</span>。TWISTED の 2 版は 30 分以内に 10 問すべてを解く。逆モデルを抜いた Low + high level は 4 問、SAC+HER は 3 問、low level only は 2 問。medium と hard は、どの手法も 1800 秒以内に 1 問も解けなかった。曲線は図から読んだ近似。</figcaption>
+    <details class="data"><summary>データを表で見る</summary>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>手法</th><th class="num">1800 秒で解けた数 (/10)</th><th>増えた時刻 (秒, 近似)</th></tr></thead>
+        <tbody>
+          <tr><td>TWISTED, CRS</td><td class="num">10</td><td>52 (2 問), 153, 359, 424, 584, 910, 1234, 1252, 1475</td></tr>
+          <tr><td>TWISTED, RND</td><td class="num">10</td><td>52 (2 問), 63, 177, 256, 295, 348, 648, 1216, 1748</td></tr>
+          <tr><td>Low + high level</td><td class="num">4</td><td>387, 499, 886, 1029</td></tr>
+          <tr><td>SAC + HER</td><td class="num">3</td><td>109, 499, 726</td></tr>
+          <tr><td>low level only</td><td class="num">2</td><td>499, 1118</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small muted">原文のキャプションは「total 30 instances」ですが、縦軸は 10 までです。easy の 10 問を示していると読めます。</p>
+    </details>
+  </figure>
+  <h3>結果の読み方</h3>
+  <ul>
+    <li><strong>low level only はほぼ解けない</strong> (10 問中 2 問)。問題が疎すぎて、高レベルの探索のような問題構造の知識なしには解けない、という仮説を裏付けます。</li>
+    <li><strong>SAC+HER はランダム探索よりわずかに良い程度</strong>。学習中 (低レベル計画に組み込まない単独の状態) には交差 1 の問題はすべて安定して解けたものの、交差 2 ではほぼ 0% でした。著者らは原因を、位相状態が離散であることに求めています。カテゴリ変数には「似ている」という概念が無く、等しいかどうかしか無いので、状態間で汎化できません。HER も、到達したゴールのパターンしか強化できず、ランダムに動く学習初期には交差の多い状態にほとんど届かないので、助けになりません。</li>
+    <li><strong>逆モデルは必須の部品</strong>。Low + high level は完全版に大きく劣ります。</li>
+    <li><strong>CRS と RND</strong>: この 10 問では差がはっきりしないため、easy の目標を 15 問追加しました。CRS は 25 問中 24 問、RND は 19 問を解き、Z 検定 (有意水準 0.05) で CRS が有意に良いと判断しました。以後は CRS を TWISTED として使います。</li>
+  </ul>
+</section>
+
+<section id="friction">
+  <h2><span class="num">11</span>実験 3: 摩擦を変えても解けるか</h2>
+  <p>計画に使うシミュレータと評価する環境が同じ、という前提は現実には成り立ちません。そこで、計画時のモデルと評価環境の摩擦係数をずらして試しました <span class="src">§5.3</span>。</p>
+  <p>まず、摩擦が位相に効くことを確かめました。同じ形から同じ行動を摩擦だけ変えて打つと、60 万回のうち元の摩擦と同じ位相状態になったのは 82% でした。次に、既定の摩擦 (100%) で学習した TWISTED を、摩擦を ±5% 変えたロープで評価しました。</p>
+  <figure>
+    <div class="chart" id="c-friction"></div>
+    <figcaption><b>摩擦係数ごとの、解けた問題の数</b> <span class="src">Fig. 8</span>。摩擦 95% と 105% でも 10 問中 9 問を解き、性能はほぼ保たれる。軌道そのものは元と違っていても、計画は成立する。曲線は図から読んだ近似。</figcaption>
+    <details class="data"><summary>データを表で見る</summary>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>摩擦</th><th class="num">1800 秒で解けた数 (/10)</th></tr></thead>
+        <tbody><tr><td>95%</td><td class="num">9</td></tr><tr><td>100% (既定)</td><td class="num">10</td></tr><tr><td>105%</td><td class="num">9</td></tr></tbody>
+      </table></div>
+    </details>
+  </figure>
+</section>
+
+<section id="unseen">
+  <h2><span class="num">12</span>実験 4: データに無い目標</h2>
+  <p>交差 3 の位相状態は 500 を超え、交差 4 はほぼ 8000 あります。交差の多い状態はサンプルしにくいので、データ D にすべては入っていません。そこで D に無い交差 3 の状態と、交差 4 の状態 (データには交差 1〜3 しか無い) を目標にしました。逆モデルの寄与が減る分を探索で補うため、探索時間を 4 倍 (7200 秒) にしました <span class="src">§5.4</span>。</p>
+  <figure>
+    <div class="chart" id="c-unseen"></div>
+    <figcaption><b>未知の目標で解けた問題の割合</b> <span class="src">Fig. 9, Fig. 10</span>。未見の交差 3 は 8 問中 2 問 (25%)、交差 4 は 10 問中 3 問 (30%) を解いた。データを覚えているだけではなく、ある程度汎化していると著者らは述べる。時刻は図から読んだ近似。</figcaption>
+  </figure>
+</section>
+
+<section id="limits">
+  <h2><span class="num">13</span>限界と次の論文へ</h2>
+  <p>著者らが挙げた限界は次のとおりです <span class="src">§6</span>。</p>
+  <ul>
+    <li><strong>sim2real</strong>: シミュレーションで学習と評価をしている。実機と実際のロープでの検証が必要。</li>
+    <li><strong>単純化</strong>: アームではなく自由なエンドエフェクタを動かしている (アームでは実行できない曲線がありうる)。ロープの状態は完全にわかる前提で、実際には推定が要る。</li>
+    <li><strong>まれな目標に弱い</strong>: データに多い目標では良いが、まれな目標や未知の目標では性能が落ちる。</li>
+  </ul>
+  <p>改善の方向として、今の性能が低い状態からデータを集めること、高レベル計画の選択にバンディットアルゴリズムを使うこと、そして<strong>TWISTED を「価値あるデータ」の提供者にして、オフポリシーの RL と組み合わせる</strong>ことを挙げています。プランナーを方策に蒸留する、あるいは RL と模倣学習を組み合わせる、といった形です。</p>
+  <div class="callout rope">
+    <p><strong>TWISTED-RL へのつながり</strong>: TWISTED-RL は同じ著者グループ (Jurgenson, Sudry, Karpas) による続編です。高レベル計画と環境はそのまま使い、逆モデルを RL の方策に置き換えます。TWISTED-RL は、TWISTED の低レベルの限界を 3 つにまとめています。(1) 1 遷移を 1 手でこなす制約、(2) 次の状態で条件付けること、(3) 手作りのデータ収集の手間。</p>
+  </div>
+</section>
+
+<section id="gloss">
+  <h2><span class="num">14</span>用語集</h2>
+  <dl class="gloss">
+    <div><dt>逆モデル (inverse model)</dt><dd>「今の状態」と「行きたい状態」から、そこへ行く行動を予測するモデル。ここでは (q, s′) から曲線 c の分布を出す。</dd></div>
+    <div><dt>自己回帰モデル</dt><dd>出力を要素ごとに順に生成し、前に生成した要素を次の要素の入力にするモデル。</dd></div>
+    <div><dt>祖先サンプリング</dt><dd>自己回帰モデルで、各要素の分布から順にサンプルして次へ渡す生成のしかた。</dd></div>
+    <div><dt>到達状態の木 T</dt><dd>これまでに到達した形を頂点、そこへ至った曲線を辺とする木。探索の出発点の候補になる。</dd></div>
+    <div><dt>BFS</dt><dd>幅優先探索。ここでは p-data のグラフで目標までの経路を探すのに使う。</dd></div>
+    <div><dt>SAC</dt><dd>Soft Actor-Critic。エントロピー正則化つきのオフポリシー RL。</dd></div>
+    <div><dt>HER</dt><dd>Hindsight Experience Replay。失敗した試行を「実際に到達した状態が目標だった」と読み替えて学習に使う手法。</dd></div>
+    <div><dt>完全性 (completeness)</dt><dd>時間さえあれば解が存在する限り必ず見つかる性質。TWISTED では RandomExpand がこれを担う。</dd></div>
+    <div><dt>sim2real</dt><dd>シミュレーションで得た方策や計画を実機に移すこと、またそのときの性能差。</dd></div>
+  </dl>
+  <div class="nextprev">
+    <a href="yan2020.html"><small>← 前へ</small><span class="dot yan"></span> Yan2020 の図解</a>
+    <a href="twisted-rl.html"><small>次へ →</small><span class="dot trl"></span> TWISTED-RL の図解</a>
+  </div>
+</section>
+
+  </main>
+</div>
+<footer class="foot">出典: M. Sudry, T. Jurgenson, A. Tamar, E. Karpas, "Hierarchical Planning for Rope Manipulation using Knot Theory and a Learned Inverse Model," 2023。図はすべて論文の内容をもとに描き直しました。グラフは論文の図から読み取った近似です。</footer>
+<script>
+(function(){
+  var sec = function(v){ return Math.round(v) + " 秒"; };
+  KnotCharts.step("c-algos", {
+    xMax: 1800, yMax: 10, xTicks: [0,300,600,900,1200,1500,1800], xTicksNarrow:[0,600,1200,1800], yTicks: [0,2,4,6,8,10],
+    xLabel: "実行時間 (秒)", yLabel: "解けた数", fmtTipX: sec, fmtTipY: function(v){ return v + " / 10"; },
+    aria: "easy 10 問の解けた数の推移。TWISTED の 2 版は 10 問、Low+high level は 4、SAC+HER は 3、low level only は 2。",
+    series: [
+      {name:"TWISTED, CRS", color:"var(--s1)", pts:[[52,2],[153,3],[359,4],[424,5],[584,6],[910,7],[1234,8],[1252,9],[1475,10]]},
+      {name:"TWISTED, RND", color:"var(--s2)", pts:[[52,2],[63,3],[177,4],[256,5],[295,6],[348,7],[648,8],[1216,9],[1748,10]]},
+      {name:"Low + high level", color:"var(--s3)", pts:[[387,1],[499,2],[886,3],[1029,4]]},
+      {name:"SAC + HER", color:"var(--s5)", pts:[[109,1],[499,2],[726,3]]},
+      {name:"low level only", color:"var(--muted)", pts:[[499,1],[1118,2]]}
+    ]
+  });
+  KnotCharts.step("c-friction", {
+    xMax: 1800, yMax: 10, xTicks: [0,300,600,900,1200,1500,1800], xTicksNarrow:[0,600,1200,1800], yTicks: [0,2,4,6,8,10],
+    xLabel: "実行時間 (秒)", yLabel: "解けた数", fmtTipX: sec, fmtTipY: function(v){ return v + " / 10"; },
+    aria: "摩擦 95%, 100%, 105% での解けた数の推移。最終的に 9, 10, 9 問。",
+    series: [
+      {name:"摩擦 95%", color:"var(--s3)", pts:[[37,1],[177,2],[190,3],[409,4],[422,5],[495,6],[530,7],[853,8],[1223,9]]},
+      {name:"摩擦 100% (既定)", color:"var(--s1)", pts:[[57,2],[153,3],[359,4],[424,5],[584,6],[910,7],[1234,8],[1252,9],[1475,10]]},
+      {name:"摩擦 105%", color:"var(--s2)", pts:[[33,1],[63,2],[98,3],[103,4],[147,5],[212,6],[481,7],[761,8],[919,9]]}
+    ]
+  });
+  KnotCharts.step("c-unseen", {
+    xMax: 7200, yMax: 50, xTicks: [0,1200,2400,3600,4800,6000,7200], xTicksNarrow:[0,2400,4800,7200], yTicks: [0,10,20,30,40,50],
+    xLabel: "実行時間 (秒)", yLabel: "解けた割合 (%)", fmtY: function(v){ return v; }, fmtTipX: sec, fmtTipY: function(v){ return v + "%"; },
+    aria: "未知の目標で解けた割合。未見の交差 3 は 25%、交差 4 は 30%。",
+    series: [
+      {name:"未見の交差 3 (8 問)", color:"var(--s1)", pts:[[2100,12.5],[4200,25]]},
+      {name:"交差 4 (10 問)", color:"var(--s2)", pts:[[1100,10],[1500,20],[4650,30]]}
+    ]
+  });
+})();
+</script>

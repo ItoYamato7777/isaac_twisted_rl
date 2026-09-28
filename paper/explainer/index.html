@@ -1,0 +1,658 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>紐結び 3 論文の図解</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;700&family=Zen+Old+Mincho:wght@600;700&display=swap">
+<style>
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --surface-2:#e9eeec; --ink:#162023; --ink-2:#3b474b; --muted:#667276;
+  --rule:#d3dbd8; --rule-strong:#b7c2bf;
+  --rope:#1d6b73; --rope-2:#8fb9bc; --rope-soft:#dcecec; --hl:#bf5a1c; --hl-soft:#f8e6d9;
+  --good:#1f7a36; --bad:#b83232;
+  --p-yan:#2a78d6; --p-tw:#eb6834; --p-trl:#1baf7a;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4;
+  --grid:#e1e5e3; --axis:#bcc5c2;
+  --f-display:"Zen Old Mincho","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"IBM Plex Sans JP","Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f1415; --surface:#161d1f; --surface-2:#1e2729; --ink:#e6ecea; --ink-2:#c3ccca; --muted:#8d989b;
+    --rule:#2a3437; --rule-strong:#3b484b;
+    --rope:#62b8bf; --rope-2:#2f6166; --rope-soft:#1b3438; --hl:#f0a25f; --hl-soft:#3a2818;
+    --good:#4cc36a; --bad:#ef7373;
+    --p-yan:#3987e5; --p-tw:#d95926; --p-trl:#199e70;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+    --grid:#253033; --axis:#3a474a;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1415; --surface:#161d1f; --surface-2:#1e2729; --ink:#e6ecea; --ink-2:#c3ccca; --muted:#8d989b;
+  --rule:#2a3437; --rule-strong:#3b484b;
+  --rope:#62b8bf; --rope-2:#2f6166; --rope-soft:#1b3438; --hl:#f0a25f; --hl-soft:#3a2818;
+  --good:#4cc36a; --bad:#ef7373;
+  --p-yan:#3987e5; --p-tw:#d95926; --p-trl:#199e70;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+  --grid:#253033; --axis:#3a474a;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.85;
+  padding-inline:16px;}
+a{color:var(--rope);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--hl);outline-offset:2px;border-radius:4px}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+code{background:var(--surface-2);padding:.08em .35em;border-radius:4px}
+
+/* site bar */
+.sitebar{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding-block:14px;
+  border-bottom:1px solid var(--rule);font-size:14px}
+.sitebar .brand{font-family:var(--f-display);font-weight:700;font-size:16px;color:var(--ink);text-decoration:none;margin-right:auto}
+.sitebar nav{display:flex;flex-wrap:wrap;gap:4px 4px}
+.sitebar nav a{color:var(--ink-2);text-decoration:none;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:6px}
+.sitebar nav a:hover{background:var(--surface-2)}
+.sitebar nav a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.dot.yan{background:var(--p-yan)} .dot.tw{background:var(--p-tw)} .dot.trl{background:var(--p-trl)}
+
+/* hero */
+.hero{max-width:1180px;margin:0 auto;padding-block:40px 28px;display:grid;gap:14px}
+.eyebrow{font-size:13px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.hero h1{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,4.6vw,46px);line-height:1.3;margin:0;text-wrap:balance;letter-spacing:.01em}
+.hero .orig{font-size:15px;color:var(--ink-2);margin:0;font-style:italic}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:14px;color:var(--ink-2);margin:0;padding:0;list-style:none}
+.meta b{color:var(--muted);font-weight:500;margin-right:6px}
+
+/* layout */
+.layout{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:32px;padding-block:8px 80px}
+@media (min-width:1080px){.layout{grid-template-columns:210px minmax(0,1fr)}}
+.toc{font-size:14px}
+.toc details{border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface);padding:10px 14px}
+.toc summary{cursor:pointer;font-weight:600}
+.toc ol{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:2px;counter-reset:toc}
+.toc li a{display:block;color:var(--ink-2);text-decoration:none;padding:3px 8px;border-radius:6px;line-height:1.5}
+.toc li a:hover{background:var(--surface-2);color:var(--ink)}
+@media (min-width:1080px){
+  .toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start;max-height:calc(100vh - 32px);overflow:auto}
+  .toc details{border:0;background:none;padding:0}
+  .toc summary{list-style:none;color:var(--muted);font-size:12px;letter-spacing:.12em;font-weight:500;pointer-events:none}
+  .toc summary::-webkit-details-marker{display:none}
+}
+main{min-width:0;max-width:820px}
+main > section{padding-block:18px 8px;border-top:1px solid var(--rule)}
+main > section:first-child{border-top:0}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(23px,3vw,29px);line-height:1.4;margin:22px 0 10px;text-wrap:balance}
+h2 .num{font-family:var(--f-mono);font-size:.6em;color:var(--muted);margin-right:10px;vertical-align:.18em;font-weight:500}
+h3{font-size:18px;line-height:1.5;margin:28px 0 6px;text-wrap:balance}
+h4{font-size:15px;margin:18px 0 4px;color:var(--ink-2)}
+p{margin:10px 0}
+main ul,main ol{padding-left:1.4em;margin:10px 0}
+main li{margin:4px 0}
+strong{font-weight:700}
+.lead{font-size:17px;color:var(--ink-2)}
+.muted{color:var(--muted)}
+.small{font-size:13.5px;line-height:1.7}
+
+/* tldr */
+.tldr{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:18px 22px;margin:8px 0 6px}
+.tldr h2{margin-top:0;font-size:20px}
+.tldr ol{margin:6px 0 0}
+
+/* source chip + interpretation flag */
+.src{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);border:1px solid var(--rule);border-radius:4px;padding:0 5px;margin-left:4px;white-space:nowrap;vertical-align:.1em}
+.interp{display:inline-block;font-size:11.5px;font-weight:600;color:var(--hl);border:1px solid var(--hl);border-radius:4px;padding:0 5px;margin-right:6px;vertical-align:.1em;letter-spacing:.05em}
+.callout{border-left:3px solid var(--hl);background:var(--hl-soft);padding:10px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+.callout.rope{border-left-color:var(--rope);background:var(--rope-soft)}
+.callout p{margin:6px 0}
+
+/* figures */
+figure{margin:20px 0;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:16px}
+figure .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+figure svg{display:block;width:100%;height:auto}
+figure .scroll > svg{min-width:var(--minw,0px)}
+figcaption{font-size:13.5px;line-height:1.7;color:var(--ink-2);margin-top:12px}
+figcaption b{color:var(--ink)}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+svg .t-muted{fill:var(--muted)} svg .t-hl{fill:var(--hl)} svg .t-rope{fill:var(--rope)}
+svg .mono{font-family:var(--f-mono)}
+svg .rope{fill:none;stroke:var(--rope);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+svg .rope.butt{stroke-linecap:butt}
+svg .halo{fill:none;stroke:var(--surface);stroke-width:14;stroke-linecap:butt}
+svg .rope.hl{stroke:var(--hl)}
+svg .box{fill:var(--surface);stroke:var(--rule-strong);stroke-width:1.2}
+svg .box2{fill:var(--surface-2);stroke:var(--rule-strong);stroke-width:1}
+svg .boxr{fill:var(--rope-soft);stroke:var(--rope);stroke-width:1.2}
+svg .boxh{fill:var(--hl-soft);stroke:var(--hl);stroke-width:1.2}
+svg .ln{fill:none;stroke:var(--ink-2);stroke-width:1.4}
+svg .ln-m{fill:none;stroke:var(--muted);stroke-width:1.2}
+svg .ln-h{fill:none;stroke:var(--hl);stroke-width:1.8}
+svg .ln-r{fill:none;stroke:var(--rope);stroke-width:1.8}
+svg .dash{stroke-dasharray:5 4}
+svg .fill-ink{fill:var(--ink-2)} svg .fill-hl{fill:var(--hl)} svg .fill-rope{fill:var(--rope)} svg .fill-muted{fill:var(--muted)}
+svg .fill-surface{fill:var(--surface)} svg .fill-s2{fill:var(--surface-2)}
+svg .table{fill:none;stroke:var(--muted);stroke-width:1.2}
+
+/* p-data table */
+.pdata{font-family:var(--f-mono);font-size:13px;border-collapse:collapse;margin:6px auto 0}
+.pdata td,.pdata th{padding:1px 6px;text-align:center;font-variant-numeric:tabular-nums}
+.pdata th{font-family:var(--f-body);font-weight:500;color:var(--muted);font-size:11px;text-align:right;padding-right:10px}
+.pdata .o{color:var(--hl);font-weight:600}
+
+/* grids */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}
+.grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:12px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 16px}
+.panel h4{margin-top:0}
+.panel p{margin:6px 0;font-size:14.5px;line-height:1.75}
+.panel.plain{background:none}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;margin:14px 0;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)}
+table.tbl{border-collapse:collapse;width:100%;font-size:14px;line-height:1.6}
+.tbl th,.tbl td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+.tbl thead th{font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.04em;background:var(--surface-2);white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.num,.tbl th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl .best{font-weight:700;color:var(--ink)}
+.tbl th[scope="row"]{font-weight:600;white-space:nowrap}
+
+/* formula & code */
+.formula{font-family:var(--f-mono);font-size:14px;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;overflow-x:auto;white-space:pre;line-height:1.7;margin:12px 0}
+.algo{font-family:var(--f-mono);font-size:13.5px;line-height:1.75;margin:0;padding:0;list-style:none;counter-reset:ln}
+.algo li{counter-increment:ln;position:relative;padding-left:2.6em;margin:0}
+.algo li::before{content:counter(ln);color:var(--muted);text-align:right;position:absolute;left:0;width:1.8em}
+.algo li.in1{padding-left:4.2em} .algo li.in2{padding-left:5.8em}
+.algo .kw{color:var(--rope);font-weight:600}
+.algo-pair{display:grid;grid-template-columns:minmax(0,1fr);gap:0;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface);overflow:hidden}
+.algo-pair > div{padding:14px 16px}
+.algo-pair > div + div{border-top:1px solid var(--rule)}
+@media (min-width:760px){.algo-pair{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}.algo-pair > div + div{border-top:0;border-left:1px solid var(--rule)}}
+.algo-notes{font-size:14px;line-height:1.7;margin:0;padding-left:1.2em}
+.algo-notes li{margin:6px 0}
+
+/* definition list */
+dl.gloss{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin:12px 0;border-top:1px solid var(--rule)}
+dl.gloss > div{display:grid;grid-template-columns:minmax(0,1fr);gap:2px 18px;padding:10px 0;border-bottom:1px solid var(--rule)}
+@media (min-width:640px){dl.gloss > div{grid-template-columns:190px minmax(0,1fr)}}
+dl.gloss dt{font-weight:700}
+dl.gloss dd{margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.75}
+
+/* stat strip */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:12px;margin:14px 0}
+.stat{border-top:2px solid var(--ink);padding-top:8px}
+.stat .v{font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1.2}
+.stat .k{font-size:13px;color:var(--ink-2);line-height:1.5}
+
+/* next links */
+.nextprev{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin-top:22px}
+.nextprev a{display:block;border:1px solid var(--rule);background:var(--surface);border-radius:var(--radius);padding:12px 16px;text-decoration:none;color:var(--ink)}
+.nextprev a:hover{border-color:var(--rope)}
+.nextprev small{display:block;color:var(--muted);font-size:12px}
+
+/* charts */
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .ax text,.chart text{font-size:11.5px;fill:var(--muted);font-family:var(--f-body)}
+.chart .ax line{stroke:var(--grid);stroke-width:1}
+.chart .base{stroke:var(--axis);stroke-width:1}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--ink-2);margin:0 0 8px;padding:0;list-style:none}
+.legend li{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.legend i.line{height:3px;border-radius:2px;width:16px}
+.tip{position:absolute;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--rule-strong);border-radius:8px;padding:6px 10px;
+  font-size:12.5px;line-height:1.55;box-shadow:0 4px 14px rgba(0,0,0,.12);white-space:nowrap;z-index:5}
+.tip b{font-weight:600}
+.tip .row{display:flex;align-items:center;gap:6px}
+.tip i{width:9px;height:9px;border-radius:2px;display:inline-block}
+details.data{margin-top:10px;font-size:13px}
+details.data summary{cursor:pointer;color:var(--ink-2)}
+details.data .tbl-wrap{margin:8px 0 0}
+details.data table.tbl{font-size:12.5px}
+details.data .tbl th,details.data .tbl td{padding:4px 10px}
+
+/* lineage cards */
+.papers{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px;margin:16px 0}
+.paper{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:16px 18px;text-decoration:none;color:var(--ink)}
+.paper:hover{border-color:var(--rope)}
+.paper .yr{font-family:var(--f-mono);font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.paper h3{margin:0;font-family:var(--f-display);font-size:20px}
+.paper p{margin:0;font-size:14px;line-height:1.7;color:var(--ink-2)}
+.paper .go{margin-top:auto;font-size:13.5px;color:var(--rope);font-weight:600}
+
+footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padding-block:20px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.paper,.nextprev a{transition:border-color .15s}}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-ink"/></marker>
+<marker id="arrM" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-muted"/></marker>
+<marker id="arrH" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-hl"/></marker>
+<marker id="arrR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-rope"/></marker>
+<marker id="tipR" viewBox="0 0 10 10" refX="3" refY="5" markerWidth="3.2" markerHeight="3.2" orient="auto"><path d="M0,0L10,5L0,10z" class="fill-rope"/></marker>
+</defs></svg>
+<header class="sitebar"><a class="brand" href="index.html">紐結び 3 論文の図解</a><nav aria-label="ページ"><a href="index.html" aria-current="page">はじめに</a><a href="yan2020.html"><span class="dot yan"></span>Yan2020</a><a href="twisted.html"><span class="dot tw"></span>TWISTED</a><a href="twisted-rl.html"><span class="dot trl"></span>TWISTED-RL</a></nav></header>
+<div class="hero">
+  <div class="eyebrow">paper/ フォルダの論文 3 本 · 入口と前提知識</div>
+  <h1>ロープを結ぶ問題を、位相の計画と動作の学習に分ける</h1>
+  <p class="lead" style="margin:0;max-width:62ch">3 本の論文は、どれも「どの交差をどの順で作るか」を結び目理論で決め、「その交差を実際にどう作るか」を学習で決めるという 2 段構えをとっています。このページでは 3 本に共通する前提知識をまとめ、最後に 3 本を比べます。論文ごとの詳しい図解は、各論文のページにあります。</p>
+</div>
+
+<div class="layout">
+  <aside class="toc">
+    <details open><summary>このページの内容</summary>
+      <ol>
+        <li><a href="#papers">3 本の論文と読む順番</a></li>
+        <li><a href="#levels">2 つの状態空間 Q と S</a></li>
+        <li><a href="#pdata">p-data: 位相状態の書き方</a></li>
+        <li><a href="#sign">交差の符号</a></li>
+        <li><a href="#moves">3 種類の位相遷移</a></li>
+        <li><a href="#overhand">固結びを遷移の列として見る</a></li>
+        <li><a href="#curve">行動: 掴んで、運んで、置く</a></li>
+        <li><a href="#hard">なぜ難しいのか</a></li>
+        <li><a href="#compare">3 本の比較表</a></li>
+        <li><a href="#gloss">用語集</a></li>
+      </ol>
+    </details>
+  </aside>
+  <main>
+
+<section id="papers">
+  <h2><span class="num">01</span>3 本の論文と読む順番</h2>
+  <p>3 本は同じ系譜に並んでいます。Yan2020 が「位相の計画 + 学習した動作」という枠組みを作りました。TWISTED はそこから人間のデモを取り除き、TWISTED-RL は TWISTED の低レベルを強化学習に置き換えました。発表順に読むと、各論文が前の論文のどこを問題視したかがわかります。</p>
+  <div class="papers">
+    <a class="paper" href="yan2020.html">
+      <span class="yr"><span class="dot yan"></span>2020 · IROS · Stanford</span>
+      <h3>Yan2020</h3>
+      <p>Learning Topological Motion Primitives for Knot Planning。位相の経路を探索し、各遷移を「位相動作プリミティブ」でロボットの軌道に落とします。プリミティブは人間のデモと強化学習で学習し、実機でも実行しました。</p>
+      <span class="go">図解を読む →</span>
+    </a>
+    <a class="paper" href="twisted.html">
+      <span class="yr"><span class="dot tw"></span>2023 · Technion</span>
+      <h3>TWISTED</h3>
+      <p>Hierarchical Planning for Rope Manipulation using Knot Theory and a Learned Inverse Model。人間のデモを使わずに、ランダムな操作から自己教師ありで学習した逆モデルと、到達した状態の木を使った探索で結び目を作ります。</p>
+      <span class="go">図解を読む →</span>
+    </a>
+    <a class="paper" href="twisted-rl.html">
+      <span class="yr"><span class="dot trl"></span>2026 · arXiv 2602.14526</span>
+      <h3>TWISTED-RL</h3>
+      <p>Hierarchical Skilled Agents for Knot-Tying without Human Demonstrations。TWISTED の 1 手の逆モデルを、位相遷移 1 回を複数手でこなす SAC 方策に置き換えます。方策は目標の状態ではなく、遷移の種類で条件付けます。</p>
+      <span class="go">図解を読む →</span>
+    </a>
+  </div>
+
+  <figure>
+    <div class="scroll" style="--minw:640px">
+    <svg viewBox="0 0 760 210" role="img" aria-label="3 本の論文の系譜。Yan2020 から TWISTED へは位相表現と曲線の行動と対称性による拡張が受け継がれ、人間のデモがランダムデータに置き換わった。TWISTED から TWISTED-RL へは高レベルの計画と環境が受け継がれ、逆モデルが強化学習の方策に置き換わった。">
+      <rect x="10" y="20" width="200" height="72" rx="8" class="box"/>
+      <circle cx="30" cy="42" r="5" style="fill:var(--p-yan)"/>
+      <text x="42" y="47" font-weight="700" font-size="15">Yan2020</text>
+      <text x="22" y="70" font-size="12" class="t-muted">人間デモ + RL の</text>
+      <text x="22" y="86" font-size="12" class="t-muted">位相動作プリミティブ</text>
+      <rect x="280" y="20" width="200" height="72" rx="8" class="box"/>
+      <circle cx="300" cy="42" r="5" style="fill:var(--p-tw)"/>
+      <text x="312" y="47" font-weight="700" font-size="15">TWISTED</text>
+      <text x="292" y="70" font-size="12" class="t-muted">自己教師ありの逆モデル</text>
+      <text x="292" y="86" font-size="12" class="t-muted">+ 到達状態の木で探索</text>
+      <rect x="550" y="20" width="200" height="72" rx="8" class="box"/>
+      <circle cx="570" cy="42" r="5" style="fill:var(--p-trl)"/>
+      <text x="582" y="47" font-weight="700" font-size="15">TWISTED-RL</text>
+      <text x="562" y="70" font-size="12" class="t-muted">遷移ごとの多段 SAC 方策</text>
+      <text x="562" y="86" font-size="12" class="t-muted">(交差数ごとに専用)</text>
+      <line x1="212" y1="56" x2="276" y2="56" class="ln" marker-end="url(#arr)"/>
+      <line x1="482" y1="56" x2="546" y2="56" class="ln" marker-end="url(#arr)"/>
+      <text x="110" y="122" font-size="12" font-weight="600" class="t-rope">受け継いだもの</text>
+      <text x="110" y="140" font-size="12">p-data · R1/R2/Cross</text>
+      <text x="110" y="156" font-size="12">掴んで置く曲線の行動</text>
+      <text x="110" y="172" font-size="12">Mirror / Reverse 拡張</text>
+      <text x="280" y="122" font-size="12" font-weight="600" class="t-hl">置き換えたもの</text>
+      <text x="280" y="140" font-size="12">人間のデモ → ランダム操作</text>
+      <text x="280" y="156" font-size="12">4 つのプリミティブ</text>
+      <text x="280" y="172" font-size="12">→ 1 つの逆モデル</text>
+      <text x="470" y="122" font-size="12" font-weight="600" class="t-rope">受け継いだもの</text>
+      <text x="470" y="140" font-size="12">高レベル計画 · MuJoCo 環境</text>
+      <text x="470" y="156" font-size="12">曲線 c = (l, x, y, z_max)</text>
+      <text x="620" y="178" font-size="12" font-weight="600" class="t-hl" text-anchor="middle">置き換えたもの</text>
+      <text x="620" y="196" font-size="12" text-anchor="middle">1 手の逆モデル → 多段の RL 方策</text>
+    </svg>
+    </div>
+    <figcaption><b>3 本の系譜。</b>矢印の下に、前の論文から受け継いだもの (ティール) と置き換えたもの (橙) を並べた。3 本とも、上位の「位相の計画」は結び目理論に任せ、下位の「交差の作り方」を学習する点は共通している。</figcaption>
+  </figure>
+  <p class="small muted">このリポジトリの実装 (v2-R2) と 3 本の比較は <a href="../Report.md">paper/Report.md</a> にあります。このページは論文そのものの理解を目的にしています。</p>
+</section>
+
+<section id="levels">
+  <h2><span class="num">02</span>2 つの状態空間 Q と S</h2>
+  <p>ロープの状態は 2 つの粒度で扱います。</p>
+  <ul>
+    <li><strong>低レベルの状態 q ∈ Q</strong>: ロープの形そのもの。TWISTED ではロープを L 個のリンクの鎖として表し、Q ⊆ ℝ<sup>2L+5</sup> です。先頭の 7 次元は真ん中のリンクの位置 (x, y, z) と姿勢 (クォータニオン) で、残りの L−1 個の関節はそれぞれ yaw と pitch の 2 値で表します <span class="src">TWISTED §2 脚注1</span>。</li>
+    <li><strong>高レベルの状態 s ∈ S</strong>: 交差の並び方だけを残した離散の「位相状態」。形が違っても、交差の上下関係と順番が同じなら同じ s です。</li>
+  </ul>
+  <p>Q から S への写像を <code>Top: Q → S</code> と書きます <span class="src">TWISTED §2</span>。計画は S の上で行い、実行は Q の上で行います。</p>
+  <figure>
+    <div class="scroll" style="--minw:620px">
+    <svg viewBox="0 0 760 230" role="img" aria-label="形の違う 3 本のロープが、Top 写像によって同じ位相状態 (p-data 1 2 / 2 1 / u o / + +) に写る様子">
+      <text x="10" y="20" font-size="12" font-weight="600" class="t-muted">低レベル q ∈ Q (形が違う 3 本)</text>
+      <g transform="translate(0,34) scale(0.42)">
+        <path d="M30,200 C110,190 160,170 200,150 C225,137 250,125 270,115 C290,105 300,90 300,70 C300,40 265,22 230,22 C195,22 150,40 150,70" class="rope" style="stroke-width:10"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200 C255,215 290,222 330,222" class="halo" style="stroke-width:28"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200 C255,215 290,222 330,222" class="rope" style="stroke-width:10" marker-end="url(#tipR)"/>
+      </g>
+      <g transform="translate(180,64) rotate(-18) scale(0.5,0.36)">
+        <path d="M30,200 C110,190 160,170 200,150 C225,137 250,125 270,115 C290,105 300,90 300,70 C300,40 265,22 230,22 C195,22 150,40 150,70" class="rope" style="stroke-width:10"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200 C255,215 290,222 330,222" class="halo" style="stroke-width:28"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200 C255,215 290,222 330,222" class="rope" style="stroke-width:10" marker-end="url(#tipR)"/>
+      </g>
+      <g transform="translate(400,30) rotate(14) scale(0.34,0.52)">
+        <path d="M30,200 C110,190 160,170 200,150 C225,137 250,125 270,115 C290,105 300,90 300,70 C300,40 265,22 230,22 C195,22 150,40 150,70" class="rope" style="stroke-width:11"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200 C255,215 290,222 330,222" class="halo" style="stroke-width:30"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200 C255,215 290,222 330,222" class="rope" style="stroke-width:11" marker-end="url(#tipR)"/>
+      </g>
+      <line x1="530" y1="100" x2="568" y2="100" class="ln" marker-end="url(#arr)"/>
+      <text x="549" y="90" font-size="13" text-anchor="middle" class="mono">Top(q)</text>
+      <rect x="575" y="44" width="175" height="112" rx="8" class="boxr"/>
+      <text x="662" y="36" font-size="12" font-weight="600" class="t-muted" text-anchor="middle">高レベル s ∈ S (1 つ)</text>
+      <text x="600" y="72" font-size="14" class="mono">1  2</text>
+      <text x="600" y="94" font-size="14" class="mono">2  1</text>
+      <text x="600" y="116" font-size="14" class="mono">u  o</text>
+      <text x="600" y="138" font-size="14" class="mono">+  +</text>
+      <text x="660" y="72" font-size="11" class="t-muted">交差の番号</text>
+      <text x="660" y="94" font-size="11" class="t-muted">相手の番号</text>
+      <text x="660" y="116" font-size="11" class="t-muted">上下</text>
+      <text x="660" y="138" font-size="11" class="t-muted">符号</text>
+      <text x="245" y="215" font-size="12" class="t-muted" text-anchor="middle">回転・伸縮しても、交差の並びと上下が同じなら同じ位相状態</text>
+    </svg>
+    </div>
+    <figcaption><b>Top は多対一の写像。</b>3 本の形 (q) はどれも「1 か所で自分自身と交差し、最初に通るときは下、2 回目は上」という同じ構造をもつので、同じ位相状態 s になる。矢印の先がロープの尾 (tail) で、反対側の端が頭 (head)。下を通る紐は、交差の手前で途切れさせて描いている。</figcaption>
+  </figure>
+  <p>この分け方には利点があります。S では状態の数が有限で、次にとれる手 (位相遷移) も数えられるので、グラフ探索ができます。一方で「同じ s に属する無数の q のうち、どれにいるか」で次の遷移の成功しやすさが変わります。Yan2020 の多段微調整と TWISTED-RL の多段エピソードは、どちらもこの点に手を打っています。</p>
+</section>
+
+<section id="pdata">
+  <h2><span class="num">03</span>p-data: 位相状態の書き方</h2>
+  <p>3 本とも、位相状態の表現に <strong>p-data</strong> を使います。p-data は Morita ら (2003) と Takamatsu ら (2006) の表現で、作り方は次の 4 段階です <span class="src">Yan2020 §IV</span><span class="src">TWISTED 付録 7.1</span>。</p>
+  <ol>
+    <li>3 次元のロープを水平面 (机の面) に射影する。</li>
+    <li>片方の端を頭 (head)、もう片方を尾 (tail) と決める。</li>
+    <li>頭から尾へたどり、交差に出会うたびに 1, 2, 3, … と番号を振る。1 つの交差は 2 回通るので、番号を 2 つもらう。</li>
+    <li>もう一度たどり直し、各番号について「交差の相手側の番号」「自分が上 (o) か下 (u) か」「交差の符号 (+/−)」を記録する。</li>
+  </ol>
+  <p>交差が n 個なら p-data は 4 行 × 2n 列の表になります。1 行目は常に 1, 2, …, 2n なので、実質的な情報は下の 3 行です。</p>
+  <div class="callout rope">
+    <p><strong>読み方の例</strong>: 固結びの p-data は <code>1 2 3 4 5 6 / 4 5 6 1 2 3 / u o u o u o / + + + + + +</code> です (<a href="#overhand">§06 の図</a>)。1 列目は「頭からたどって最初の交差は、6 番目の通過のうち 4 番目と同じ場所で、ここでは自分が下を通り、符号は +」と読みます。u と o が交互に並ぶのは、固結びが「交代結び目」だからです。</p>
+  </div>
+  <p>交差が増えると、ありうる p-data の数は急に増えます。TWISTED-RL の付録によると、交差 0 の状態は 1 つ、交差 1 は 4 つ、交差 2 は数十、交差 3 で数百になります <span class="src">TWISTED-RL 付録 VIII-A.6</span>。TWISTED は交差 3 で 500 超、交差 4 でほぼ 8000 と見積もっています <span class="src">TWISTED §5.4</span>。</p>
+  <div class="stats">
+    <div class="stat"><div class="v">1</div><div class="k">交差 0 の位相状態</div></div>
+    <div class="stat"><div class="v">4</div><div class="k">交差 1</div></div>
+    <div class="stat"><div class="v">数十</div><div class="k">交差 2</div></div>
+    <div class="stat"><div class="v">500 超</div><div class="k">交差 3</div></div>
+    <div class="stat"><div class="v">約 8000</div><div class="k">交差 4</div></div>
+  </div>
+</section>
+
+<section id="sign">
+  <h2><span class="num">04</span>交差の符号</h2>
+  <p>符号は、上の紐と下の紐の進む向き (頭→尾) で決まります <span class="src">Yan2020 式(1)</span>。</p>
+  <div class="formula">sign = ( l_over × l_under ) / | l_over × l_under | · e_z</div>
+  <p>l<sub>over</sub> と l<sub>under</sub> は、交差点での上の紐と下の紐の向きのベクトル、e<sub>z</sub> は射影面 (机) の上向きの法線です。机を真上から見て x を右、y を上にとると、「下の紐が右へ進むとき、上の紐が手前 (下向き) へ進むなら +」になります。</p>
+  <figure>
+    <div class="scroll" style="--minw:420px">
+    <svg viewBox="0 0 560 190" role="img" aria-label="符号の例。下の紐が右へ、上の紐が下へ進むと +。上の紐が上へ進むと −。">
+      <g>
+        <line x1="40" y1="95" x2="118" y2="95" class="rope butt"/>
+        <line x1="142" y1="95" x2="220" y2="95" class="rope butt" marker-end="url(#tipR)"/>
+        <line x1="130" y1="20" x2="130" y2="165" class="rope hl" style="stroke-linecap:butt" marker-end="url(#tipR)"/>
+        <text x="40" y="84" font-size="12" class="t-muted">l_under</text>
+        <text x="138" y="30" font-size="12" class="t-hl">l_over</text>
+        <text x="236" y="40" font-size="26" font-weight="700" text-anchor="middle">+</text>
+      </g>
+      <g transform="translate(300,0)">
+        <line x1="40" y1="95" x2="118" y2="95" class="rope butt"/>
+        <line x1="142" y1="95" x2="220" y2="95" class="rope butt" marker-end="url(#tipR)"/>
+        <line x1="130" y1="170" x2="130" y2="25" class="rope hl" style="stroke-linecap:butt" marker-end="url(#tipR)"/>
+        <text x="40" y="84" font-size="12" class="t-muted">l_under</text>
+        <text x="138" y="165" font-size="12" class="t-hl">l_over</text>
+        <text x="236" y="40" font-size="26" font-weight="700" text-anchor="middle">−</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>符号は向きの組で決まる。</b>下の紐 (ティール) は途切れて描かれ、上の紐 (橙) が上を通る。左は l<sub>over</sub> = (0, −1)、l<sub>under</sub> = (1, 0) で、外積の z 成分は 0·0 − (−1)·1 = +1 なので +。右は上の紐の向きが逆なので −。図の上下は机を真上から見た向き。</figcaption>
+  </figure>
+  <p>R2 で作る 2 つの交差は必ず符号が逆になります (後述)。符号は「どちら向きにねじれているか」を表すので、固結びの右手系と左手系 (鏡像) を区別できます。Yan2020 は、固結びには鏡像の関係にある 2 つの位相がある、と書いています <span class="src">Yan2020 §IV</span>。</p>
+</section>
+
+<section id="moves">
+  <h2><span class="num">05</span>3 種類の位相遷移: R1 · R2 · Cross</h2>
+  <p>位相状態のあいだを移る操作には、結び目理論の <strong>Reidemeister 移動</strong>を使います。3 本とも、交差を増やす次の 3 種類だけを使い、R3 (交差数を変えずに並びを入れ替える移動) は扱いません <span class="src">Yan2020 §IV</span><span class="src">TWISTED-RL 付録 VIII-A.5</span>。</p>
+
+  <figure>
+    <div class="scroll" style="--minw:620px">
+    <svg viewBox="0 0 820 250" role="img" aria-label="R1: まっすぐなロープにループを 1 つ作り、交差が 1 つ増える">
+      <text x="10" y="22" font-size="15" font-weight="700">R1 (Reidemeister I)</text>
+      <text x="170" y="22" font-size="12" class="t-muted">1 本の区間でループを作る · 交差 +1</text>
+      <g transform="translate(0,20)">
+        <path d="M30,200 C120,195 220,170 330,150" class="rope" marker-end="url(#tipR)"/>
+      </g>
+      <line x1="370" y1="140" x2="440" y2="140" class="ln" marker-end="url(#arr)"/>
+      <g transform="translate(440,10)">
+        <path d="M30,200 C110,190 160,170 200,150 C225,137 250,125 270,115 C290,105 300,90 300,70 C300,40 265,22 230,22 C195,22 150,40 150,70" class="rope"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200 C255,215 290,222 330,222" class="halo"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200 C255,215 290,222 330,222" class="rope" marker-end="url(#tipR)"/>
+        <circle cx="200" cy="150" r="17" class="ln-h dash"/>
+      </g>
+    </svg>
+    </div>
+    <div class="scroll" style="--minw:620px">
+    <svg viewBox="0 0 820 240" role="img" aria-label="R2: ある区間の中ほどを別の区間の上へ引き出し、符号が逆の交差を 2 つ同時に作る">
+      <text x="10" y="22" font-size="15" font-weight="700">R2 (Reidemeister II)</text>
+      <text x="170" y="22" font-size="12" class="t-muted">区間の中ほどを別の区間に重ねる · 交差 +2 (符号は逆)</text>
+      <g transform="translate(0,20)">
+        <path d="M40,50 C120,50 200,50 260,50 C300,50 320,70 320,90 C320,110 300,130 260,130 C200,130 120,130 40,130" class="rope" marker-end="url(#tipR)"/>
+      </g>
+      <line x1="370" y1="110" x2="440" y2="110" class="ln" marker-end="url(#arr)"/>
+      <g transform="translate(440,20)">
+        <path d="M260,50 C300,50 320,70 320,90 C320,110 300,130 260,130 C200,130 120,130 40,130" class="rope" marker-end="url(#tipR)"/>
+        <path d="M40,50 C80,50 100,55 115,90 C130,130 140,190 165,190 C190,190 200,130 215,90 C230,55 245,50 260,50" class="halo"/>
+        <path d="M40,50 C80,50 100,55 115,90 C130,130 140,190 165,190 C190,190 200,130 215,90 C230,55 245,50 260,50" class="rope"/>
+        <circle cx="129" cy="130" r="15" class="ln-h dash"/>
+        <circle cx="201" cy="130" r="15" class="ln-h dash"/>
+      </g>
+    </svg>
+    </div>
+    <div class="scroll" style="--minw:620px">
+    <svg viewBox="0 0 820 250" role="img" aria-label="Cross: ロープの端の区間を別の区間の上か下に通し、交差を 1 つ作る">
+      <text x="10" y="22" font-size="15" font-weight="700">Cross (C)</text>
+      <text x="170" y="22" font-size="12" class="t-muted">端 (頭か尾) の区間を別の区間と交差させる · 交差 +1</text>
+      <g transform="translate(0,10)">
+        <path d="M40,190 C150,190 250,190 290,140 C320,100 290,50 240,55" class="rope" marker-end="url(#tipR)"/>
+      </g>
+      <line x1="370" y1="140" x2="440" y2="140" class="ln" marker-end="url(#arr)"/>
+      <g transform="translate(440,10)">
+        <path d="M40,190 C150,190 250,190 290,140 C320,100 290,50 240,55" class="rope"/>
+        <path d="M240,55 C200,60 170,120 165,230" class="halo"/>
+        <path d="M240,55 C200,60 170,120 165,230" class="rope" marker-end="url(#tipR)"/>
+        <circle cx="167" cy="190" r="16" class="ln-h dash"/>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>交差を増やす 3 種類の移動。</b>点線の丸が新しくできた交差。R1 は 1 本の区間だけでループを作る。R2 は区間の中ほどをつまんで別の区間の上に重ね、符号が逆の交差を 2 つ同時に作る。Cross は端の区間を動かして 1 つ交差を作る。どれも矢印の先が尾。</figcaption>
+  </figure>
+
+  <p>各移動には、どの区間を使うかなどの離散パラメータが付きます。Yan2020 はこれを次のように定義しました。区間 (segment) は、交差点で区切った射影曲線の断片で、頭から 0, 1, 2, … と番号を振ります <span class="src">Yan2020 Table I</span>。</p>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>パラメータ</th><th>使う移動</th><th>意味</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><code>index</code></th><td>R1</td><td>新しい交差 (ループ) を作る区間の番号</td></tr>
+        <tr><th scope="row"><code>over_index</code></th><td>R2, C</td><td>新しい交差で上になる区間の番号</td></tr>
+        <tr><th scope="row"><code>under_index</code></th><td>R2, C</td><td>新しい交差で下になる区間の番号</td></tr>
+        <tr><th scope="row"><code>left</code></th><td>R1, R2</td><td>2 値。新しくできる面 (囲まれた領域) が、上の区間の左側にあるか</td></tr>
+        <tr><th scope="row"><code>sign</code></th><td>R1, C</td><td>2 値。新しい交差の符号</td></tr>
+        <tr><th scope="row"><code>over_first</code></th><td>R2 (over_index = under_index のとき)</td><td>2 値。区間のうち頭に近い半分が、新しい交差で上になるか</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>たとえば <code>R1(0, 1, 1)</code> は「区間 0 でループを作り、新しい面は左側、符号は +」、<code>C(2, 0, 1)</code> は「区間 2 を区間 0 の上に交差させ、符号は +」という意味です。</p>
+</section>
+
+<section id="overhand">
+  <h2><span class="num">06</span>固結びを遷移の列として見る</h2>
+  <p>固結び (overhand knot) は交差 3 の結び目です。素のロープから R1 を 1 回、Cross を 2 回行うと作れます。下の図は、その途中の 4 つの状態と p-data です。</p>
+  <div class="grid-2">
+    <figure style="margin:0">
+      <svg viewBox="0 0 390 250" role="img" aria-label="状態 0: 交差のないロープ">
+        <path d="M30,200 C120,195 220,170 330,150" class="rope" marker-end="url(#tipR)"/>
+        <text x="20" y="232" font-size="14" class="t-muted">頭</text>
+      </svg>
+      <figcaption><b>交差 0</b> · 素のロープ<table class="pdata"><tr><td class="muted">(交差なし)</td></tr></table></figcaption>
+    </figure>
+    <figure style="margin:0">
+      <svg viewBox="0 0 390 250" role="img" aria-label="状態 1: R1 でループを作り交差が 1 つ">
+        <path d="M30,200 C110,190 160,170 200,150 C225,137 250,125 270,115 C290,105 300,90 300,70 C300,40 265,22 230,22 C195,22 150,40 150,70" class="rope"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200 C255,215 290,222 330,222" class="halo"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200 C255,215 290,222 330,222" class="rope" marker-end="url(#tipR)"/>
+        <circle cx="200" cy="150" r="17" class="ln-h dash"/>
+        <text x="214" y="160" font-size="13" class="mono t-hl">1·2</text>
+        <text x="20" y="232" font-size="14" class="t-muted">頭</text>
+      </svg>
+      <figcaption><b>交差 1</b> · R1<table class="pdata">
+        <tr><td>1</td><td>2</td></tr><tr><td>2</td><td>1</td></tr><tr><td>u</td><td class="o">o</td></tr><tr><td>+</td><td>+</td></tr></table></figcaption>
+    </figure>
+    <figure style="margin:0">
+      <svg viewBox="0 0 390 250" role="img" aria-label="状態 2: 尾の端をループの右側の下にくぐらせ、交差が 2 つ">
+        <path d="M30,200 C110,190 160,170 200,150 C225,137 250,125 270,115" class="rope butt"/>
+        <path d="M240,200 C260,220 320,225 340,195 C350,180 360,150 355,120 C350,90 300,85 230,85" class="rope" marker-end="url(#tipR)"/>
+        <path d="M270,115 C290,105 300,90 300,70 C300,40 265,22 230,22 C195,22 150,40 150,70" class="halo"/>
+        <path d="M270,115 C290,105 300,90 300,70 C300,40 265,22 230,22 C195,22 150,40 150,70" class="rope butt"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200" class="halo"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200" class="rope butt"/>
+        <circle cx="299" cy="87" r="16" class="ln-h dash"/>
+        <text x="214" y="160" font-size="13" class="mono">1·3</text>
+        <text x="308" y="62" font-size="13" class="mono t-hl">2·4</text>
+        <text x="20" y="232" font-size="14" class="t-muted">頭</text>
+      </svg>
+      <figcaption><b>交差 2</b> · Cross (尾がループの下へ)<table class="pdata">
+        <tr><td>1</td><td>2</td><td>3</td><td>4</td></tr><tr><td>3</td><td>4</td><td>1</td><td>2</td></tr><tr><td>u</td><td class="o">o</td><td class="o">o</td><td>u</td></tr><tr><td>+</td><td>+</td><td>+</td><td>+</td></tr></table></figcaption>
+    </figure>
+    <figure style="margin:0">
+      <svg viewBox="0 0 390 250" role="img" aria-label="状態 3: 尾の端をループの左側の上に通して固結びが完成し、交差が 3 つ">
+        <path d="M30,200 C110,190 160,170 200,150 C225,137 250,125 270,115" class="rope butt"/>
+        <path d="M240,200 C260,220 320,225 340,195 C350,180 360,150 355,120 C350,90 300,85 230,85" class="rope butt"/>
+        <path d="M270,115 C290,105 300,90 300,70 C300,40 265,22 230,22 C195,22 150,40 150,70" class="halo"/>
+        <path d="M270,115 C290,105 300,90 300,70 C300,40 265,22 230,22 C195,22 150,40 150,70" class="rope butt"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200" class="halo"/>
+        <path d="M150,70 C150,100 175,125 200,150 C225,175 230,190 240,200" class="rope butt"/>
+        <path d="M230,85 C180,85 110,88 60,90" class="halo"/>
+        <path d="M230,85 C180,85 110,88 60,90" class="rope" marker-end="url(#tipR)"/>
+        <circle cx="151" cy="87" r="16" class="ln-h dash"/>
+        <text x="214" y="160" font-size="13" class="mono">1·4</text>
+        <text x="308" y="62" font-size="13" class="mono">2·5</text>
+        <text x="100" y="72" font-size="13" class="mono t-hl">3·6</text>
+        <text x="20" y="232" font-size="14" class="t-muted">頭</text>
+      </svg>
+      <figcaption><b>交差 3</b> · Cross (尾がループの上へ) = 固結び<table class="pdata">
+        <tr><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td></tr><tr><td>4</td><td>5</td><td>6</td><td>1</td><td>2</td><td>3</td></tr><tr><td>u</td><td class="o">o</td><td>u</td><td class="o">o</td><td>u</td><td class="o">o</td></tr><tr><td>+</td><td>+</td><td>+</td><td>+</td><td>+</td><td>+</td></tr></table></figcaption>
+    </figure>
+  </div>
+  <p class="small">図の数字 <code>a·b</code> は、その交差が頭からたどって a 番目と b 番目に通る場所であることを示します。点線の丸は各段階で新しくできた交差です。最後の p-data は Yan2020 の Fig. 2 に載っている固結びの表と一致します。</p>
+  <p>固結びへの経路は 1 通りではありません。Yan2020 は、固結び (鏡像の 2 つ) への位相の経路が 8 通りあると述べ、そのうち 2 つを図示しています <span class="src">Yan2020 §IV, Fig. 1</span>。実験で使った経路は <code>R1(0,1,1) → C(0,1,1) → C(2,0,1)</code> です。上の図は、尾の側を動かす経路で描いています。</p>
+  <p>TWISTED-RL の Fig. 1 には、実際に結んだ 2 つの例があります。8 の字結び (Figure-8) は ϕ = 0 → 1 (R1) → 2 (Cross) → 3 (Cross)、固結びは ϕ = 0 → 1 (R1) → 2 → 3 → 4 (Cross 3 回) と表示されています <span class="src">TWISTED-RL Fig. 1</span>。</p>
+  <p class="small"><span class="interp">解釈</span>数学的には 8 の字結びの交差数は 4、固結びは 3 です。上の Fig. 1 の数字はこれと逆に見えますが、原文のキャプションは「左が 8 の字、右が固結び」です。図の配置が入れ替わっている可能性があります。本文中の数字は Fig. 1 の表示をそのまま書き写しました。</p>
+</section>
+
+<section id="curve">
+  <h2><span class="num">07</span>行動: 掴んで、運んで、置く</h2>
+  <p>3 本とも、ロボットの 1 手を「ロープのどこかを掴み、持ち上げ、運び、机に置く」という長い軌道 1 本で表します。1 ステップごとの微小な移動を行動にすると、1 回の交差を作るのに何百ステップも要ります。長い軌道を 1 手にすると、1 回の位相遷移がおおむね 1〜数手で済みます <span class="src">Yan2020 §V</span>。</p>
+  <figure>
+    <div class="scroll" style="--minw:640px">
+    <svg viewBox="0 0 800 270" role="img" aria-label="行動の 2 つのパラメータ化。左は Yan2020 の 3 制御点スプライン、右は TWISTED と TWISTED-RL の掴む・持ち上げる・運ぶ・下ろすの軌道">
+      <text x="20" y="22" font-size="14" font-weight="700">Yan2020: 制御点 3 つのスプライン</text>
+      <line x1="20" y1="220" x2="370" y2="220" class="table"/>
+      <text x="370" y="240" font-size="11" class="t-muted" text-anchor="end">机の面</text>
+      <path d="M60,220 C90,90 250,70 320,220" class="ln-h dash" marker-end="url(#arrH)"/>
+      <circle cx="60" cy="220" r="6" class="fill-hl"/>
+      <circle cx="175" cy="112" r="6" class="fill-hl"/>
+      <circle cx="320" cy="220" r="6" class="fill-hl"/>
+      <text x="60" y="258" font-size="12" text-anchor="middle">① 把持点 (ロープ上)</text>
+      <text x="175" y="98" font-size="12" text-anchor="middle">② 中間点 (最高点を決める)</text>
+      <text x="320" y="258" font-size="12" text-anchor="middle">③ 置き先 (机の上)</text>
+      <text x="200" y="198" font-size="12" class="t-muted" text-anchor="middle">合わせて 6 次元</text>
+
+      <text x="430" y="22" font-size="14" font-weight="700">TWISTED / TWISTED-RL: c = (l, x, y, z_max)</text>
+      <line x1="430" y1="220" x2="780" y2="220" class="table"/>
+      <polyline points="470,220 470,80 730,80 730,220" class="ln-h" marker-end="url(#arrH)"/>
+      <circle cx="470" cy="220" r="6" class="fill-hl"/>
+      <text x="478" y="150" font-size="12">持ち上げる</text>
+      <text x="600" y="72" font-size="12" text-anchor="middle">運ぶ</text>
+      <text x="722" y="150" font-size="12" text-anchor="end">下ろす</text>
+      <line x1="760" y1="80" x2="760" y2="218" class="ln-m" marker-end="url(#arrM)" marker-start="url(#arrM)"/>
+      <text x="766" y="150" font-size="12" class="mono">z_max</text>
+      <text x="470" y="244" font-size="12" text-anchor="middle">掴むリンク l</text>
+      <text x="730" y="244" font-size="12" text-anchor="middle">置き先 (x, y)</text>
+    </svg>
+    </div>
+    <figcaption><b>横から見た 1 手の軌道。</b>Yan2020 はロープ上の把持点・高さを決める中間点・机の上の置き先の 3 点を通るスプラインで、行動は 6 次元になる (内訳は論文に書かれていない)。TWISTED と TWISTED-RL は、リンク番号 l で掴み、高さ z<sub>max</sub> まで真上に持ち上げ、(x, y) の真上まで水平に運び、下ろす <span class="src">TWISTED-RL 付録 VIII-A.3</span>。シミュレーションはロープの速度が 0 になるまで進めて次の状態 q′ = f(q, c) を得る。</figcaption>
+  </figure>
+  <p>TWISTED は Yan2020 の観察を引用し、「この曲線の空間で、ある位相状態から可能な Reidemeister 移動のほとんどを近似できる」としています <span class="src">TWISTED §2</span>。一方で、位相遷移に必要な精度は高く、曲線のパラメータを細かく離散化しただけでも結果の位相が変わります (<a href="twisted.html#hard">TWISTED §5.1</a>)。</p>
+</section>
+
+<section id="hard">
+  <h2><span class="num">08</span>なぜ難しいのか</h2>
+  <div class="grid-2">
+    <div class="panel"><h4>状態空間が大きく、連続</h4><p>ロープは自由度が非常に大きく、同じ位相状態に属する形が無数にあります。形によって次の遷移の成功しやすさが変わります。</p></div>
+    <div class="panel"><h4>目標が「形」ではなく「位相」</h4><p>「交差の並びがこうなっていればよい」という目標は、形の距離のような連続なコストに書けません。Yan2020 はこれを「抽象的な位相目標に対する直感的なコスト関数が無い」と表現しています。</p></div>
+    <div class="panel"><h4>ランダムでは奥へ進めない</h4><p>TWISTED の測定では、ランダムウォークで交差 3 の状態に届いたのは CPU コア 1 つあたり 1 時間に 27 状態だけでした <span class="src">TWISTED §4.5</span>。ランダムに動かすとロープはむしろほどける方向に動きます。</p></div>
+    <div class="panel"><h4>報酬が疎</h4><p>成功した位相遷移はまれで、ほとんどの試行は失敗します。TWISTED の SAC+HER は交差 1 の問題は解けても、交差 2 ではほぼ 0% でした <span class="src">TWISTED §5.2</span>。</p></div>
+  </div>
+  <p>3 本は、この難しさに対して次の順に手を打っています。Yan2020 は人間のデモで探索を絞り、TWISTED は到達した状態から探索とデータ収集を始め直し、TWISTED-RL は遷移ごとに専用の方策を学習して、到達済みの状態からエピソードを始めます。</p>
+</section>
+
+<section id="compare">
+  <h2><span class="num">09</span>3 本の比較表</h2>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>項目</th><th><span class="dot yan"></span> Yan2020</th><th><span class="dot tw"></span> TWISTED</th><th><span class="dot trl"></span> TWISTED-RL</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">発表</th><td>IROS 2020 (arXiv 2009.02615)</td><td>2023 (TWISTED-RL の参考文献では CoRL 2023)</td><td>arXiv 2602.14526 (2026 年 2 月)</td></tr>
+        <tr><th scope="row">高レベル</th><td>位相状態の DAG を探索し、目標までの経路 (solution DAG) を得る</td><td>p-data のグラフを BFS。交差数で枝刈り</td><td>TWISTED と同じ</td></tr>
+        <tr><th scope="row">低レベル</th><td>4 つの位相動作プリミティブ (actor と critic の組)</td><td>自己回帰の逆モデル 1 つ。次の位相状態 s′ で条件付け</td><td>SAC 方策。遷移の種類 ρ(A) で条件付け。最良の C 版は交差数ごとに 1 つ</td></tr>
+        <tr><th scope="row">行動</th><td>3 制御点のスプライン (6 次元)</td><td>曲線 c = (l, z<sub>max</sub>, x, y)</td><td>同じ曲線 c</td></tr>
+        <tr><th scope="row">1 遷移あたりの手数</th><td>1 本 (多くの場合 1 本で足りる)</td><td>1 本</td><td>最大 M 本。3-Easy の成功例で平均 2.5 本</td></tr>
+        <tr><th scope="row">学習データ</th><td>人間のデモ (画像上で 3 点をクリック + ノイズ) と、シミュレーションでの RL</td><td>ランダムな曲線で集めた 167 万遷移 (交差が増えたものだけ残す)</td><td>方策自身の試行のみ。方策あたり 200 万環境ステップ</td></tr>
+        <tr><th scope="row">人間のデモ</th><td>必要 (8 つの位相動作ぶん)</td><td>不要</td><td>不要</td></tr>
+        <tr><th scope="row">学習アルゴリズム</th><td>QT-Opt の改良 (critic + CEM) と REINFORCE の actor</td><td>教師あり学習 (自己回帰の確率モデル)</td><td>SAC</td></tr>
+        <tr><th scope="row">推論時の探索</th><td>プリミティブを候補の生成に使う木探索。シミュレーションで確認</td><td>到達状態の木 T から出発し、逆モデルの K=6 候補をシミュレータで試す</td><td>TWISTED と同じ探索の枠組みで、低レベルだけ RL 方策</td></tr>
+        <tr><th scope="row">シミュレータ</th><td>シミュレーション (名称の記載なし)</td><td>MuJoCo</td><td>MuJoCo (TWISTED と同じ環境)</td></tr>
+        <tr><th scope="row">実機</th><td>あり。MPPI と視覚追跡 (Kinect)</td><td>なし</td><td>なし</td></tr>
+        <tr><th scope="row">主な結果</th><td>RL で成功率が 1.14〜2.33 倍。固結びの探索木は全 10 シードで 5 未満</td><td>easy の 10 問を 1800 秒以内にすべて解く。medium と hard は 0</td><td>C 版で 3-Medium 44%、3-Hard 46%、4-Eval 26% (TWISTED は 0 / 0 / 10%)</td></tr>
+        <tr><th scope="row">主な限界</th><td>人間のデモが要る。「下から引き抜く」動作を学んでいない</td><td>まれな目標や未知の目標に弱い</td><td>実機で未検証。medium と hard はまだ 100% に遠い。手数が増える</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="gloss">
+  <h2><span class="num">10</span>用語集</h2>
+  <dl class="gloss">
+    <div><dt>位相状態 (topological state)</dt><dd>ロープを机に射影したときの、交差の並び・上下・符号だけで決まる離散の状態。p-data で表す。</dd></div>
+    <div><dt>p-data</dt><dd>位相状態の表現。頭から尾へたどった交差の番号、相手の番号、上下、符号を 4 行の表にしたもの。</dd></div>
+    <div><dt>交差数 (crossing number)</dt><dd>TWISTED では位相状態に含まれる交差の数 Cross(s)。TWISTED-RL では ϕ(S) と書き、難しさの目安に使う。</dd></div>
+    <div><dt>Reidemeister 移動</dt><dd>結び目の位相を変える基本操作。3 本とも R1 (ループ)、R2 (2 交差を同時に作る)、Cross (端で交差を作る) を使い、R3 は使わない。</dd></div>
+    <div><dt>頭 (head) / 尾 (tail)</dt><dd>ロープの両端。p-data を作るときのたどる向きを決める。</dd></div>
+    <div><dt>区間 (segment)</dt><dd>射影した曲線を交差点で区切った断片。頭から 0, 1, 2, … と番号を振る。</dd></div>
+    <div><dt>Top(q)</dt><dd>ロープの形 q を位相状態 s に写す関数。</dd></div>
+    <div><dt>曲線 c / スプライン</dt><dd>ロボットの 1 手。掴む点・高さ・置き先で決まる長い軌道。</dd></div>
+    <div><dt>Mirror / Reverse</dt><dd>形を鏡に映す変換と、頭と尾を入れ替える変換。学習すべき位相動作の種類やデータを 4 倍に広げるのに使う。</dd></div>
+    <div><dt>固結び (overhand knot)</dt><dd>交差 3 の最も単純な結び目。3 本とも主要な例題にしている。</dd></div>
+  </dl>
+  <div class="nextprev">
+    <a href="yan2020.html"><small>次に読む</small><span class="dot yan"></span> Yan2020 の図解 →</a>
+  </div>
+</section>
+
+  </main>
+</div>
+<footer class="foot">論文 PDF: <a href="../Learning_Topological_Motion_Primitives_for_Knot-Plannning.pdf">Yan2020</a> · <a href="../Twisted.pdf">TWISTED</a> · <a href="../Twisted-RL.pdf">TWISTED-RL</a>。本文の数値と図は論文から転記・再作図しました。出典の節・図・表の番号を各所に記しています。</footer>

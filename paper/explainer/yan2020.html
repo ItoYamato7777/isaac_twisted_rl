@@ -1,0 +1,993 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Yan2020 位相動作プリミティブ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;700&family=Zen+Old+Mincho:wght@600;700&display=swap">
+<style>
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --surface-2:#e9eeec; --ink:#162023; --ink-2:#3b474b; --muted:#667276;
+  --rule:#d3dbd8; --rule-strong:#b7c2bf;
+  --rope:#1d6b73; --rope-2:#8fb9bc; --rope-soft:#dcecec; --hl:#bf5a1c; --hl-soft:#f8e6d9;
+  --good:#1f7a36; --bad:#b83232;
+  --p-yan:#2a78d6; --p-tw:#eb6834; --p-trl:#1baf7a;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4;
+  --grid:#e1e5e3; --axis:#bcc5c2;
+  --f-display:"Zen Old Mincho","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"IBM Plex Sans JP","Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f1415; --surface:#161d1f; --surface-2:#1e2729; --ink:#e6ecea; --ink-2:#c3ccca; --muted:#8d989b;
+    --rule:#2a3437; --rule-strong:#3b484b;
+    --rope:#62b8bf; --rope-2:#2f6166; --rope-soft:#1b3438; --hl:#f0a25f; --hl-soft:#3a2818;
+    --good:#4cc36a; --bad:#ef7373;
+    --p-yan:#3987e5; --p-tw:#d95926; --p-trl:#199e70;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+    --grid:#253033; --axis:#3a474a;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1415; --surface:#161d1f; --surface-2:#1e2729; --ink:#e6ecea; --ink-2:#c3ccca; --muted:#8d989b;
+  --rule:#2a3437; --rule-strong:#3b484b;
+  --rope:#62b8bf; --rope-2:#2f6166; --rope-soft:#1b3438; --hl:#f0a25f; --hl-soft:#3a2818;
+  --good:#4cc36a; --bad:#ef7373;
+  --p-yan:#3987e5; --p-tw:#d95926; --p-trl:#199e70;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+  --grid:#253033; --axis:#3a474a;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.85;
+  padding-inline:16px;}
+a{color:var(--rope);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--hl);outline-offset:2px;border-radius:4px}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+code{background:var(--surface-2);padding:.08em .35em;border-radius:4px}
+
+/* site bar */
+.sitebar{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding-block:14px;
+  border-bottom:1px solid var(--rule);font-size:14px}
+.sitebar .brand{font-family:var(--f-display);font-weight:700;font-size:16px;color:var(--ink);text-decoration:none;margin-right:auto}
+.sitebar nav{display:flex;flex-wrap:wrap;gap:4px 4px}
+.sitebar nav a{color:var(--ink-2);text-decoration:none;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:6px}
+.sitebar nav a:hover{background:var(--surface-2)}
+.sitebar nav a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.dot.yan{background:var(--p-yan)} .dot.tw{background:var(--p-tw)} .dot.trl{background:var(--p-trl)}
+
+/* hero */
+.hero{max-width:1180px;margin:0 auto;padding-block:40px 28px;display:grid;gap:14px}
+.eyebrow{font-size:13px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.hero h1{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,4.6vw,46px);line-height:1.3;margin:0;text-wrap:balance;letter-spacing:.01em}
+.hero .orig{font-size:15px;color:var(--ink-2);margin:0;font-style:italic}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:14px;color:var(--ink-2);margin:0;padding:0;list-style:none}
+.meta b{color:var(--muted);font-weight:500;margin-right:6px}
+
+/* layout */
+.layout{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:32px;padding-block:8px 80px}
+@media (min-width:1080px){.layout{grid-template-columns:210px minmax(0,1fr)}}
+.toc{font-size:14px}
+.toc details{border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface);padding:10px 14px}
+.toc summary{cursor:pointer;font-weight:600}
+.toc ol{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:2px;counter-reset:toc}
+.toc li a{display:block;color:var(--ink-2);text-decoration:none;padding:3px 8px;border-radius:6px;line-height:1.5}
+.toc li a:hover{background:var(--surface-2);color:var(--ink)}
+@media (min-width:1080px){
+  .toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start;max-height:calc(100vh - 32px);overflow:auto}
+  .toc details{border:0;background:none;padding:0}
+  .toc summary{list-style:none;color:var(--muted);font-size:12px;letter-spacing:.12em;font-weight:500;pointer-events:none}
+  .toc summary::-webkit-details-marker{display:none}
+}
+main{min-width:0;max-width:820px}
+main > section{padding-block:18px 8px;border-top:1px solid var(--rule)}
+main > section:first-child{border-top:0}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(23px,3vw,29px);line-height:1.4;margin:22px 0 10px;text-wrap:balance}
+h2 .num{font-family:var(--f-mono);font-size:.6em;color:var(--muted);margin-right:10px;vertical-align:.18em;font-weight:500}
+h3{font-size:18px;line-height:1.5;margin:28px 0 6px;text-wrap:balance}
+h4{font-size:15px;margin:18px 0 4px;color:var(--ink-2)}
+p{margin:10px 0}
+main ul,main ol{padding-left:1.4em;margin:10px 0}
+main li{margin:4px 0}
+strong{font-weight:700}
+.lead{font-size:17px;color:var(--ink-2)}
+.muted{color:var(--muted)}
+.small{font-size:13.5px;line-height:1.7}
+
+/* tldr */
+.tldr{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:18px 22px;margin:8px 0 6px}
+.tldr h2{margin-top:0;font-size:20px}
+.tldr ol{margin:6px 0 0}
+
+/* source chip + interpretation flag */
+.src{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);border:1px solid var(--rule);border-radius:4px;padding:0 5px;margin-left:4px;white-space:nowrap;vertical-align:.1em}
+.interp{display:inline-block;font-size:11.5px;font-weight:600;color:var(--hl);border:1px solid var(--hl);border-radius:4px;padding:0 5px;margin-right:6px;vertical-align:.1em;letter-spacing:.05em}
+.callout{border-left:3px solid var(--hl);background:var(--hl-soft);padding:10px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+.callout.rope{border-left-color:var(--rope);background:var(--rope-soft)}
+.callout p{margin:6px 0}
+
+/* figures */
+figure{margin:20px 0;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:16px}
+figure .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+figure svg{display:block;width:100%;height:auto}
+figure .scroll > svg{min-width:var(--minw,0px)}
+figcaption{font-size:13.5px;line-height:1.7;color:var(--ink-2);margin-top:12px}
+figcaption b{color:var(--ink)}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+svg .t-muted{fill:var(--muted)} svg .t-hl{fill:var(--hl)} svg .t-rope{fill:var(--rope)}
+svg .mono{font-family:var(--f-mono)}
+svg .rope{fill:none;stroke:var(--rope);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+svg .rope.butt{stroke-linecap:butt}
+svg .halo{fill:none;stroke:var(--surface);stroke-width:14;stroke-linecap:butt}
+svg .rope.hl{stroke:var(--hl)}
+svg .box{fill:var(--surface);stroke:var(--rule-strong);stroke-width:1.2}
+svg .box2{fill:var(--surface-2);stroke:var(--rule-strong);stroke-width:1}
+svg .boxr{fill:var(--rope-soft);stroke:var(--rope);stroke-width:1.2}
+svg .boxh{fill:var(--hl-soft);stroke:var(--hl);stroke-width:1.2}
+svg .ln{fill:none;stroke:var(--ink-2);stroke-width:1.4}
+svg .ln-m{fill:none;stroke:var(--muted);stroke-width:1.2}
+svg .ln-h{fill:none;stroke:var(--hl);stroke-width:1.8}
+svg .ln-r{fill:none;stroke:var(--rope);stroke-width:1.8}
+svg .dash{stroke-dasharray:5 4}
+svg .fill-ink{fill:var(--ink-2)} svg .fill-hl{fill:var(--hl)} svg .fill-rope{fill:var(--rope)} svg .fill-muted{fill:var(--muted)}
+svg .fill-surface{fill:var(--surface)} svg .fill-s2{fill:var(--surface-2)}
+svg .table{fill:none;stroke:var(--muted);stroke-width:1.2}
+
+/* p-data table */
+.pdata{font-family:var(--f-mono);font-size:13px;border-collapse:collapse;margin:6px auto 0}
+.pdata td,.pdata th{padding:1px 6px;text-align:center;font-variant-numeric:tabular-nums}
+.pdata th{font-family:var(--f-body);font-weight:500;color:var(--muted);font-size:11px;text-align:right;padding-right:10px}
+.pdata .o{color:var(--hl);font-weight:600}
+
+/* grids */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}
+.grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:12px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 16px}
+.panel h4{margin-top:0}
+.panel p{margin:6px 0;font-size:14.5px;line-height:1.75}
+.panel.plain{background:none}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;margin:14px 0;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)}
+table.tbl{border-collapse:collapse;width:100%;font-size:14px;line-height:1.6}
+.tbl th,.tbl td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+.tbl thead th{font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.04em;background:var(--surface-2);white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.num,.tbl th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl .best{font-weight:700;color:var(--ink)}
+.tbl th[scope="row"]{font-weight:600;white-space:nowrap}
+
+/* formula & code */
+.formula{font-family:var(--f-mono);font-size:14px;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;overflow-x:auto;white-space:pre;line-height:1.7;margin:12px 0}
+.algo{font-family:var(--f-mono);font-size:13.5px;line-height:1.75;margin:0;padding:0;list-style:none;counter-reset:ln}
+.algo li{counter-increment:ln;position:relative;padding-left:2.6em;margin:0}
+.algo li::before{content:counter(ln);color:var(--muted);text-align:right;position:absolute;left:0;width:1.8em}
+.algo li.in1{padding-left:4.2em} .algo li.in2{padding-left:5.8em}
+.algo .kw{color:var(--rope);font-weight:600}
+.algo-pair{display:grid;grid-template-columns:minmax(0,1fr);gap:0;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface);overflow:hidden}
+.algo-pair > div{padding:14px 16px}
+.algo-pair > div + div{border-top:1px solid var(--rule)}
+@media (min-width:760px){.algo-pair{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}.algo-pair > div + div{border-top:0;border-left:1px solid var(--rule)}}
+.algo-notes{font-size:14px;line-height:1.7;margin:0;padding-left:1.2em}
+.algo-notes li{margin:6px 0}
+
+/* definition list */
+dl.gloss{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin:12px 0;border-top:1px solid var(--rule)}
+dl.gloss > div{display:grid;grid-template-columns:minmax(0,1fr);gap:2px 18px;padding:10px 0;border-bottom:1px solid var(--rule)}
+@media (min-width:640px){dl.gloss > div{grid-template-columns:190px minmax(0,1fr)}}
+dl.gloss dt{font-weight:700}
+dl.gloss dd{margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.75}
+
+/* stat strip */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:12px;margin:14px 0}
+.stat{border-top:2px solid var(--ink);padding-top:8px}
+.stat .v{font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1.2}
+.stat .k{font-size:13px;color:var(--ink-2);line-height:1.5}
+
+/* next links */
+.nextprev{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin-top:22px}
+.nextprev a{display:block;border:1px solid var(--rule);background:var(--surface);border-radius:var(--radius);padding:12px 16px;text-decoration:none;color:var(--ink)}
+.nextprev a:hover{border-color:var(--rope)}
+.nextprev small{display:block;color:var(--muted);font-size:12px}
+
+/* charts */
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .ax text,.chart text{font-size:11.5px;fill:var(--muted);font-family:var(--f-body)}
+.chart .ax line{stroke:var(--grid);stroke-width:1}
+.chart .base{stroke:var(--axis);stroke-width:1}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--ink-2);margin:0 0 8px;padding:0;list-style:none}
+.legend li{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.legend i.line{height:3px;border-radius:2px;width:16px}
+.tip{position:absolute;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--rule-strong);border-radius:8px;padding:6px 10px;
+  font-size:12.5px;line-height:1.55;box-shadow:0 4px 14px rgba(0,0,0,.12);white-space:nowrap;z-index:5}
+.tip b{font-weight:600}
+.tip .row{display:flex;align-items:center;gap:6px}
+.tip i{width:9px;height:9px;border-radius:2px;display:inline-block}
+details.data{margin-top:10px;font-size:13px}
+details.data summary{cursor:pointer;color:var(--ink-2)}
+details.data .tbl-wrap{margin:8px 0 0}
+details.data table.tbl{font-size:12.5px}
+details.data .tbl th,details.data .tbl td{padding:4px 10px}
+
+/* lineage cards */
+.papers{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px;margin:16px 0}
+.paper{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:16px 18px;text-decoration:none;color:var(--ink)}
+.paper:hover{border-color:var(--rope)}
+.paper .yr{font-family:var(--f-mono);font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.paper h3{margin:0;font-family:var(--f-display);font-size:20px}
+.paper p{margin:0;font-size:14px;line-height:1.7;color:var(--ink-2)}
+.paper .go{margin-top:auto;font-size:13.5px;color:var(--rope);font-weight:600}
+
+footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padding-block:20px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.paper,.nextprev a{transition:border-color .15s}}
+</style>
+<script>
+(function(){
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent){
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(parent, x, y, s, attrs){
+    var t = el("text", Object.assign({x:x, y:y}, attrs || {}), parent);
+    t.textContent = s;
+    return t;
+  }
+  function legend(host, series, line){
+    var ul = document.createElement("ul");
+    ul.className = "legend";
+    series.forEach(function(s){
+      var li = document.createElement("li");
+      var i = document.createElement("i");
+      if (line) i.className = "line";
+      i.style.background = s.color;
+      li.appendChild(i);
+      li.appendChild(document.createTextNode(s.name));
+      ul.appendChild(li);
+    });
+    host.parentNode.insertBefore(ul, host);
+  }
+  function tipBox(host){
+    var d = document.createElement("div");
+    d.className = "tip"; d.hidden = true;
+    host.appendChild(d);
+    return d;
+  }
+  function placeTip(tip, host, x, y){
+    tip.hidden = false;
+    var w = tip.offsetWidth, hw = host.clientWidth;
+    var left = x + 14;
+    if (left + w > hw) left = x - w - 14;
+    if (left < 0) left = 0;
+    tip.style.left = left + "px";
+    tip.style.top = Math.max(0, y - 10) + "px";
+  }
+  function tipRows(title, rows){
+    var h = "<b>" + title + "</b>";
+    rows.forEach(function(r){
+      h += '<div class="row"><i style="background:' + r.color + '"></i>' + r.name + '：<b>' + r.value + "</b></div>";
+    });
+    return h;
+  }
+  function roundTop(x, y, w, h, r){
+    if (h <= 0) return "";
+    r = Math.min(r, w / 2, h);
+    return "M" + x + "," + (y + h) + "V" + (y + r) + "Q" + x + "," + y + " " + (x + r) + "," + y +
+      "H" + (x + w - r) + "Q" + (x + w) + "," + y + " " + (x + w) + "," + (y + r) + "V" + (y + h) + "Z";
+  }
+
+  function barChart(id, cfg){
+    var host = document.getElementById(id);
+    if (!host) return;
+    legend(host, cfg.series, false);
+    var tip = tipBox(host);
+    var svg;
+    function draw(){
+      if (svg) svg.remove();
+      var W = host.clientWidth || 600;
+      var narrow = W < 520;
+      var n = cfg.cats.length, m = cfg.series.length;
+      var top = cfg.bands ? 30 : 26;
+      var gwEst = (W - 46) / n;
+      var rotate = gwEst < (cfg.labelW || 72);
+      var bottom = rotate ? 62 : 30;
+      var H = (narrow ? 250 : 290) + (rotate ? 30 : 0);
+      var L = 40, R = 6;
+      var pw = W - L - R, ph = H - top - bottom;
+      svg = el("svg", {viewBox:"0 0 " + W + " " + H, width:W, height:H, role:"img", "aria-label":cfg.aria || ""});
+      host.insertBefore(svg, tip);
+      var max = cfg.max, y = function(v){ return top + ph - v / max * ph; };
+      var ax = el("g", {"class":"ax"}, svg);
+      cfg.ticks.forEach(function(t){
+        el("line", {x1:L, x2:W - R, y1:y(t), y2:y(t)}, ax);
+        txt(ax, L - 6, y(t) + 4, cfg.fmtTick ? cfg.fmtTick(t) : t, {"text-anchor":"end"});
+      });
+      var gw = pw / n;
+      var bw = Math.max(3, Math.min(cfg.barMax || 20, (gw * 0.82) / m - 2));
+      var groupW = m * bw + (m - 1) * 2;
+      if (cfg.bands){
+        cfg.bands.forEach(function(b, bi){
+          var x0 = L + b.from * gw, x1 = L + (b.to + 1) * gw;
+          if (bi > 0) el("line", {x1:x0, x2:x0, y1:top - 22, y2:top + ph, "class":"base", "stroke-dasharray":"3 3"}, svg);
+          txt(svg, (x0 + x1) / 2, top - 10, b.label, {"text-anchor":"middle", "font-size":"11px"});
+        });
+      }
+      var hits = [];
+      cfg.cats.forEach(function(c, i){
+        var gx = L + i * gw + (gw - groupW) / 2;
+        var hl = el("rect", {x:L + i * gw + 1, y:top, width:gw - 2, height:ph, rx:4, fill:"var(--surface-2)", opacity:0}, svg);
+        cfg.series.forEach(function(s, j){
+          var v = s.vals[i];
+          if (v == null) return;
+          var h = Math.max(v > 0 ? 1 : 0, top + ph - y(v));
+          el("path", {d:roundTop(gx + j * (bw + 2), top + ph - h, bw, h, 3), fill:s.color}, svg);
+        });
+        var lx = L + i * gw + gw / 2, ly = top + ph + 16;
+        if (rotate) txt(svg, lx + 4, ly - 2, c, {"text-anchor":"end", transform:"rotate(-40 " + (lx + 4) + " " + (ly - 2) + ")", "font-size":"11px"});
+        else txt(svg, lx, ly + 2, c, {"text-anchor":"middle"});
+        hits.push({x:L + i * gw, w:gw, hl:hl, i:i});
+      });
+      el("line", {x1:L, x2:W - R, y1:top + ph, y2:top + ph, "class":"base"}, svg);
+      if (cfg.yLabel) txt(svg, 4, cfg.bands ? top - 22 : 12, cfg.yLabel, {"font-size":"11px"});
+      hits.forEach(function(hh){
+        var r = el("rect", {x:hh.x, y:top, width:hh.w, height:ph + bottom, fill:"transparent"}, svg);
+        function show(ev){
+          hits.forEach(function(o){ o.hl.setAttribute("opacity", 0); });
+          hh.hl.setAttribute("opacity", 1);
+          tip.innerHTML = tipRows(cfg.cats[hh.i], cfg.series.map(function(s){
+            return {name:s.name, color:s.color, value:s.vals[hh.i] == null ? "—" : (cfg.fmt ? cfg.fmt(s.vals[hh.i]) : s.vals[hh.i])};
+          }));
+          var bb = host.getBoundingClientRect();
+          placeTip(tip, host, (ev.clientX || bb.left + hh.x) - bb.left, (ev.clientY || bb.top + top) - bb.top);
+        }
+        r.addEventListener("pointermove", show);
+        r.addEventListener("pointerdown", show);
+        r.addEventListener("pointerleave", function(){ tip.hidden = true; hh.hl.setAttribute("opacity", 0); });
+      });
+    }
+    draw();
+    var last = host.clientWidth;
+    if (window.ResizeObserver) new ResizeObserver(function(){ if (host.clientWidth !== last){ last = host.clientWidth; draw(); } }).observe(host);
+  }
+
+  function stepChart(id, cfg){
+    var host = document.getElementById(id);
+    if (!host) return;
+    legend(host, cfg.series, true);
+    var tip = tipBox(host);
+    var svg;
+    function valAt(pts, x){
+      var v = cfg.startY == null ? 0 : cfg.startY;
+      for (var i = 0; i < pts.length; i++){ if (pts[i][0] <= x) v = pts[i][1]; else break; }
+      return v;
+    }
+    function draw(){
+      if (svg) svg.remove();
+      var W = host.clientWidth || 600;
+      var narrow = W < 520;
+      var H = narrow ? 264 : 304;
+      var L = 40, R = 14, T = 26, B = 42;
+      var pw = W - L - R, ph = H - T - B;
+      svg = el("svg", {viewBox:"0 0 " + W + " " + H, width:W, height:H, role:"img", "aria-label":cfg.aria || ""});
+      host.insertBefore(svg, tip);
+      var x = function(v){ return L + v / cfg.xMax * pw; };
+      var y = function(v){ return T + ph - v / cfg.yMax * ph; };
+      var ax = el("g", {"class":"ax"}, svg);
+      cfg.yTicks.forEach(function(t){
+        el("line", {x1:L, x2:W - R, y1:y(t), y2:y(t)}, ax);
+        txt(ax, L - 6, y(t) + 4, cfg.fmtY ? cfg.fmtY(t) : t, {"text-anchor":"end"});
+      });
+      var xt = narrow && cfg.xTicksNarrow ? cfg.xTicksNarrow : cfg.xTicks;
+      xt.forEach(function(t){
+        txt(ax, x(t), T + ph + 16, cfg.fmtX ? cfg.fmtX(t) : t, {"text-anchor":"middle"});
+      });
+      (cfg.vlines || []).forEach(function(v){
+        el("line", {x1:x(v.x), x2:x(v.x), y1:T, y2:T + ph, "class":"base", "stroke-dasharray":"4 3"}, svg);
+        txt(svg, x(v.x) - 4, T + 12, v.label, {"text-anchor":"end", "font-size":"11px"});
+      });
+      el("line", {x1:L, x2:W - R, y1:T + ph, y2:T + ph, "class":"base"}, svg);
+      if (cfg.xLabel) txt(svg, L + pw / 2, H - 4, cfg.xLabel, {"text-anchor":"middle", "font-size":"11px"});
+      if (cfg.yLabel) txt(svg, 4, 12, cfg.yLabel, {"font-size":"11px"});
+      cfg.series.forEach(function(s){
+        var y0 = cfg.startY == null ? 0 : cfg.startY;
+        var d = "M" + x(0) + "," + y(y0), cy = y0;
+        s.pts.forEach(function(p){
+          if (cfg.linear) d += "L" + x(p[0]) + "," + y(p[1]);
+          else d += "H" + x(p[0]) + "V" + y(p[1]);
+          cy = p[1];
+        });
+        var endX = s.end == null ? cfg.xMax : s.end;
+        d += "H" + x(endX);
+        el("path", {d:d, fill:"none", stroke:s.color, "stroke-width":2, "stroke-linejoin":"round", "stroke-dasharray":s.dash || "none"}, svg);
+        el("circle", {cx:x(endX), cy:y(cy), r:3.5, fill:s.color, stroke:"var(--surface)", "stroke-width":2}, svg);
+      });
+      var cross = el("line", {x1:0, x2:0, y1:T, y2:T + ph, stroke:"var(--muted)", "stroke-width":1, opacity:0}, svg);
+      var ov = el("rect", {x:L, y:T, width:pw, height:ph, fill:"transparent"}, svg);
+      function show(ev){
+        var bb = svg.getBoundingClientRect();
+        var px = (ev.clientX - bb.left) * (W / bb.width);
+        var xv = Math.max(0, Math.min(cfg.xMax, (px - L) / pw * cfg.xMax));
+        cross.setAttribute("x1", x(xv)); cross.setAttribute("x2", x(xv)); cross.setAttribute("opacity", 1);
+        tip.innerHTML = tipRows((cfg.fmtTipX ? cfg.fmtTipX(xv) : Math.round(xv)), cfg.series.map(function(s){
+          var endX = s.end == null ? cfg.xMax : s.end;
+          return {name:s.name, color:s.color, value: xv > endX ? "—" : (cfg.fmtTipY ? cfg.fmtTipY(valAt(s.pts, xv)) : valAt(s.pts, xv))};
+        }));
+        var hb = host.getBoundingClientRect();
+        placeTip(tip, host, ev.clientX - hb.left, ev.clientY - hb.top);
+      }
+      ov.addEventListener("pointermove", show);
+      ov.addEventListener("pointerdown", show);
+      ov.addEventListener("pointerleave", function(){ tip.hidden = true; cross.setAttribute("opacity", 0); });
+    }
+    draw();
+    var last = host.clientWidth;
+    if (window.ResizeObserver) new ResizeObserver(function(){ if (host.clientWidth !== last){ last = host.clientWidth; draw(); } }).observe(host);
+  }
+  window.KnotCharts = {bar:barChart, step:stepChart};
+})();
+</script>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-ink"/></marker>
+<marker id="arrM" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-muted"/></marker>
+<marker id="arrH" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-hl"/></marker>
+<marker id="arrR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-rope"/></marker>
+<marker id="tipR" viewBox="0 0 10 10" refX="3" refY="5" markerWidth="3.2" markerHeight="3.2" orient="auto"><path d="M0,0L10,5L0,10z" class="fill-rope"/></marker>
+</defs></svg>
+<header class="sitebar"><a class="brand" href="index.html">紐結び 3 論文の図解</a><nav aria-label="ページ"><a href="index.html">はじめに</a><a href="yan2020.html" aria-current="page"><span class="dot yan"></span>Yan2020</a><a href="twisted.html"><span class="dot tw"></span>TWISTED</a><a href="twisted-rl.html"><span class="dot trl"></span>TWISTED-RL</a></nav></header>
+<div class="hero">
+  <div class="eyebrow"><span class="dot yan"></span>論文 1 / 3 · IROS 2020</div>
+  <h1>位相動作プリミティブで固結びを計画する</h1>
+  <p class="orig">Learning Topological Motion Primitives for Knot Planning</p>
+  <ul class="meta">
+    <li><b>著者</b>Mengyuan Yan, Gen Li, Yilin Zhu, Jeannette Bohg</li>
+    <li><b>所属</b>Stanford University (Gen Li は Tsinghua University)</li>
+    <li><b>公開</b>arXiv 2009.02615v2 (2020 年 10 月)</li>
+    <li><b>PDF</b><a href="../Learning_Topological_Motion_Primitives_for_Knot-Plannning.pdf">paper/ 内</a></li>
+  </ul>
+</div>
+
+<div class="layout">
+  <aside class="toc">
+    <details open><summary>このページの内容</summary>
+      <ol>
+        <li><a href="#tldr">一言で言うと</a></li>
+        <li><a href="#problem">解いている問題</a></li>
+        <li><a href="#overview">全体像: 3 つの階層</a></li>
+        <li><a href="#primitives">4 つのプリミティブ</a></li>
+        <li><a href="#action">行動: スプライン 1 本</a></li>
+        <li><a href="#symmetry">類似性 1: 対称性</a></li>
+        <li><a href="#network">類似性 2: ネットワーク構造</a></li>
+        <li><a href="#training">学習の 3 段階</a></li>
+        <li><a href="#search">推論: 木探索</a></li>
+        <li><a href="#robot">実機での実行</a></li>
+        <li><a href="#results">実験結果</a></li>
+        <li><a href="#limits">限界と次の論文へ</a></li>
+        <li><a href="#gloss">用語集</a></li>
+      </ol>
+    </details>
+  </aside>
+  <main>
+
+<section id="tldr">
+  <div class="tldr">
+    <h2>一言で言うと</h2>
+    <ol>
+      <li>結び目理論で「どの交差をどの順に作るか」(位相の経路) を求め、各段を<strong>位相動作プリミティブ</strong>でロボットの軌道 1 本に変換する。</li>
+      <li>プリミティブは「今のロープの形」と「作りたい位相遷移のパラメータ」を入力に受け、成功しそうなスプラインの分布を出す。人間のデモで初期化し、シミュレーションの強化学習で広げる。</li>
+      <li>対称性 (鏡映・頭尾の反転) と「上になる区間を掴んで下になる区間へ運ぶ」という共通戦略をネットワークに組み込み、少ないデモから未見の形と位相へ汎化する。</li>
+      <li>固結びの計画は探索木 3〜5 ノードで見つかり (理論上の下限は 3)、実機でも MPC で実行できた。交差 3 までのデモしか見ていないのに、五芒星型のより複雑な結び目も計画できた。</li>
+    </ol>
+  </div>
+</section>
+
+<section id="problem">
+  <h2><span class="num">01</span>解いている問題</h2>
+  <p>ロボットは作業台の上にある、ほどけたロープを観測します。作業は「目標の位相状態」で指定されます。ロボットは、今のロープを目標の位相をもつ形まで運ぶ<strong>把持点と軌道の列</strong>を計画し、視覚追跡と MPC で実行します <span class="src">§III</span>。</p>
+  <p>難しさは 2 つあります。ロープは状態が高次元で力学が劣駆動 (直接動かせるのは掴んだ 1 点だけ) なので、軌道をしらみつぶしに探すのは重すぎます。また、目標が「位相」なので、形の距離のような連続なコスト関数を書けません <span class="src">§I</span>。</p>
+  <p>先行研究には、人間の遠隔操作をまねて手術糸を結ぶもの (van den Berg ら、Tandon ら) がありますが、ロープの状態を入力にしないため新しい形に汎化しません。この論文は、結び目理論による分解と、データから学ぶ動作生成を組み合わせます。</p>
+</section>
+
+<section id="overview">
+  <h2><span class="num">02</span>全体像: 3 つの階層</h2>
+  <figure>
+    <div class="scroll" style="--minw:660px">
+    <svg viewBox="0 0 780 470" role="img" aria-label="3 階層の推論。上段で位相状態のグラフを探索して R1, Cross, Cross の経路を得る。中段で各遷移をプリミティブがスプラインに変え、シミュレーションで次の形を得る。下段で、シミュレーションしたロープの軌道を参照にして MPPI が実機を制御し、Kinect の画像でロープを追跡する。">
+      <text x="10" y="22" font-size="13" font-weight="700">① 位相の計画</text>
+      <text x="10" y="40" font-size="11.5" class="t-muted">結び目理論のグラフを探索</text>
+      <g font-size="12">
+        <circle cx="220" cy="70" r="20" class="box"/><text x="220" y="75" text-anchor="middle" class="mono">0</text>
+        <circle cx="400" cy="70" r="20" class="box"/><text x="400" y="75" text-anchor="middle" class="mono">1</text>
+        <circle cx="570" cy="70" r="20" class="box"/><text x="570" y="75" text-anchor="middle" class="mono">2</text>
+        <circle cx="730" cy="70" r="22" class="boxh"/><text x="730" y="75" text-anchor="middle" class="mono">3</text>
+        <line x1="242" y1="70" x2="376" y2="70" class="ln" marker-end="url(#arr)"/>
+        <line x1="422" y1="70" x2="546" y2="70" class="ln" marker-end="url(#arr)"/>
+        <line x1="592" y1="70" x2="705" y2="70" class="ln" marker-end="url(#arr)"/>
+        <text x="310" y="60" text-anchor="middle" class="mono">R1(0,1,1)</text>
+        <text x="484" y="60" text-anchor="middle" class="mono">C(0,1,1)</text>
+        <text x="648" y="60" text-anchor="middle" class="mono">C(2,0,1)</text>
+        <circle cx="400" cy="122" r="14" class="box2"/><circle cx="570" cy="122" r="14" class="box2"/>
+        <line x1="238" y1="80" x2="386" y2="116" class="ln-m dash"/>
+        <line x1="414" y1="122" x2="556" y2="122" class="ln-m dash"/>
+        <line x1="582" y1="114" x2="710" y2="82" class="ln-m dash"/>
+        <text x="484" y="140" text-anchor="middle" font-size="11" class="t-muted">別の経路 (固結びへは 8 通り)</text>
+        <text x="730" y="106" text-anchor="middle" font-size="11" class="t-hl">固結び</text>
+        <text x="220" y="106" text-anchor="middle" font-size="11" class="t-muted">交差 0</text>
+      </g>
+      <line x1="10" y1="162" x2="770" y2="162" class="ln-m" style="stroke:var(--rule)"/>
+      <text x="10" y="186" font-size="13" font-weight="700">② 位相動作プリミティブ</text>
+      <text x="10" y="204" font-size="11.5" class="t-muted">各遷移を軌道 1 本に変換</text>
+      <g font-size="12">
+        <rect x="170" y="222" width="100" height="44" rx="6" class="box2"/><text x="220" y="249" text-anchor="middle">形 q₀</text>
+        <rect x="300" y="222" width="120" height="44" rx="6" class="boxr"/><text x="360" y="242" text-anchor="middle">プリミティブ</text><text x="360" y="258" text-anchor="middle" font-size="11" class="t-muted">Set 1 (R1)</text>
+        <rect x="450" y="222" width="100" height="44" rx="6" class="box"/><text x="500" y="242" text-anchor="middle">スプライン a₀</text><text x="500" y="258" text-anchor="middle" font-size="11" class="t-muted">6 次元</text>
+        <rect x="580" y="222" width="110" height="44" rx="6" class="box"/><text x="635" y="249" text-anchor="middle">シミュレーション</text>
+        <rect x="170" y="296" width="100" height="44" rx="6" class="box2"/><text x="220" y="323" text-anchor="middle">形 q₁</text>
+        <rect x="300" y="296" width="120" height="44" rx="6" class="boxr"/><text x="360" y="316" text-anchor="middle">プリミティブ</text><text x="360" y="332" text-anchor="middle" font-size="11" class="t-muted">Set 3 (Cross)</text>
+        <text x="500" y="323" text-anchor="middle" class="t-muted">… 同じ流れで q₂, q₃ …</text>
+        <line x1="270" y1="244" x2="296" y2="244" class="ln" marker-end="url(#arr)"/>
+        <line x1="420" y1="244" x2="446" y2="244" class="ln" marker-end="url(#arr)"/>
+        <line x1="550" y1="244" x2="576" y2="244" class="ln" marker-end="url(#arr)"/>
+        <path d="M690,244 H720 V282 H220 V292" class="ln" marker-end="url(#arr)"/>
+        <text x="728" y="270" font-size="11" class="t-muted">終わりの形が</text>
+        <text x="728" y="284" font-size="11" class="t-muted">次の始まり</text>
+        <line x1="270" y1="318" x2="296" y2="318" class="ln" marker-end="url(#arr)"/>
+        <line x1="360" y1="92" x2="360" y2="218" class="ln-r dash" marker-end="url(#arrR)"/>
+        <text x="366" y="206" font-size="11" class="t-rope">遷移のパラメータ</text>
+      </g>
+      <line x1="10" y1="358" x2="770" y2="358" class="ln-m" style="stroke:var(--rule)"/>
+      <text x="10" y="382" font-size="13" font-weight="700">③ 実機での追従</text>
+      <text x="10" y="400" font-size="11.5" class="t-muted">MPC で閉ループ実行</text>
+      <g font-size="12">
+        <rect x="170" y="400" width="130" height="44" rx="6" class="box2"/><text x="235" y="420" text-anchor="middle">シミュレーションした</text><text x="235" y="436" text-anchor="middle">ロープの軌道 (参照)</text>
+        <rect x="330" y="400" width="90" height="44" rx="6" class="boxr"/><text x="375" y="427" text-anchor="middle">MPPI</text>
+        <rect x="450" y="400" width="100" height="44" rx="6" class="box"/><text x="500" y="427" text-anchor="middle">実機のアーム</text>
+        <rect x="580" y="400" width="140" height="44" rx="6" class="box"/><text x="650" y="420" text-anchor="middle">Kinect 画像から</text><text x="650" y="436" text-anchor="middle">ロープを追跡</text>
+        <line x1="300" y1="422" x2="326" y2="422" class="ln" marker-end="url(#arr)"/>
+        <line x1="420" y1="422" x2="446" y2="422" class="ln" marker-end="url(#arr)"/>
+        <line x1="550" y1="422" x2="576" y2="422" class="ln" marker-end="url(#arr)"/>
+        <path d="M650,444 V460 H375 V448" class="ln" marker-end="url(#arr)"/>
+        <text x="512" y="456" text-anchor="middle" font-size="11" class="t-muted">推定したロープの状態</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>固結びを結ぶときの 3 階層の推論</b> <span class="src">Fig. 1, §III</span>。① 位相状態 (丸の数字は交差数) のグラフを探索して、目標までの位相の経路を得る。② 経路の各辺を、対応するプリミティブがその時点のロープの形に合わせたスプラインに変換する。スプラインはシミュレーションで実行し、終わりの形を次の辺の入力にする。③ シミュレーションで得たロープの軌道を参照として、MPPI が実機のアームを動かし、視覚追跡で誤差を補正する。</figcaption>
+  </figure>
+  <p>上段の位相状態と遷移は有向非巡回グラフ (DAG) をなし、根はほどけた状態です。目標の結び目が決まれば、根からの経路を 1 本以上見つけられます <span class="src">§IV</span>。この論文の中心的な貢献は、中段のプリミティブです。</p>
+</section>
+
+<section id="primitives">
+  <h2><span class="num">03</span>4 つの位相動作プリミティブ</h2>
+  <p>結び目理論の移動の分類 (R1, R2, Cross, R3) と、学習するプリミティブの分け方は別物です <span class="src">§IV, §V-A</span>。R3 は計画に使わず、Cross は掴む位置の似かたで 2 つに分けます。</p>
+  <figure>
+    <div class="scroll" style="--minw:600px">
+    <svg viewBox="0 0 740 280" role="img" aria-label="結び目理論の 4 分類から、学習する 4 つのプリミティブへの対応。R1 は Set 1、R2 は Set 2、Cross は上になる区間が端かどうかで Set 3 と Set 4 に分かれ、R3 は使わない。">
+      <text x="120" y="24" font-size="12" font-weight="600" class="t-muted" text-anchor="middle">結び目理論の移動</text>
+      <text x="560" y="24" font-size="12" font-weight="600" class="t-muted" text-anchor="middle">学習するプリミティブ</text>
+      <g font-size="13">
+        <rect x="40" y="40" width="160" height="40" rx="6" class="box"/><text x="120" y="65" text-anchor="middle">R1</text>
+        <rect x="40" y="100" width="160" height="40" rx="6" class="box"/><text x="120" y="125" text-anchor="middle">R2</text>
+        <rect x="40" y="160" width="160" height="40" rx="6" class="box"/><text x="120" y="185" text-anchor="middle">Cross (C)</text>
+        <rect x="40" y="220" width="160" height="40" rx="6" class="box2" style="stroke-dasharray:4 3"/><text x="120" y="245" text-anchor="middle" class="t-muted">R3 (使わない)</text>
+        <rect x="400" y="40" width="320" height="40" rx="6" class="boxr"/><text x="414" y="58" font-weight="700">Set 1</text><text x="414" y="74" font-size="11.5" class="t-muted">すべての R1</text>
+        <rect x="400" y="100" width="320" height="40" rx="6" class="boxr"/><text x="414" y="118" font-weight="700">Set 2</text><text x="414" y="134" font-size="11.5" class="t-muted">すべての R2</text>
+        <rect x="400" y="160" width="320" height="40" rx="6" class="boxr"/><text x="414" y="178" font-weight="700">Set 3</text><text x="414" y="194" font-size="11.5" class="t-muted">上になる区間がロープの端である Cross</text>
+        <rect x="400" y="220" width="320" height="40" rx="6" class="boxr"/><text x="414" y="238" font-weight="700">Set 4</text><text x="414" y="254" font-size="11.5" class="t-muted">それ以外の Cross</text>
+        <line x1="202" y1="60" x2="396" y2="60" class="ln" marker-end="url(#arr)"/>
+        <line x1="202" y1="120" x2="396" y2="120" class="ln" marker-end="url(#arr)"/>
+        <path d="M202,180 H300 V180 H396" class="ln" marker-end="url(#arr)"/>
+        <path d="M300,180 V240 H396" class="ln" marker-end="url(#arr)"/>
+        <text x="306" y="172" font-size="11" class="t-muted">端を掴む</text>
+        <text x="306" y="232" font-size="11" class="t-muted">中ほどを掴む</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>移動の分類とプリミティブの分け方。</b>プリミティブは actor と critic の組で、Set ごとに別々に学習する。1 つのプリミティブは、同じ Set に属する多くの位相動作 (パラメータ違い) を扱う。</figcaption>
+  </figure>
+  <p>実験で評価した 8 つの位相動作は、Set ごとに次のとおりです <span class="src">§VII-A, Fig. 6</span>。</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>Set</th><th>位相動作</th><th>デモの量</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Set 1 (R1)</th><td><code>R1(0,1,1)</code></td><td>開始形 1 つ (直線) × ノイズ付きスプライン 480 本</td></tr>
+      <tr><th scope="row">Set 2 (R2)</th><td><code>R2(0,0,1,1)</code></td><td>開始形 1 つ (直線) × 480 本</td></tr>
+      <tr><th scope="row">Set 3 (端の Cross)</th><td><code>C(0,1,1)</code> <code>C(0,2,1)</code> <code>C(2,0,-1)</code> <code>C(2,1,-1)</code></td><td>各 8 つの開始形 × 320 試行</td></tr>
+      <tr><th scope="row">Set 4 (その他の Cross)</th><td><code>C(2,0,1)</code> <code>C(2,4,-1)</code></td><td>各 8 つの開始形 × 320 試行</td></tr>
+    </tbody>
+  </table></div>
+  <p>パラメータの意味は、入口ページの<a href="index.html#moves">パラメータ表</a>を参照してください。固結びの経路 <code>R1(0,1,1) → C(0,1,1) → C(2,0,1)</code> は、Set 1 → Set 3 → Set 4 の順にプリミティブを使います。</p>
+</section>
+
+<section id="action">
+  <h2><span class="num">04</span>行動: スプライン 1 本で 1 つの位相動作</h2>
+  <p>この論文は、行動の設計で 2 つのことを決めています <span class="src">§V</span>。</p>
+  <ol>
+    <li><strong>行動は長い軌道</strong>。フィードバック方策でよく使う「小さな位置の変化」ではなく、スプラインで表した長い軌道を 1 つの行動にする。これで強化学習の時間的な長さ (ホライズン) が大幅に短くなり、単純なアルゴリズムでも学習が安定し、データ効率も上がる。</li>
+    <li><strong>1 つのプリミティブが多くの位相動作を扱う</strong>。位相動作の離散パラメータ (Table I) をネットワークの入力にする。</li>
+  </ol>
+  <p>スプラインの制御点は 3 つです。1 点目はロープ上の点で、ここを掴みます。3 点目は机の面上の点で、ロボットは落とさずにそっと置きます。2 点目は机より上にあってよく、軌道の最高点を決めます。これで行動は 6 次元になります。図は<a href="index.html#curve">入口ページの §07</a> にあります。</p>
+  <div class="callout">
+    <p>著者らは「多くの場合、1 つの位相動作はスプライン 1 本で達成できる」と観察しています。持ち替えが必要な場合はスプラインを何本か続ければ解けると考えつつ、それは今後の課題としました <span class="src">§V</span>。TWISTED-RL が「1 遷移を複数手で」という形でこの課題に取り組みます。</p>
+  </div>
+</section>
+
+<section id="symmetry">
+  <h2><span class="num">05</span>類似性 1: 空間の対称性で学ぶ量を減らす</h2>
+  <p>ある位相動作の遷移 (s, a, s′) を幾何的に変換すると、別の位相動作の遷移になります。そこで、一部の位相動作だけを学習し、残りは変換で済ませます <span class="src">§V-A, Fig. 3</span>。</p>
+  <figure>
+    <div class="scroll" style="--minw:620px">
+    <svg viewBox="0 0 780 250" role="img" aria-label="Mirror と Reverse の変換。Mirror はロープとスプラインを上下に鏡映する。Reverse はロープの形とスプラインはそのままで、頭と尾を入れ替える。">
+      <g font-size="12">
+        <text x="130" y="20" text-anchor="middle" font-weight="700">元の遷移</text>
+        <text x="390" y="20" text-anchor="middle" font-weight="700">Mirror (鏡映)</text>
+        <text x="650" y="20" text-anchor="middle" font-weight="700">Reverse (頭尾の反転)</text>
+      </g>
+      <g transform="translate(-10,20)">
+        <path d="M40,150 C120,60 220,200 320,110" class="rope" marker-end="url(#tipR)"/>
+        <path d="M90,120 C120,20 200,10 240,50" class="ln-h dash" marker-end="url(#arrH)"/>
+        <circle cx="90" cy="120" r="5" class="fill-hl"/>
+        <text x="34" y="176" font-size="12" class="t-muted">頭</text>
+      </g>
+      <g transform="translate(250,20)">
+        <g transform="translate(0,210) scale(1,-1)">
+          <path d="M40,150 C120,60 220,200 320,110" class="rope" marker-end="url(#tipR)"/>
+          <path d="M90,120 C120,20 200,10 240,50" class="ln-h dash" marker-end="url(#arrH)"/>
+          <circle cx="90" cy="120" r="5" class="fill-hl"/>
+        </g>
+        <text x="34" y="52" font-size="12" class="t-muted">頭</text>
+      </g>
+      <g transform="translate(510,20)">
+        <path d="M320,110 C220,200 120,60 40,150" class="rope" marker-end="url(#tipR)"/>
+        <path d="M90,120 C120,20 200,10 240,50" class="ln-h dash" marker-end="url(#arrH)"/>
+        <circle cx="90" cy="120" r="5" class="fill-hl"/>
+        <text x="318" y="96" font-size="12" class="t-muted">頭</text>
+      </g>
+      <g font-size="12" class="t-muted">
+        <text x="130" y="236" text-anchor="middle" class="t-muted">位相動作 A</text>
+        <text x="390" y="236" text-anchor="middle" class="t-muted">left と sign が反転</text>
+        <text x="650" y="236" text-anchor="middle" class="t-muted">left と over_first が反転 (区間番号も変わる)</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>2 つの変換。</b>ティールがロープ (矢印の先が尾)、橙の点線がロボットのスプライン、橙の点が把持点。Mirror はロープとスプラインを水平軸で折り返す (どの直線で折り返しても効果は同じ)。Reverse は形もスプラインもそのままで、頭と尾の呼び方だけを入れ替える。どちらも 2 回かけると元に戻る。</figcaption>
+  </figure>
+  <p>たとえば <code>R1(index=0, left=1, sign=1)</code> だけを学習すれば、同じネットワークで 4 通りの R1 を扱えます。変換した開始形をネットワークに入れ、出てきたスプラインに逆変換をかけます。</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>推論したい位相動作</th><th>使う変換</th><th>変わるパラメータ</th></tr></thead>
+    <tbody>
+      <tr><td><code>R1(0, 1, 1)</code></td><td>なし (学習したもの)</td><td>—</td></tr>
+      <tr><td><code>R1(0, −1, −1)</code></td><td>Mirror</td><td>left と sign</td></tr>
+      <tr><td><code>R1(0, −1, 1)</code></td><td>Reverse</td><td>left (R1 に over_first は無い)</td></tr>
+      <tr><td><code>R1(0, 1, −1)</code></td><td>Mirror と Reverse の両方</td><td>left が 2 回反転して元に戻り、sign だけが反転</td></tr>
+    </tbody>
+  </table></div>
+  <p>TWISTED はこの 2 つの変換を、人間のデモではなくランダムに集めたデータの水増しに使っています (<a href="twisted.html#inverse">TWISTED §4.4</a>)。</p>
+</section>
+
+<section id="network">
+  <h2><span class="num">06</span>類似性 2: 「上になる区間を掴み、下になる区間へ運ぶ」</h2>
+  <p>もう 1 つの類似性は概念的なものです。人は新しい交差を作るとき、その交差で<strong>上になる区間を掴み、下になる区間に向かって動かします</strong>。この共通の戦略を捉えるため、ロープの形を 3 つに分けてネットワークに入れます <span class="src">§V-A, Fig. 4</span>。</p>
+  <ul>
+    <li><strong>上の区間 (over segment)</strong>: 新しい交差で上になる区間</li>
+    <li><strong>下の区間 (under segment)</strong>: 新しい交差で下になる区間</li>
+    <li><strong>全体 (context)</strong>: ロープ全体。望まない自己接触を避けるための文脈として使う</li>
+  </ul>
+  <p>R1 では上の区間と下の区間は同じ区間です。どの区間を上・下として切り出すかは、位相動作のパラメータ (over_index, under_index) で決まります。こうしてパラメータの情報が入力の切り出し方として入るので、異なる位相動作のあいだで戦略を共有しやすくなります。</p>
+  <figure>
+    <div class="scroll" style="--minw:680px">
+    <svg viewBox="0 0 800 360" role="img" aria-label="ネットワーク構造。上の区間、下の区間、全体の 3 系列をそれぞれ LSTM で符号化し、系列間を attention でつなぎ、MLP を経て状態特徴にまとめる。actor は状態特徴から スプラインのガウス分布を出し、critic は状態特徴とスプラインから Q 値を出す。">
+      <g font-size="12">
+        <text x="20" y="54" font-weight="600" class="t-hl">上の区間</text>
+        <text x="20" y="124" font-weight="600" class="t-rope">下の区間</text>
+        <text x="20" y="194" font-weight="600">全体 (文脈)</text>
+        <rect x="120" y="34" width="70" height="30" rx="5" class="box"/><text x="155" y="54" text-anchor="middle">LSTM</text>
+        <rect x="120" y="104" width="70" height="30" rx="5" class="box"/><text x="155" y="124" text-anchor="middle">LSTM</text>
+        <rect x="120" y="174" width="70" height="30" rx="5" class="box"/><text x="155" y="194" text-anchor="middle">LSTM</text>
+        <line x1="96" y1="49" x2="116" y2="49" class="ln" marker-end="url(#arr)"/>
+        <line x1="96" y1="119" x2="116" y2="119" class="ln" marker-end="url(#arr)"/>
+        <line x1="104" y1="189" x2="116" y2="189" class="ln" marker-end="url(#arr)"/>
+        <rect x="230" y="34" width="110" height="30" rx="5" class="boxr"/><text x="285" y="54" text-anchor="middle">attention</text>
+        <rect x="230" y="104" width="110" height="30" rx="5" class="boxr"/><text x="285" y="124" text-anchor="middle">attention</text>
+        <rect x="230" y="174" width="110" height="30" rx="5" class="boxr"/><text x="285" y="194" text-anchor="middle">attention</text>
+        <line x1="190" y1="49" x2="226" y2="49" class="ln" marker-end="url(#arr)"/>
+        <line x1="190" y1="119" x2="226" y2="119" class="ln" marker-end="url(#arr)"/>
+        <line x1="190" y1="189" x2="226" y2="189" class="ln" marker-end="url(#arr)"/>
+        <path d="M205,49 V119" class="ln-r"/><path d="M205,119 V189" class="ln-r"/>
+        <circle cx="205" cy="49" r="3" class="fill-rope"/><circle cx="205" cy="119" r="3" class="fill-rope"/><circle cx="205" cy="189" r="3" class="fill-rope"/>
+        <rect x="380" y="34" width="60" height="30" rx="5" class="box"/><text x="410" y="54" text-anchor="middle">MLP</text>
+        <rect x="380" y="104" width="60" height="30" rx="5" class="box"/><text x="410" y="124" text-anchor="middle">MLP</text>
+        <rect x="380" y="174" width="60" height="30" rx="5" class="box"/><text x="410" y="194" text-anchor="middle">MLP</text>
+        <line x1="340" y1="49" x2="376" y2="49" class="ln" marker-end="url(#arr)"/>
+        <line x1="340" y1="119" x2="376" y2="119" class="ln" marker-end="url(#arr)"/>
+        <line x1="340" y1="189" x2="376" y2="189" class="ln" marker-end="url(#arr)"/>
+        <rect x="480" y="104" width="110" height="30" rx="5" class="boxr"/><text x="535" y="124" text-anchor="middle">attention</text>
+        <path d="M440,49 H460 V112 H476" class="ln" marker-end="url(#arr)"/>
+        <line x1="440" y1="119" x2="476" y2="119" class="ln"/>
+        <path d="M440,189 H460 V126 H476" class="ln" marker-end="url(#arr)"/>
+        <rect x="630" y="100" width="130" height="38" rx="6" class="boxh"/><text x="695" y="124" text-anchor="middle" font-weight="600">状態特徴</text>
+        <line x1="590" y1="119" x2="626" y2="119" class="ln" marker-end="url(#arr)"/>
+        <text x="410" y="228" text-anchor="middle" font-size="11" class="t-muted">3 系列の LSTM と MLP は重みを共有しない</text>
+      </g>
+      <line x1="20" y1="248" x2="780" y2="248" class="ln-m" style="stroke:var(--rule)"/>
+      <g font-size="12">
+        <text x="20" y="276" font-weight="700">Actor</text>
+        <rect x="90" y="262" width="100" height="30" rx="5" class="boxh"/><text x="140" y="282" text-anchor="middle">状態特徴</text>
+        <rect x="220" y="262" width="60" height="30" rx="5" class="box"/><text x="250" y="282" text-anchor="middle">MLP</text>
+        <rect x="310" y="262" width="150" height="30" rx="5" class="box2"/><text x="385" y="282" text-anchor="middle">スプラインのガウス分布</text>
+        <line x1="190" y1="277" x2="216" y2="277" class="ln" marker-end="url(#arr)"/>
+        <line x1="280" y1="277" x2="306" y2="277" class="ln" marker-end="url(#arr)"/>
+        <text x="385" y="310" text-anchor="middle" font-size="11" class="t-muted">平均 μ(s) と分散 Σ(s)</text>
+        <text x="500" y="276" font-weight="700">Critic</text>
+        <rect x="560" y="262" width="80" height="30" rx="5" class="boxh"/><text x="600" y="282" text-anchor="middle">状態特徴</text>
+        <rect x="560" y="302" width="80" height="30" rx="5" class="box2"/><text x="600" y="322" text-anchor="middle">スプライン</text>
+        <rect x="670" y="282" width="50" height="30" rx="5" class="box"/><text x="695" y="302" text-anchor="middle">MLP</text>
+        <text x="752" y="302" text-anchor="middle">Q</text>
+        <path d="M640,277 H655 V292 H666" class="ln" marker-end="url(#arr)"/>
+        <path d="M640,317 H655 V302 H666" class="ln" marker-end="url(#arr)"/>
+        <line x1="720" y1="297" x2="740" y2="297" class="ln" marker-end="url(#arr)"/>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>プリミティブのネットワーク</b> <span class="src">Fig. 4</span>。上半分は actor と critic が共有する幹 (trunk) の構造。3 系列を LSTM で符号化し、系列の組ごとの attention (Vaswani ら。図のティールの縦線) で情報を渡し合い、最後にまとめて状態特徴にする。下半分が出力部で、actor はスプラインのガウス分布を、critic は (状態, スプライン) の組の Q 値を出す。図の配線は Fig. 4 を簡略化したもの。</figcaption>
+  </figure>
+</section>
+
+<section id="training">
+  <h2><span class="num">07</span>学習の 3 段階</h2>
+  <h3>① デモの収集</h3>
+  <p>この行動の表し方では、デモは簡単です。開始時のロープの画像の上で 3 点 (スプラインの制御点) をクリックするだけです。そのクリックにガウスノイズを加えたスプラインを多数作り、シミュレーションで実行して、目的の位相動作が起きたかを確かめます。成功も失敗も含めた全試行を「デモデータ」として保存します <span class="src">§V-B a</span>。</p>
+
+  <h3>② 単段の独立学習 (QT-Opt の改良)</h3>
+  <p>各プリミティブを別々に、1 手で終わる問題として学習します。報酬は「目的の位相動作が起きたか」の 2 値です <span class="src">§V-B b, Fig. 5</span>。</p>
+  <figure>
+    <div class="scroll" style="--minw:600px">
+    <svg viewBox="0 0 720 300" role="img" aria-label="単段学習の流れ。状態を actor に入れてガウス分布を得て、それを初期値に CEM が critic の Q を最大にする行動を探す。行動をシミュレーションし、状態・行動・報酬をデータバッファに入れる。バッファは最初デモで満たす。actor は REINFORCE、critic は報酬との二乗誤差で学習する。">
+      <g font-size="12.5">
+        <rect x="30" y="126" width="90" height="38" rx="6" class="box2"/><text x="75" y="150" text-anchor="middle">状態 s</text>
+        <rect x="200" y="46" width="100" height="38" rx="6" class="boxr"/><text x="250" y="70" text-anchor="middle">Actor (θ)</text>
+        <rect x="200" y="126" width="100" height="38" rx="6" class="box"/><text x="250" y="150" text-anchor="middle">CEM</text>
+        <rect x="200" y="216" width="100" height="38" rx="6" class="boxr"/><text x="250" y="240" text-anchor="middle">Critic (ψ)</text>
+        <rect x="360" y="126" width="120" height="38" rx="6" class="box"/><text x="420" y="150" text-anchor="middle">シミュレーション</text>
+        <rect x="540" y="40" width="150" height="50" rx="6" class="boxh"/><text x="615" y="62" text-anchor="middle">データバッファ</text><text x="615" y="80" text-anchor="middle" class="mono" font-size="12">(s, a, r)</text>
+        <path d="M120,145 H150 V65 H196" class="ln" marker-end="url(#arr)"/>
+        <path d="M150,145 H196" class="ln" marker-end="url(#arr)"/>
+        <path d="M150,145 V235 H196" class="ln" marker-end="url(#arr)"/>
+        <line x1="250" y1="84" x2="250" y2="122" class="ln" marker-end="url(#arr)"/>
+        <text x="258" y="108" font-size="11" class="mono">a ~ N(μ(s), Σ(s))</text>
+        <path d="M236,168 V212" class="ln" marker-end="url(#arr)"/>
+        <path d="M264,212 V168" class="ln" marker-end="url(#arr)"/>
+        <text x="272" y="195" font-size="11" class="t-muted">Q で評価</text>
+        <line x1="300" y1="145" x2="356" y2="145" class="ln" marker-end="url(#arr)"/>
+        <path d="M480,145 H615 V94" class="ln" marker-end="url(#arr)"/>
+        <text x="606" y="138" font-size="11" class="t-muted" text-anchor="end">成功/失敗を記録</text>
+        <path d="M540,65 H304" class="ln-h" marker-end="url(#arrH)"/>
+        <text x="420" y="58" font-size="11" class="mono t-hl" text-anchor="middle">r · log π(a|s; θ)</text>
+        <path d="M660,90 V235 H304" class="ln-h" marker-end="url(#arrH)"/>
+        <text x="480" y="228" font-size="11" class="mono t-hl" text-anchor="middle">‖ r − q(s, a; ψ) ‖</text>
+        <path d="M615,14 V36" class="ln-h" marker-end="url(#arrH)"/>
+        <text x="610" y="12" font-size="11" class="t-hl" text-anchor="end">人間のデモ</text>
+      </g>
+      <text x="30" y="286" font-size="11.5" class="t-muted">黒の矢印: 行動の選び方 (推論時と学習時の行動方策)　橙の矢印: 学習のデータの流れと目的関数</text>
+    </svg>
+    </div>
+    <figcaption><b>単段学習と推論の流れ</b> <span class="src">Fig. 5</span>。QT-Opt は critic で Q 関数を近似し、CEM (交差エントロピー法) で Q を最大にする行動を探す。6 次元の行動空間ではそれだけでは足りなかったため、開始形から行動のガウス分布を予測する actor を加え、CEM の初期値にした。actor はリプレイバッファのデータを使って REINFORCE で学習する。</figcaption>
+  </figure>
+  <p>バッファには最初デモデータだけが入っています。この段階を<strong>模倣学習</strong>と呼びます。模倣学習が収束したら、新しい試行のデータを加えていきます。この段階を<strong>強化学習</strong>と呼び、デモより広い範囲の開始形で学習します <span class="src">§V-B b</span>。</p>
+  <p>TRPO や PPO も使えますが、行動が長い軌道なのでホライズンが短く、それらの利点は小さいと著者らは見ています。</p>
+
+  <h3>③ 多段の同時微調整</h3>
+  <p>同じ位相を実現する形は無数にあり、次の動作がやりやすい形とやりにくい形があります。「次がやりやすい終わり方」を連続な報酬として手で設計するのは難しいのですが、プリミティブを一通り学習した後なら、その報酬が手に入ります <span class="src">§V-B c</span>。</p>
+  <figure>
+    <div class="scroll" style="--minw:560px">
+    <svg viewBox="0 0 700 190" role="img" aria-label="多段微調整。s から a で s′、s′ から a′ で s″ に進む。次のプリミティブの価値 V(s′) を前の段の報酬として使う。">
+      <g font-size="13">
+        <rect x="20" y="70" width="80" height="40" rx="6" class="box2"/><text x="60" y="95" text-anchor="middle" class="mono">s</text>
+        <rect x="290" y="70" width="80" height="40" rx="6" class="box2"/><text x="330" y="95" text-anchor="middle" class="mono">s′</text>
+        <rect x="580" y="70" width="90" height="40" rx="6" class="boxh"/><text x="625" y="95" text-anchor="middle" class="mono">s″</text>
+        <line x1="100" y1="90" x2="286" y2="90" class="ln" marker-end="url(#arr)"/>
+        <line x1="370" y1="90" x2="576" y2="90" class="ln" marker-end="url(#arr)"/>
+        <text x="193" y="80" text-anchor="middle" class="mono" font-size="12">a (位相動作 a_topo)</text>
+        <text x="473" y="80" text-anchor="middle" class="mono" font-size="12">a′ (位相動作 a′_topo)</text>
+        <path d="M330,114 C330,160 193,160 193,100" class="ln-h" marker-end="url(#arrH)"/>
+        <text x="262" y="176" text-anchor="middle" class="mono t-hl" font-size="12">V_{a′topo}(s′) = max_{a′} Q_{a′topo}(s′, a′)</text>
+        <text x="625" y="140" text-anchor="middle" font-size="12">目標の結び目なら報酬 1</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>次のプリミティブの価値を、前の段の報酬にする。</b>V<sub>a′topo</sub>(s′) は「形 s′ から次の位相動作 a′<sub>topo</sub> が成功する確率」の予測値で、これを前の段の報酬 r<sub>a_topo</sub>(s, a) として使う。エピソードの長さは位相の経路の辺の数で、目標の位相に達したときだけ最後に報酬 1 が出る。各時刻で別のプリミティブを使い、各プリミティブはバッファから自分の担当の遷移を受け取って、同じ改良版 QT-Opt で学習する。</figcaption>
+  </figure>
+</section>
+
+<section id="search">
+  <h2><span class="num">08</span>推論: プリミティブを候補の生成に使う木探索</h2>
+  <p>学習したプリミティブが出すスプラインは、必ず目的の位相に届くとは限りません。そこで、プリミティブを「行動の候補を出す道具」として木探索に組み込み、計画が見つかることを保証します <span class="src">§V-B d</span>。</p>
+  <div class="algo-pair">
+    <div>
+      <figure style="margin:0;border:0;padding:0;background:none">
+      <svg viewBox="0 0 360 260" role="img" aria-label="探索木の例。根は交差 0 の形。展開のたびにノードを 1 つ選び、次の位相動作のスプラインをシミュレーションする。目的の位相に達した形だけを木に加える。">
+        <g font-size="11.5">
+          <text x="10" y="30" class="t-muted">交差 0</text><text x="10" y="110" class="t-muted">交差 1</text><text x="10" y="190" class="t-muted">交差 2</text>
+          <circle cx="180" cy="26" r="14" class="box"/><text x="180" y="30" text-anchor="middle" class="mono">q₀</text>
+          <circle cx="120" cy="106" r="14" class="box"/><text x="120" y="110" text-anchor="middle" class="mono">q₁</text>
+          <circle cx="240" cy="106" r="14" class="box"/><text x="240" y="110" text-anchor="middle" class="mono">q₂</text>
+          <circle cx="240" cy="186" r="14" class="boxh"/><text x="240" y="190" text-anchor="middle" class="mono">q₃</text>
+          <line x1="172" y1="38" x2="128" y2="94" class="ln"/><line x1="188" y1="38" x2="232" y2="94" class="ln"/>
+          <line x1="240" y1="120" x2="240" y2="172" class="ln"/>
+          <line x1="112" y1="118" x2="80" y2="170" class="ln-m dash"/><text x="72" y="186" class="t-muted" font-size="13">×</text>
+          <line x1="128" y1="118" x2="160" y2="170" class="ln-m dash"/><text x="156" y="186" class="t-muted" font-size="13">×</text>
+          <text x="118" y="232" text-anchor="middle" class="t-muted">位相に届かず、木に加えない</text>
+          <text x="262" y="190" class="t-hl">目標に 1 段近い</text>
+        </g>
+      </svg>
+      </figure>
+    </div>
+    <div>
+      <ol class="algo-notes">
+        <li>位相の計画で、ほどけた状態から目標までの経路を 1 本以上得る。それらの経路をまとめた DAG を <strong>solution DAG</strong> と呼ぶ。</li>
+        <li>ほどけたロープの形を木の根にする。</li>
+        <li>木のノードを 1 つランダムに選ぶ (葉でなくてもよい)。solution DAG の上で目標に近い (最短経路の辺数が少ない) ノードほど選ばれやすくする。</li>
+        <li>そのノードから solution DAG で出ている辺を 1 つランダムに選び、次に実現する位相動作とする。</li>
+        <li>対応するプリミティブでスプラインを予測し、シミュレーションで実行する。</li>
+        <li>終わりの形が目的の位相に達したときだけ、その形を木に加える。目標の結び目に達するまで 3〜6 を繰り返す。</li>
+      </ol>
+    </div>
+  </div>
+  <p>探索木のノード数 (評価した枝の数) が、この論文の効率の指標です。経路の辺が 3 本なら理論上の下限は 3 です。</p>
+</section>
+
+<section id="robot">
+  <h2><span class="num">09</span>実機での実行: MPPI と視覚追跡</h2>
+  <p>計画したスプラインから経由点を取り出し、それぞれに対応するロープの形をシミュレータから記録します。このロープの軌道を参照状態として、MPPI (Model Predictive Path Integral 制御) がロープの動きを追従します。MPPI の行動の初期値には計画したスプラインを使います <span class="src">§VI</span>。</p>
+  <p>ロープの状態推定には、著者らの前の研究 [15] の知覚ネットワークで初期状態を推定し、画像空間の損失と LSTM の力学モデルで 3 次元のロープの状態を時間方向に追跡します。この論文では、ロープの微分可能レンダリングを Kinect の深度画像も使うように 3 次元へ拡張しました。</p>
+</section>
+
+<section id="results">
+  <h2><span class="num">10</span>実験結果</h2>
+  <p>検証したのは 4 点です <span class="src">§VII</span>。(1) デモで探索を偏らせると総当たりより試行数が大きく減るか、RL を加えると汎化が上がるか。(2) actor と critic を両方使うこと、多段で微調整することの効果。(3) Causal InfoGAN との比較。(4) 実機での実行と、より複雑な結び目への汎化。</p>
+
+  <h3>単段の成功率: デモと RL の効果</h3>
+  <p>比較した手法は 4 つです。総当たり (スプラインをパラメータ空間全体から一様に引く)、ICP 補間 (デモの成功スプラインのガウス分布を、ICP 距離の指数で重み付けして補間する)、模倣学習だけのプリミティブ、模倣学習 + RL のプリミティブ (Ours) です。評価には、学習時と同じ位相だが未見の形を使いました。</p>
+  <figure>
+    <div class="chart" id="c-fig6"></div>
+    <figcaption><b>位相動作ごとの、予測したスプラインの成功率</b> <span class="src">Fig. 6</span>。点線は 4 つのプリミティブの境目。模倣学習だけでも総当たりより最大 100 倍成功しやすく、RL を加えるとさらに 1.14〜2.33 倍になる。値は論文の棒グラフを目で読んだ概算 (±0.02 程度)。</figcaption>
+    <details class="data"><summary>データを表で見る</summary>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>位相動作</th><th class="num">総当たり</th><th class="num">ICP 補間</th><th class="num">模倣のみ</th><th class="num">Ours</th><th class="num">Ours / 模倣</th></tr></thead>
+        <tbody>
+          <tr><td><code>R1(0,1,1)</code></td><td class="num">0.11</td><td class="num">0.38</td><td class="num">0.65</td><td class="num">0.99</td><td class="num">1.52</td></tr>
+          <tr><td><code>R2(0,0,1,1)</code></td><td class="num">0.02</td><td class="num">0.29</td><td class="num">0.70</td><td class="num">0.92</td><td class="num">1.31</td></tr>
+          <tr><td><code>C(0,1,1)</code></td><td class="num">≈0.01</td><td class="num">0.46</td><td class="num">0.55</td><td class="num">0.78</td><td class="num">1.42</td></tr>
+          <tr><td><code>C(0,2,1)</code></td><td class="num">≈0.01</td><td class="num">0.63</td><td class="num">0.77</td><td class="num">0.88</td><td class="num">1.14</td></tr>
+          <tr><td><code>C(2,0,−1)</code></td><td class="num">≈0</td><td class="num">0.64</td><td class="num">0.70</td><td class="num">0.90</td><td class="num">1.29</td></tr>
+          <tr><td><code>C(2,1,−1)</code></td><td class="num">≈0.01</td><td class="num">0.36</td><td class="num">0.50</td><td class="num">0.76</td><td class="num">1.52</td></tr>
+          <tr><td><code>C(2,0,1)</code></td><td class="num">≈0.01</td><td class="num">0.27</td><td class="num">0.33</td><td class="num">0.71</td><td class="num">2.15</td></tr>
+          <tr><td><code>C(2,4,−1)</code></td><td class="num">≈0</td><td class="num">0.32</td><td class="num">0.30</td><td class="num">0.70</td><td class="num">2.33</td></tr>
+        </tbody>
+      </table></div>
+    </details>
+  </figure>
+  <p>模倣学習だけのプリミティブも、ほとんどの位相動作で ICP 補間を上回りました。特に、デモが直線 1 本分しかない R1 と R2 で差が大きく、手で設計した補間よりニューラルネットワークのほうが汎化することを示しています。</p>
+
+  <h3>多段: 固結びの探索木の大きさ</h3>
+  <p>固結びを 1 本の経路 <code>R1(0,1,1) → C(0,1,1) → C(2,0,1)</code> に沿って計画し、探索木の枝の数を数えました。開始形は 2 種類 (デモで見た直線と、汎化が必要な円弧) で、それぞれ 10 シードです <span class="src">§VII-A 4</span>。</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>候補の生成に使ったもの</th><th class="num">直線から (最大)</th><th class="num">円弧から (最大)</th><th>備考</th></tr></thead>
+    <tbody>
+      <tr><td>ICP 補間</td><td class="num">190</td><td class="num">1428</td><td>最小は 3 だが、ばらつきが非常に大きい</td></tr>
+      <tr><td>模倣学習のみ</td><td class="num">43</td><td class="num">9</td><td></td></tr>
+      <tr><td class="best">模倣学習 + RL (Ours)</td><td class="num best">5 未満</td><td class="num best">5 未満</td><td>全 10 シードで 5 未満。半分以上で下限の 3</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>アブレーション 1: actor と critic の両方が要るか</h3>
+  <p>critic だけの場合は、パラメータ空間全体を覆う大きなガウス分布から CEM を 10 回反復しました。actor だけの場合は、予測したガウス分布から直接サンプルしました。両方の場合は、actor の予測で CEM を初期化し、1 回だけ反復しました <span class="src">§VII-B 1, Fig. 7</span>。</p>
+  <figure>
+    <div class="chart" id="c-fig7"></div>
+    <figcaption><b>actor だけ・critic だけ・両方の成功率</b> <span class="src">Fig. 7</span>。両方を使うと 8 つ中 7 つで最良になる。critic だけの成績は、高い精度が要る <code>C(2,0,1)</code> と <code>C(2,4,−1)</code> で特に落ちる。値は図から目で読んだ概算。</figcaption>
+    <details class="data"><summary>データを表で見る</summary>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>位相動作 (Fig. 7 の並び)</th><th class="num">actor のみ</th><th class="num">critic のみ</th><th class="num">actor + critic</th></tr></thead>
+        <tbody>
+          <tr><td><code>R1(0,1,1)</code></td><td class="num">0.92</td><td class="num">0.90</td><td class="num">0.99</td></tr>
+          <tr><td><code>R2(0,0,1,1)</code></td><td class="num">0.78</td><td class="num">0.63</td><td class="num">0.92</td></tr>
+          <tr><td><code>C(0,1,1)</code></td><td class="num">0.65</td><td class="num">0.71</td><td class="num">0.78</td></tr>
+          <tr><td><code>C(0,2,1)</code></td><td class="num">0.69</td><td class="num">0.91</td><td class="num">0.88</td></tr>
+          <tr><td><code>C(2,1,−1)</code></td><td class="num">0.65</td><td class="num">0.77</td><td class="num">0.90</td></tr>
+          <tr><td><code>C(2,0,−1)</code></td><td class="num">0.58</td><td class="num">0.42</td><td class="num">0.76</td></tr>
+          <tr><td><code>C(2,0,1)</code></td><td class="num">0.65</td><td class="num">0.26</td><td class="num">0.73</td></tr>
+          <tr><td><code>C(2,4,−1)</code></td><td class="num">0.63</td><td class="num">0.18</td><td class="num">0.70</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small muted">Fig. 7 では 5 番目と 6 番目のラベルが <code>C(2,1,−1)</code>, <code>C(2,0,−1)</code> の順で、Fig. 6 と逆になっています。両方の図で「actor + critic」と「Ours」の 5・6 番目の値は 0.90 と 0.76 で一致するので、どちらかの図のラベルが入れ替わっている可能性があります。ここでは Fig. 7 の表記どおりに載せました。</p>
+    </details>
+  </figure>
+  <p>critic だけより良いのは、高次元の行動空間では CEM が最大値を見つけきれないからです。actor だけより良い理由として、著者らは 2 つを挙げています。ガウス分布では成功するスプラインの分布を表しきれないこと。そして、REINFORCE はオンポリシーのアルゴリズムなのに、シミュレーションの試行数を節約するためリプレイバッファで使っており、actor が成功と失敗の境目付近で楽観的になりすぎること。重要度サンプリングで補正する試みは、学習が安定しませんでした <span class="src">§VII-B 1</span>。</p>
+
+  <h3>アブレーション 2: 多段の同時微調整</h3>
+  <div class="stats">
+    <div class="stat"><div class="v">4.3 ± 2.6</div><div class="k">独立に学習したプリミティブでの評価枝数 (50 回)</div></div>
+    <div class="stat"><div class="v">3.4 ± 0.6</div><div class="k">同時微調整の後。特に最悪の場合が改善</div></div>
+  </div>
+  <p class="small">ランダムに生成したほどけた開始形から固結びまでを計画した結果です <span class="src">§VII-B 2</span>。</p>
+
+  <h3>Causal InfoGAN との比較</h3>
+  <p>Causal InfoGAN は、ロープの形を線形ガウスの遷移モデルをもつ潜在空間に埋め込み、始点と終点を潜在空間に射影して、その間を直線で補間して計画します。画像の代わりにロープの形を入力するよう改変し、<code>C(0,1,1)</code> のデモだけで学習しました (全デモで学習すると、GAN の学習の不安定さでもっともらしい結果が出なかった) <span class="src">§VII-C, Fig. 8</span>。</p>
+  <ul>
+    <li>Causal InfoGAN は<strong>終わりの形</strong>を与える必要があります。提案手法は目標の位相だけを受け取ります。</li>
+    <li>与えた始点・終点と、潜在空間に射影した形との距離がかなり大きく、1 例では射影した終点の位相が与えたものと違っていました。</li>
+    <li>見た目はもっともらしい計画も出ますが、デモと異なる動かし方をしたり、進み方が不均一だったりしました。</li>
+  </ul>
+
+  <h3>実機での実行と、より複雑な結び目</h3>
+  <p>計画した固結びの動作を、視覚追跡と MPC で実機のロボットが実行できました (補足動画と Fig. 1 下段) <span class="src">§VII-D</span>。</p>
+  <p>さらに、交差 3 以下の状態を含む 8 つの位相動作で学習したプリミティブを組み合わせ、固結びから始めて<strong>五芒星型の結び目</strong>への計画を、評価した枝 12 本で見つけました <span class="src">§VII-E, Fig. 9</span>。ただしこの開始形では、頭の区間を人が引き出しています。プリミティブは「引き出す」動作を学んでいないためです。</p>
+</section>
+
+<section id="limits">
+  <h2><span class="num">11</span>限界と次の論文へ</h2>
+  <p>著者らが挙げた課題は次のとおりです <span class="src">§VIII</span>。</p>
+  <ul>
+    <li>硬いケーブルは、離すと元の形に戻ってしまう可能性がある。手術糸のような細い糸は、深度画像から 3 次元で知覚しにくい。</li>
+    <li>より複雑な結び目には、既存の交差の下から区間を引き抜く動作や、次の手をやりやすくするための並べ替えの動作が要る。前者は 2 本の腕の協調が要るかもしれない。</li>
+    <li>対策の案として、1 つのプリミティブが必要に応じてスプラインを複数出すこと、並べ替えや引き抜きのデモを与えること、2 本目の腕が押さえる位置も予測するよう行動空間を広げること、を挙げている。</li>
+  </ul>
+  <div class="callout rope">
+    <p><strong>TWISTED へのつながり</strong>: この論文は、デモが無い位相動作にも RL で汎化できることを示しましたが、出発点として 8 つの位相動作ぶんの人間のデモを必要とします。TWISTED は「デモ無しで、ランダムな操作から学ぶ」ことを目標にし、Yan2020 の p-data・曲線の行動・Mirror / Reverse の拡張を引き継ぎます。</p>
+    <p><strong>TWISTED-RL へのつながり</strong>: 「1 遷移 = スプライン 1 本」で足りない場合の多段化は、TWISTED-RL の多段エピソードとして実現されます。</p>
+  </div>
+</section>
+
+<section id="gloss">
+  <h2><span class="num">12</span>用語集</h2>
+  <dl class="gloss">
+    <div><dt>位相動作 (topological action)</dt><dd>位相状態を変える抽象的な操作。R1 / R2 / Cross の種類と、Table I の離散パラメータで指定する。</dd></div>
+    <div><dt>位相動作プリミティブ</dt><dd>ロープの形と位相動作のパラメータを受け取り、その位相動作を実現するロボットのスプラインの分布を出す学習済みの関数。この論文では 4 つ。</dd></div>
+    <div><dt>QT-Opt</dt><dd>critic で Q 関数を学び、CEM で Q を最大にする行動を探す強化学習の手法 (Kalashnikov ら 2018)。</dd></div>
+    <div><dt>CEM (交差エントロピー法)</dt><dd>分布から行動を引き、評価の高いものに分布を寄せる、を繰り返す最適化法。</dd></div>
+    <div><dt>REINFORCE</dt><dd>報酬で重み付けした対数尤度の勾配で方策を更新する、方策勾配法の基本形。</dd></div>
+    <div><dt>ICP (Iterative Closest Point)</dt><dd>2 つの点群を位置合わせする手法。ここでは形どうしの距離として使う。</dd></div>
+    <div><dt>solution DAG</dt><dd>ほどけた状態から目標の結び目までの位相の経路をまとめた有向非巡回グラフ。</dd></div>
+    <div><dt>MPPI</dt><dd>Model Predictive Path Integral 制御。サンプルした行動列の重み付き平均で制御入力を決める MPC の一種。</dd></div>
+    <div><dt>Causal InfoGAN</dt><dd>観測を計画可能な潜在空間に埋め込む GAN。比較手法として使われた。</dd></div>
+  </dl>
+  <div class="nextprev">
+    <a href="index.html"><small>← 前へ</small>入口と前提知識</a>
+    <a href="twisted.html"><small>次へ →</small><span class="dot tw"></span> TWISTED の図解</a>
+  </div>
+</section>
+
+  </main>
+</div>
+<footer class="foot">出典: M. Yan, G. Li, Y. Zhu, J. Bohg, "Learning Topological Motion Primitives for Knot Planning," IROS 2020 / arXiv 2009.02615。図はすべて論文の内容をもとに描き直しました。グラフの値は論文の棒グラフから目で読んだ概算です。</footer>
+<script>
+(function(){
+  var cats = ["R1(0,1,1)","R2(0,0,1,1)","C(0,1,1)","C(0,2,1)","C(2,0,−1)","C(2,1,−1)","C(2,0,1)","C(2,4,−1)"];
+  var bands = [{from:0,to:0,label:"Set 1"},{from:1,to:1,label:"Set 2"},{from:2,to:5,label:"Set 3 (端の Cross)"},{from:6,to:7,label:"Set 4"}];
+  var f = function(v){ return v < 0.015 ? "≈" + v.toFixed(2) : v.toFixed(2); };
+  KnotCharts.bar("c-fig6", {
+    cats: cats, bands: bands, max: 1, ticks: [0,0.2,0.4,0.6,0.8,1], yLabel: "成功率", fmt: f, labelW: 86,
+    aria: "8 つの位相動作ごとの成功率。Ours がすべてで最も高い。",
+    series: [
+      {name:"総当たり", color:"var(--muted)", vals:[0.11,0.02,0.005,0.01,0,0.005,0.01,0]},
+      {name:"ICP 補間", color:"var(--s2)", vals:[0.38,0.29,0.46,0.63,0.64,0.36,0.27,0.32]},
+      {name:"模倣のみ", color:"var(--s3)", vals:[0.65,0.70,0.55,0.77,0.70,0.50,0.33,0.30]},
+      {name:"Ours (模倣 + RL)", color:"var(--s1)", vals:[0.99,0.92,0.78,0.88,0.90,0.76,0.71,0.70]}
+    ]
+  });
+  KnotCharts.bar("c-fig7", {
+    cats: ["R1(0,1,1)","R2(0,0,1,1)","C(0,1,1)","C(0,2,1)","C(2,1,−1)","C(2,0,−1)","C(2,0,1)","C(2,4,−1)"],
+    bands: bands, max: 1, ticks: [0,0.2,0.4,0.6,0.8,1], yLabel: "成功率", fmt: function(v){return v.toFixed(2);}, labelW: 86,
+    aria: "actor のみ、critic のみ、両方の成功率。両方が 8 つ中 7 つで最良。",
+    series: [
+      {name:"actor のみ", color:"var(--s3)", vals:[0.92,0.78,0.65,0.69,0.65,0.58,0.65,0.63]},
+      {name:"critic のみ", color:"var(--s2)", vals:[0.90,0.63,0.71,0.91,0.77,0.42,0.26,0.18]},
+      {name:"actor + critic", color:"var(--s1)", vals:[0.99,0.92,0.78,0.88,0.90,0.76,0.73,0.70]}
+    ]
+  });
+})();
+</script>

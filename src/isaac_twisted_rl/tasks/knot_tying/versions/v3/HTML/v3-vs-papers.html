@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>v3 と論文の比較</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;700&family=Zen+Old+Mincho:wght@600;700&display=swap">
+<style>
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --surface-2:#e9eeec; --ink:#162023; --ink-2:#3b474b; --muted:#667276;
+  --rule:#d3dbd8; --rule-strong:#b7c2bf;
+  --rope:#1d6b73; --rope-2:#8fb9bc; --rope-soft:#dcecec; --hl:#bf5a1c; --hl-soft:#f8e6d9;
+  --good:#1f7a36; --bad:#b83232;
+  --p-yan:#2a78d6; --p-tw:#eb6834; --p-trl:#1baf7a; --p-v3:#7a4fd0; --v3-soft:#ece5f8; --trl-soft:#dff3ea;
+  --f-display:"Zen Old Mincho","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"IBM Plex Sans JP","Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f1415; --surface:#161d1f; --surface-2:#1e2729; --ink:#e6ecea; --ink-2:#c3ccca; --muted:#8d989b;
+    --rule:#2a3437; --rule-strong:#3b484b;
+    --rope:#62b8bf; --rope-2:#2f6166; --rope-soft:#1b3438; --hl:#f0a25f; --hl-soft:#3a2818;
+    --good:#4cc36a; --bad:#ef7373;
+    --p-yan:#3987e5; --p-tw:#d95926; --p-trl:#199e70; --p-v3:#a384ec; --v3-soft:#2a2240; --trl-soft:#17322a;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1415; --surface:#161d1f; --surface-2:#1e2729; --ink:#e6ecea; --ink-2:#c3ccca; --muted:#8d989b;
+  --rule:#2a3437; --rule-strong:#3b484b;
+  --rope:#62b8bf; --rope-2:#2f6166; --rope-soft:#1b3438; --hl:#f0a25f; --hl-soft:#3a2818;
+  --good:#4cc36a; --bad:#ef7373;
+  --p-yan:#3987e5; --p-tw:#d95926; --p-trl:#199e70; --p-v3:#a384ec; --v3-soft:#2a2240; --trl-soft:#17322a;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.85;padding-inline:16px;}
+a{color:var(--rope);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--hl);outline-offset:2px;border-radius:4px}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+code{background:var(--surface-2);padding:.08em .35em;border-radius:4px;overflow-wrap:anywhere}
+
+.sitebar{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding-block:14px;border-bottom:1px solid var(--rule);font-size:14px}
+.sitebar .brand{font-family:var(--f-display);font-weight:700;font-size:16px;color:var(--ink);text-decoration:none;margin-right:auto}
+.sitebar nav{display:flex;flex-wrap:wrap;gap:4px 4px}
+.sitebar nav a{color:var(--ink-2);text-decoration:none;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:6px}
+.sitebar nav a:hover{background:var(--surface-2)}
+.sitebar nav a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.dot.yan{background:var(--p-yan)} .dot.tw{background:var(--p-tw)} .dot.trl{background:var(--p-trl)} .dot.v3{background:var(--p-v3)}
+
+.hero{max-width:1180px;margin:0 auto;padding-block:40px 28px;display:grid;gap:14px}
+.eyebrow{font-size:13px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.hero h1{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,4.6vw,46px);line-height:1.3;margin:0;text-wrap:balance;letter-spacing:.01em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:14px;color:var(--ink-2);margin:0;padding:0;list-style:none}
+.meta b{color:var(--muted);font-weight:500;margin-right:6px}
+
+.layout{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:32px;padding-block:8px 80px}
+@media (min-width:1080px){.layout{grid-template-columns:210px minmax(0,1fr)}}
+.toc{font-size:14px}
+.toc details{border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface);padding:10px 14px}
+.toc summary{cursor:pointer;font-weight:600}
+.toc ol{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:2px}
+.toc li a{display:block;color:var(--ink-2);text-decoration:none;padding:3px 8px;border-radius:6px;line-height:1.5}
+.toc li a:hover{background:var(--surface-2);color:var(--ink)}
+@media (min-width:1080px){
+  .toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start;max-height:calc(100vh - 32px);overflow:auto}
+  .toc details{border:0;background:none;padding:0}
+  .toc summary{list-style:none;color:var(--muted);font-size:12px;letter-spacing:.12em;font-weight:500;pointer-events:none}
+  .toc summary::-webkit-details-marker{display:none}
+}
+main{min-width:0;max-width:820px}
+main > section{padding-block:18px 8px;border-top:1px solid var(--rule)}
+main > section:first-child{border-top:0}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(23px,3vw,29px);line-height:1.4;margin:22px 0 10px;text-wrap:balance}
+h2 .num{font-family:var(--f-mono);font-size:.6em;color:var(--muted);margin-right:10px;vertical-align:.18em;font-weight:500}
+h3{font-size:18px;line-height:1.5;margin:28px 0 6px;text-wrap:balance}
+h4{font-size:15px;margin:18px 0 4px;color:var(--ink-2)}
+p{margin:10px 0}
+main ul,main ol{padding-left:1.4em;margin:10px 0}
+main li{margin:4px 0}
+.lead{font-size:17px;color:var(--ink-2)}
+.muted{color:var(--muted)}
+.small{font-size:13.5px;line-height:1.7}
+
+.tldr{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:18px 22px;margin:8px 0 6px}
+.tldr h2{margin-top:0;font-size:20px}
+.tldr ol{margin:6px 0 0}
+
+.src{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);border:1px solid var(--rule);border-radius:4px;padding:0 5px;margin-left:4px;white-space:nowrap;vertical-align:.1em;text-decoration:none}
+a.src:hover{border-color:var(--rope);color:var(--rope)}
+.interp{display:inline-block;font-size:11.5px;font-weight:600;color:var(--hl);border:1px solid var(--hl);border-radius:4px;padding:0 5px;margin-right:6px;vertical-align:.1em;letter-spacing:.05em}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:0 8px;border-radius:999px;border:1px solid;white-space:nowrap;line-height:1.7}
+.chip.ok{color:var(--good);border-color:var(--good)}
+.chip.part{color:var(--hl);border-color:var(--hl)}
+.chip.no{color:var(--muted);border-color:var(--rule-strong)}
+.chip.diff{color:var(--p-v3);border-color:var(--p-v3)}
+.callout{border-left:3px solid var(--hl);background:var(--hl-soft);padding:10px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+.callout.rope{border-left-color:var(--rope);background:var(--rope-soft)}
+.callout.v3{border-left-color:var(--p-v3);background:var(--v3-soft)}
+.callout p{margin:6px 0}
+
+figure{margin:20px 0;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:16px}
+figure .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+figure svg{display:block;width:100%;height:auto}
+figure .scroll > svg{min-width:var(--minw,0px)}
+figcaption{font-size:13.5px;line-height:1.7;color:var(--ink-2);margin-top:12px}
+figcaption b{color:var(--ink)}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+svg .t-muted{fill:var(--muted)} svg .t-hl{fill:var(--hl)} svg .t-rope{fill:var(--rope)} svg .t-v3{fill:var(--p-v3)} svg .t-trl{fill:var(--p-trl)} svg .t-bad{fill:var(--bad)}
+svg .mono{font-family:var(--f-mono)}
+svg .box{fill:var(--surface);stroke:var(--rule-strong);stroke-width:1.2}
+svg .box2{fill:var(--surface-2);stroke:var(--rule-strong);stroke-width:1}
+svg .boxr{fill:var(--rope-soft);stroke:var(--rope);stroke-width:1.2}
+svg .boxh{fill:var(--hl-soft);stroke:var(--hl);stroke-width:1.2}
+svg .boxv{fill:var(--v3-soft);stroke:var(--p-v3);stroke-width:1.2}
+svg .boxt{fill:var(--trl-soft);stroke:var(--p-trl);stroke-width:1.2}
+svg .ln{fill:none;stroke:var(--ink-2);stroke-width:1.4}
+svg .ln-m{fill:none;stroke:var(--muted);stroke-width:1.2}
+svg .ln-h{fill:none;stroke:var(--hl);stroke-width:1.8}
+svg .grid{fill:none;stroke:var(--rule);stroke-width:1}
+svg .dash{stroke-dasharray:5 4}
+svg .fill-ink{fill:var(--ink-2)} svg .fill-hl{fill:var(--hl)} svg .fill-muted{fill:var(--muted)}
+
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 16px}
+.panel h4{margin-top:0}
+.panel p{margin:6px 0;font-size:14.5px;line-height:1.75}
+
+.tbl-wrap{overflow-x:auto;margin:14px 0;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)}
+table.tbl{border-collapse:collapse;width:100%;font-size:14px;line-height:1.6}
+.tbl th,.tbl td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+.tbl thead th{font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.04em;background:var(--surface-2);white-space:nowrap}
+.tbl tr:last-child td,.tbl tr:last-child th{border-bottom:0}
+.tbl td.num,.tbl th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl th[scope="row"]{font-weight:600}
+.tbl code{font-size:.84em}
+.tbl .grp th{background:var(--surface-2);font-size:12.5px;color:var(--ink-2);letter-spacing:.04em}
+
+.formula{font-family:var(--f-mono);font-size:14px;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;overflow-x:auto;white-space:pre;line-height:1.7;margin:12px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:12px;margin:14px 0}
+.stat{border-top:2px solid var(--ink);padding-top:8px}
+.stat .v{font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1.2}
+.stat .k{font-size:13px;color:var(--ink-2);line-height:1.5}
+.stat.warn{border-top-color:var(--hl)}
+.stat.warn .v{color:var(--hl)}
+
+ol.prio{counter-reset:p;list-style:none;padding-left:0}
+ol.prio > li{counter-increment:p;position:relative;padding:12px 14px 12px 54px;margin:10px 0;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius)}
+ol.prio > li::before{content:counter(p);position:absolute;left:14px;top:12px;width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--bg);font-family:var(--f-mono);font-size:14px;display:flex;align-items:center;justify-content:center}
+ol.prio > li p{margin:4px 0;font-size:14.5px;line-height:1.75}
+ol.prio > li b.t{display:block;font-size:15.5px}
+
+.nextprev{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin-top:22px}
+.nextprev a{display:block;border:1px solid var(--rule);background:var(--surface);border-radius:var(--radius);padding:12px 16px;text-decoration:none;color:var(--ink)}
+.nextprev a:hover{border-color:var(--rope)}
+.nextprev small{display:block;color:var(--muted);font-size:12px}
+footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padding-block:20px 40px;font-size:13px;color:var(--muted)}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-ink"/></marker>
+<marker id="arrM" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-muted"/></marker>
+<marker id="arrH" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-hl"/></marker>
+</defs></svg>
+<header class="sitebar"><a class="brand" href="../../../../../../../paper/explainer/index.html">紐結び 3 論文の図解</a><nav aria-label="ページ"><a href="../../../../../../../paper/explainer/index.html">はじめに</a><a href="../../../../../../../paper/explainer/yan2020.html"><span class="dot yan"></span>Yan2020</a><a href="../../../../../../../paper/explainer/twisted.html"><span class="dot tw"></span>TWISTED</a><a href="../../../../../../../paper/explainer/twisted-rl.html"><span class="dot trl"></span>TWISTED-RL</a><a href="v3-implementation.html"><span class="dot v3"></span>v3 の実装</a><a href="v3-vs-papers.html" aria-current="page"><span class="dot v3"></span>v3 と論文</a></nav></header>
+<div class="hero">
+  <div class="eyebrow"><span class="dot v3"></span>比較と考察 · v3 × Yan2020 / TWISTED / TWISTED-RL</div>
+  <h1>v3 は論文の何を取り込み、何を別の形に置き換え、何がまだ無いのか</h1>
+  <p class="lead" style="margin:0;max-width:64ch"><a href="../../../../../../../paper/explainer/index.html">論文 3 本の図解</a> の内容を、v3 の実装 (<a href="v3-implementation.html">実装の図解</a>) と突き合わせます。前半は仕組みの対応表と構造の比較、後半はこの設計で起こりそうなことの考察と、次に試すことの優先順位です。</p>
+  <ul class="meta">
+    <li><b>比較の基準</b><a href="../../../../../../../paper/Report.md">paper/Report.md</a> (v2-R2 時点の比較、2026-09-26)</li>
+    <li><b>表記</b><span class="interp">解釈</span>が付いた段落は論文やコードに書かれていない、この文書での推論</li>
+  </ul>
+</div>
+
+<div class="layout">
+  <aside class="toc">
+    <details open><summary>このページの内容</summary>
+      <ol>
+        <li><a href="#tldr">要旨</a></li>
+        <li><a href="#before">出発点: Report の診断</a></li>
+        <li><a href="#map">仕組みの対応表</a></li>
+        <li><a href="#where">結び目理論をどこで使うか</a></li>
+        <li><a href="#episode">エピソードの切り方</a></li>
+        <li><a href="#c-archive">考察 1: アーカイブ</a></li>
+        <li><a href="#c-reward">考察 2: 報酬と終了</a></li>
+        <li><a href="#c-bfs">考察 3: BFS と高レベル計画</a></li>
+        <li><a href="#c-physics">考察 4: 行動と物理</a></li>
+        <li><a href="#missing">まだ無いもの</a></li>
+        <li><a href="#eval">成功率を比べるときの注意</a></li>
+        <li><a href="#next">次に試すこと</a></li>
+      </ol>
+    </details>
+  </aside>
+  <main>
+
+<section id="tldr">
+  <div class="tldr">
+    <h2>要旨</h2>
+    <ol>
+      <li><strong>取り込んだ</strong>: 到達した形からエピソードを始める (TWISTED-RL §IV-D / TWISTED の到達木)、目標に達したら終了する (TWISTED-RL)、p-data グラフの BFS (TWISTED / TWISTED-RL の高レベル)。v2-R2 時点で Report が「中核が入っていない」と指摘した 5 つのうち 3 つに手を付けた。</li>
+      <li><strong>置き換えた</strong>: 論文は結び目理論 (BFS) を<strong>推論時の計画</strong>に使い、方策に「次に行う移動」を渡す。v3 は BFS を<strong>学習時の報酬 (ポテンシャル)</strong>に畳み込み、方策は 1 つのまま、0 から固結びまでを通しで解く。エピソードも「1 遷移」ではなく「課題全体」のまま。</li>
+      <li><strong>まだ無い</strong>: 推論時の探索、遷移ごとのスキルと移動での条件付け (TWISTED-RL-C)、対称性によるデータ拡張、off-policy 学習。論文の成功率は探索込みの数字なので、v3 の 1 回展開の成功率とはそのまま比べられない。</li>
+      <li><strong>設計上の注意点</strong> <span class="interp">解釈</span>: (a) C1 のアーカイブは既定の 1024 環境だとほぼ 1 iteration で全部入れ替わり、「これまでに到達した多様な形」ではなく「直近の分布」になりやすい。(b) 段の初回ボーナスは観測に無い「最高段」に依存するので、段を落として登り直す場面で報酬が非マルコフになる。(c) 12 手のエピソードでは 1 手 5% の発散が約半分のエピソードを終わらせる。</li>
+      <li>報酬の居座りの局所解は解消した。概算では、C1 を作って維持するだけの割引収益と理想経路の比が v2-R2 の約 1 : 3 から、v3 では約 1 : 7 になる。</li>
+    </ol>
+  </div>
+</section>
+
+<section id="before">
+  <h2><span class="num">01</span>出発点: Report の診断 (v2-R2 時点)</h2>
+  <p>Report.md の結論は、v1〜v2-R2 が詰まっていたのは報酬の細部ではなく<strong>問題の定式化</strong>のせいだ、というものでした。v0 (交差 1 つ) は学習でき、v2 は偽の C2 に居座り、v2-R2 では本物の C2 が課題として残りました。これは TWISTED の SAC+HER ベースラインの「交差 1 は解けるが、交差 2 ではほぼ 0」と同じ構図です。論文はこの壁を報酬ではなく、次の仕組みで越えています。</p>
+  <div class="grid-2">
+    <div class="panel"><h4>v2-R2 が論文から引き継いでいたもの</h4><p>位相表現 (p-data) と、pick&amp;place 1 回を 1 行動にする粒度の 2 つだけ。</p></div>
+    <div class="panel"><h4>入っていなかった論文の中核</h4><p>高レベルの位相計画 / 1 遷移 = 1 エピソード / 移動を条件にした方策 / 到達した状態からのリセット / 推論時にシミュレータを使う探索。</p></div>
+  </div>
+  <p>v3 はこのうち「到達した状態からのリセット」を P1-1、「目標で終了」を P1-2、「位相グラフ」を P1-3 として、PPO の単一方策のまま入れられる形で取り込んだ版です。</p>
+</section>
+
+<section id="map">
+  <h2><span class="num">02</span>仕組みの対応表</h2>
+  <p><span class="chip ok">取り込んだ</span> ほぼ論文どおり / <span class="chip diff">形を変えた</span> 同じ狙いを別の形で / <span class="chip part">一部</span> / <span class="chip no">無し</span></p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>仕組み</th><th>論文</th><th>v3</th><th>状態</th></tr></thead>
+    <tbody>
+      <tr class="grp"><th colspan="4">高レベル (位相)</th></tr>
+      <tr><th scope="row">位相の表現</th><td>p-data (3 本とも)</td><td>p-data と同じ情報をテンソルで持つ (<code>IntersectionBatch</code>)</td><td><span class="chip ok">取り込んだ</span></td></tr>
+      <tr><th scope="row">位相グラフ (R1 / R2 / Cross)</th><td>TWISTED / TWISTED-RL が BFS で経路を計画。交差数で枝刈り</td><td>交差 4 個まで全列挙 (8541 状態) し、固結びまでの距離の表だけを使う</td><td><span class="chip diff">形を変えた</span></td></tr>
+      <tr><th scope="row">成功の判定</th><td>目標の p-data と完全一致</td><td>部分列判定 + R2 除去 (尻尾の余分な輪を許す)。ゴールは 172 状態</td><td><span class="chip diff">形を変えた</span></td></tr>
+      <tr class="grp"><th colspan="4">低レベル (方策)</th></tr>
+      <tr><th scope="row">分解</th><td>1 遷移ごとに低レベルを呼ぶ</td><td>分解しない。1 方策で 0 → 固結び</td><td><span class="chip no">無し</span></td></tr>
+      <tr><th scope="row">方策の条件</th><td>Yan: 位相動作のパラメータ / TWISTED: 次の状態 s′ / TWISTED-RL: 移動 ρ(A)</td><td>条件なし (ゴールは固定)。観測に現在の段の one-hot</td><td><span class="chip no">無し</span></td></tr>
+      <tr><th scope="row">エージェントの分け方</th><td>TWISTED-RL: G / A / C / AC。交差数ごとの C が最良</td><td>1 つ (MLP / GRU / LSTM は比較用の変種)</td><td><span class="chip no">無し</span></td></tr>
+      <tr><th scope="row">多段エピソード</th><td>TWISTED-RL: 1 遷移を最大 M 手 (移植元コードで 7)</td><td>課題全体を最大 12 手。位相が変わっても続く</td><td><span class="chip diff">形を変えた</span></td></tr>
+      <tr><th scope="row">目標で終了</th><td>TWISTED-RL: 位相が変わったら終了 (目標でも他でも)</td><td>固結び (と発散・時間切れ) でだけ終了</td><td><span class="chip part">一部</span></td></tr>
+      <tr><th scope="row">報酬</th><td>TWISTED-RL: 目標 +1 / 維持 0 / 他の遷移 −1 の疎報酬だけ</td><td>BFS ポテンシャルの整形 + 段の初回ボーナス + 罰則 3 種</td><td><span class="chip diff">形を変えた</span></td></tr>
+      <tr class="grp"><th colspan="4">データと探索</th></tr>
+      <tr><th scope="row">到達した形から始める</th><td>TWISTED: 到達木から、交差数に比例して優先 / TWISTED-RL: 位相状態 S ごとに到達した形から一様</td><td>確率 0.5 で、段 (C1 / C2) を 1 : 2 で選び、段の中で一様</td><td><span class="chip ok">取り込んだ</span></td></tr>
+      <tr><th scope="row">後の段の初期状態を先に貯める</th><td>TWISTED-RL: 交差 l の学習中に k &gt; l へ遷移した形を保存</td><td>毎手の終わりの静止した形を段ごとに保存 (遷移したかは問わない)</td><td><span class="chip diff">形を変えた</span></td></tr>
+      <tr><th scope="row">対称性 (Mirror / Reverse)</th><td>Yan2020 / TWISTED で使用</td><td>未使用 (アーカイブの z 軸回転だけ)</td><td><span class="chip no">無し</span></td></tr>
+      <tr><th scope="row">推論時の探索</th><td>候補をシミュレータで試し、到達木から再計画 (制限 30 分)</td><td>Play はまっすぐなロープから 1 回展開するだけ</td><td><span class="chip no">無し</span></td></tr>
+      <tr><th scope="row">人間のデモ</th><td>Yan2020 は使う。TWISTED / TWISTED-RL は使わない</td><td>使わない (ゲート 1 の台本もアーカイブの初期化には未使用)</td><td><span class="chip ok">同じ</span></td></tr>
+      <tr class="grp"><th colspan="4">行動と学習器</th></tr>
+      <tr><th scope="row">行動</th><td>曲線 c = (l, x, y, z<sub>max</sub>)、置き先は絶対座標</td><td>(掴むリンク, Δlink, 相対 xy, 置く高さ, yaw)。運搬高さ 0.20 m 固定</td><td><span class="chip diff">形を変えた</span></td></tr>
+      <tr><th scope="row">学習器</th><td>TWISTED-RL: SAC (off-policy)。方策あたり 200 万ステップ・4 日以内</td><td>PPO (on-policy)</td><td><span class="chip diff">形を変えた</span></td></tr>
+      <tr><th scope="row">シミュレータ</th><td>MuJoCo。自由に動くエンドエフェクタ</td><td>Isaac Sim / PhysX。腕のないハンドだが、把持は指の摩擦だけ</td><td><span class="chip diff">形を変えた</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="where">
+  <h2><span class="num">03</span>結び目理論を「どこで」使うか</h2>
+  <p>いちばん大きな違いは、位相グラフ (結び目理論の知識) が入る場所です。</p>
+  <figure>
+    <div class="scroll" style="--minw:700px">
+    <svg viewBox="0 0 820 360" role="img" aria-label="TWISTED-RL と v3 の構造の比較。TWISTED-RL は位相グラフの BFS を推論時の計画に使い、次の移動を低レベルのスキルに渡す。スキルは交差数ごとに分かれ、1 遷移を最大 M 手で行う。v3 は BFS の距離表を学習時の報酬にだけ使い、1 つの方策が 0 から固結びまでを最大 12 手で行う。">
+      <g font-size="12">
+        <circle cx="36" cy="20" r="5" style="fill:var(--p-trl)"/>
+        <text x="48" y="25" font-weight="700" font-size="14">TWISTED-RL (論文)</text>
+        <circle cx="446" cy="20" r="5" style="fill:var(--p-v3)"/>
+        <text x="458" y="25" font-weight="700" font-size="14">v3 (この実装)</text>
+        <line x1="410" y1="10" x2="410" y2="350" class="grid"/>
+
+        <rect x="30" y="44" width="350" height="54" rx="8" class="boxh"/>
+        <text x="205" y="66" text-anchor="middle" font-weight="700">高レベル計画: p-data グラフの BFS</text>
+        <text x="205" y="86" text-anchor="middle" font-size="11">S₀ → S₁ → S₂ → S₃ の経路を<tspan font-weight="700">推論時に</tspan>決める</text>
+        <line x1="205" y1="98" x2="205" y2="124" class="ln" marker-end="url(#arr)"/>
+        <text x="215" y="116" font-size="11" class="t-muted">次の遷移の移動 ρ(A)</text>
+        <rect x="30" y="128" width="350" height="54" rx="8" class="boxt"/>
+        <text x="205" y="150" text-anchor="middle" font-weight="700">スキル π_ϕ (SAC、交差数 ϕ ごと)</text>
+        <text x="205" y="170" text-anchor="middle" font-size="11">入力 = リンク位置 η(q) + ρ(A)</text>
+        <line x1="205" y1="182" x2="205" y2="208" class="ln" marker-end="url(#arr)"/>
+        <rect x="30" y="212" width="350" height="54" rx="8" class="box2"/>
+        <text x="205" y="234" text-anchor="middle" font-weight="700">1 エピソード = 1 遷移 · 最大 M 手</text>
+        <text x="205" y="254" text-anchor="middle" font-size="11">位相が変われば終了: 目標 +1 / 他 −1 / 維持 0</text>
+        <path d="M30,239 H20 V71 H26" class="ln-m" marker-end="url(#arrM)"/>
+        <text x="13" y="160" font-size="10.5" class="t-muted" transform="rotate(-90 13 160)" text-anchor="middle">次の遷移へ</text>
+        <rect x="30" y="286" width="350" height="54" rx="8" class="box"/>
+        <text x="205" y="308" text-anchor="middle" font-weight="700">初期状態: 到達した形から一様に</text>
+        <text x="205" y="328" text-anchor="middle" font-size="11">位相状態 S ごと · 前の段の学習中に貯めておく</text>
+
+        <rect x="440" y="44" width="350" height="54" rx="8" class="boxh"/>
+        <text x="615" y="66" text-anchor="middle" font-weight="700">BFS の距離表 (起動時に 1 回、8541 状態)</text>
+        <text x="615" y="86" text-anchor="middle" font-size="11"><tspan font-weight="700">学習時の報酬にだけ</tspan>使う · 推論では使わない</text>
+        <line x1="615" y1="98" x2="615" y2="124" class="ln" marker-end="url(#arr)"/>
+        <text x="625" y="116" font-size="11" class="t-muted">Φ = max(1 − d/3, 段/3)</text>
+        <rect x="440" y="128" width="350" height="54" rx="8" class="box"/>
+        <text x="615" y="150" text-anchor="middle" font-weight="700">報酬: γΦ(s′) − Φ(s) + 段の初回ボーナス − 罰則</text>
+        <text x="615" y="170" text-anchor="middle" font-size="11">方策には「次に何をするか」は渡らない</text>
+        <line x1="615" y1="182" x2="615" y2="208" class="ln" marker-end="url(#arr)"/>
+        <rect x="440" y="212" width="350" height="54" rx="8" class="boxv"/>
+        <text x="615" y="234" text-anchor="middle" font-weight="700">方策 π (1 つ、PPO) · 0 → 固結び を最大 12 手</text>
+        <text x="615" y="254" text-anchor="middle" font-size="11">固結び・発散・時間切れでだけ終了</text>
+        <rect x="440" y="286" width="350" height="54" rx="8" class="box"/>
+        <text x="615" y="308" text-anchor="middle" font-weight="700">初期状態: 50% でアーカイブ、50% まっすぐ</text>
+        <text x="615" y="328" text-anchor="middle" font-size="11">段 (C1 : C2 = 1 : 2) ごと · 毎手の終わりに貯める</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>橙が結び目理論 (位相グラフ) を使う場所。</b>TWISTED-RL では計画として推論時にも働き、方策に「次の移動」を教える。v3 では報酬の形として学習時にだけ働き、「次に何をするか」は方策がロープの形から自分で見つける必要がある。</figcaption>
+  </figure>
+  <div class="grid-2">
+    <div class="panel"><h4>v3 の形の利点</h4><p>方策が 1 つで済み、推論時に計画器もシミュレータも要らない。PPO と Isaac Lab の manager の仕組みの中にそのまま収まる (新しいのは event 項 1 つと報酬項 2 つだけ)。移動の条件付けに必要な「p-data の区間番号から ρ(A) を作る」処理も要らない。</p></div>
+    <div class="panel"><h4>v3 の形の欠点</h4><p>TWISTED-RL が示した「移動で条件付けたスキルは複雑な状態に移せる」(4-Eval で TWISTED の 10% → 26%) という性質を使えない。固結び以外の結び目を結ぶには、報酬の表を作り直して学習し直す必要がある。「次の遷移に失敗したら別の遷移を試す」という再計画もできない。</p></div>
+  </div>
+</section>
+
+<section id="episode">
+  <h2><span class="num">04</span>エピソードの切り方</h2>
+  <figure>
+    <div class="scroll" style="--minw:680px">
+    <svg viewBox="0 0 820 250" role="img" aria-label="エピソードの切り方の比較。TWISTED-RL は 0→1、1→2、2→3 の各遷移が別々のエピソードで、位相が変わったら終わる。v3 はまっすぐなロープから 12 手までの 1 つのエピソードで、段が変わっても続き、固結びで終わる。アーカイブから始めたエピソードは途中の段から始まる。">
+      <g font-size="12">
+        <text x="10" y="56" font-weight="700" class="t-trl">TWISTED-RL</text>
+        <text x="10" y="74" font-size="11" class="t-muted">遷移ごと</text>
+        <g>
+          <rect x="130" y="40" width="200" height="40" rx="6" class="boxt"/>
+          <text x="230" y="58" text-anchor="middle" font-size="11.5">0 → 1 (π₀)</text><text x="230" y="73" text-anchor="middle" font-size="10.5" class="t-muted">≤ M 手 · 位相変化で終了</text>
+          <rect x="350" y="40" width="200" height="40" rx="6" class="boxt"/>
+          <text x="450" y="58" text-anchor="middle" font-size="11.5">1 → 2 (π₁)</text><text x="450" y="73" text-anchor="middle" font-size="10.5" class="t-muted">≤ M 手 · 位相変化で終了</text>
+          <rect x="570" y="40" width="200" height="40" rx="6" class="boxt"/>
+          <text x="670" y="58" text-anchor="middle" font-size="11.5">2 → 3 (π₂)</text><text x="670" y="73" text-anchor="middle" font-size="10.5" class="t-muted">≤ M 手 · 位相変化で終了</text>
+        </g>
+        <text x="10" y="136" font-weight="700" class="t-v3">v3</text>
+        <text x="10" y="154" font-size="11" class="t-muted">まっすぐから</text>
+        <text x="10" y="206" font-weight="700" class="t-v3">v3</text>
+        <text x="10" y="224" font-size="11" class="t-muted">アーカイブから</text>
+        <g class="mono" font-size="12">
+          <rect x="130" y="120" width="640" height="40" rx="6" class="box"/>
+          <rect x="130" y="120" width="426.7" height="40" rx="6" class="boxv"/>
+          <g class="grid">
+            <line x1="183.3" y1="120" x2="183.3" y2="160"/><line x1="236.7" y1="120" x2="236.7" y2="160"/><line x1="290" y1="120" x2="290" y2="160"/><line x1="343.3" y1="120" x2="343.3" y2="160"/><line x1="396.7" y1="120" x2="396.7" y2="160"/><line x1="450" y1="120" x2="450" y2="160"/><line x1="503.3" y1="120" x2="503.3" y2="160"/><line x1="556.7" y1="120" x2="556.7" y2="160"/><line x1="610" y1="120" x2="610" y2="160"/><line x1="663.3" y1="120" x2="663.3" y2="160"/><line x1="716.7" y1="120" x2="716.7" y2="160"/>
+          </g>
+          <text x="156.7" y="145" text-anchor="middle">0</text><text x="210" y="145" text-anchor="middle">1</text><text x="263.3" y="145" text-anchor="middle">1</text><text x="316.7" y="145" text-anchor="middle">1</text><text x="370" y="145" text-anchor="middle">2</text><text x="423.3" y="145" text-anchor="middle">2</text><text x="476.7" y="145" text-anchor="middle">1</text><text x="530" y="145" text-anchor="middle" font-weight="700">3</text>
+          <text x="663" y="145" text-anchor="middle" font-size="11" class="t-muted" style="font-family:var(--f-body)">打たない</text>
+
+          <rect x="130" y="190" width="640" height="40" rx="6" class="box"/>
+          <rect x="130" y="190" width="160" height="40" rx="6" class="boxv"/>
+          <g class="grid"><line x1="183.3" y1="190" x2="183.3" y2="230"/><line x1="236.7" y1="190" x2="236.7" y2="230"/><line x1="290" y1="190" x2="290" y2="230"/></g>
+          <text x="156.7" y="215" text-anchor="middle">2</text><text x="210" y="215" text-anchor="middle">2</text><text x="263.3" y="215" text-anchor="middle" font-weight="700">3</text>
+          <text x="530" y="215" text-anchor="middle" font-size="11" class="t-muted" style="font-family:var(--f-body)">C2 から始まり、3 手目で固結び → 終了</text>
+        </g>
+        <text x="560" y="112" font-size="11" class="t-hl">固結びで終了</text>
+        <line x1="556.7" y1="114" x2="556.7" y2="166" class="ln-h"/>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>1 マスが 1 手、数字は手の後の段。</b>TWISTED-RL は位相が 1 回変わるたびにエピソードが切れ、別の方策に引き継ぐ。v3 は段が上がっても下がっても 12 手まで続き、固結びで初めて終わる。途中の 2 → 1 (段を落とす) は TWISTED-RL なら「意図しない遷移」で −1 と終了だが、v3 では整形報酬の減少 (約 −1/3) だけでエピソードは続く。</figcaption>
+  </figure>
+  <p>TWISTED-RL の多段エピソードの利点 (位相を保ったまま形を整える手が打てる) は、v3 でもそのまま得られています。位相の変わらない手の整形報酬は −0.017〜−0.033 と小さく、TWISTED-RL の「維持 0」に近い扱いです。</p>
+  <p>一方、手数の目安は論文と合っています。TWISTED-RL の 3-Easy の成功例は 1 遷移あたり平均 2.5 手で、固結びは 3 遷移なので約 7.5 手です。ゲート 1 の台本は 5 手でした。v3 の 12 手はこれに把持の失敗のやり直しを足した長さです。</p>
+</section>
+
+<section id="c-archive">
+  <h2><span class="num">05</span>考察 1: 到達状態アーカイブ</h2>
+  <p>狙いは論文と同じで、「偶然 C1 に着いたエピソードの残りの手」でしか C2 を練習できなかった v2-R2 の問題 (Report §5.3、論文との差で最も効いていると見た点) を直接埋めます。ただし保存と選び方の細部が論文と違い、そこから起こりそうなことがあります。</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th></th><th>TWISTED</th><th>TWISTED-RL</th><th>v3</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">単位</th><td>到達した形の木 T</td><td>位相状態 S (p-data) ごと</td><td>段 (C1 / C2) の 2 つ</td></tr>
+      <tr><th scope="row">何を入れるか</th><td>探索で到達した形</td><td>交差 l の学習中に交差 k &gt; l へ遷移した形</td><td>毎手の終わりの、床に落ちた発散していない形 (段 1, 2)</td></tr>
+      <tr><th scope="row">選び方</th><td>交差数に比例して優先、確率 0.05 でランダム</td><td>目標の遷移を一様に選び、その S の形から一様</td><td>確率 0.5 で使う。段を 1 : 2 で選び、段の中で一様</td></tr>
+      <tr><th scope="row">容量</th><td colspan="2" class="muted">記載なし</td><td>段ごとに 4,096 件のリングバッファ</td></tr>
+    </tbody>
+  </table></div>
+  <h3>C1 の箱はほぼ毎 iteration 入れ替わる <span class="interp">解釈</span></h3>
+  <p>smoke test (64 環境 × 12 手 = 1 iteration あたり 768 手) では、C1 の件数が 141 → 417 → 672 と 1 iteration に約 270 件ずつ増えました。手の約 35% が C1 で終わっている計算です。同じ割合で既定の 1024 環境 (1 iteration 12,288 手) に当てはめると、1 iteration で約 4,300 件が入り、容量 4,096 を超えます。</p>
+  <div class="stats">
+    <div class="stat"><div class="v">~35%</div><div class="k">smoke test で C1 に終わった手の割合 (推定)</div></div>
+    <div class="stat warn"><div class="v">~4,300</div><div class="k">1024 環境で 1 iteration に入る C1 (推定)</div></div>
+    <div class="stat"><div class="v">4,096</div><div class="k">C1 の容量</div></div>
+    <div class="stat"><div class="v">~30 iter</div><div class="k">C2 の箱が埋まるまで (推定、1 iteration 約 150 件)</div></div>
+  </div>
+  <p>つまり C1 のアーカイブは「これまでに到達した多様な C1」ではなく、「<strong>直近 1 iteration に方策が作った C1</strong>」になりやすい。Go-Explore や TWISTED-RL が狙う「過去に到達した形を一様に使う」性質とは違い、方策が偏ると初期状態も同じように偏ります。C2 も数十 iteration で同じ状態になります。smoke test の割合はほぼランダムな方策のもので、学習が進めば変わる点には注意が要ります。</p>
+  <h3>同じ形が何度も入る <span class="interp">解釈</span></h3>
+  <p>アーカイブは「その手で段が上がったか」を問わず、手の終わりの形を毎手入れます。アーカイブの C2 から始めて C2 のまま動けなかったエピソードは、ほぼ同じ形を最大 11 回入れ直します。smoke test で C2 が 1 iteration に 7〜12 件増えていた (1 手あたり約 1.2%、ランダムな方策の本物の C2 の約 0.3% の 4 倍) のは、この再登録を含んでいる可能性があります。これが多いと、アーカイブは「方策が先へ進めない形」で埋まっていきます。</p>
+  <h3>段の単位は粗い</h3>
+  <p>「cover の後」(次の 1 手で結べる) と、普通の輪は同じ C1 の箱に入り、比率は出現頻度で決まります。TWISTED-RL は位相状態ごとに一様に選ぶので、まれな状態も同じ確率で練習できます。v3 には BFS のキー (<code>batch_keys</code>) が既にあるので、同じ粒度にするのは難しくありません。</p>
+  <div class="callout v3">
+    <p><strong>改善案</strong> (<a href="#next">§11</a> の 2):</p>
+    <ul style="margin:4px 0">
+      <li><strong>段が上がった手の形だけを入れる</strong> (TWISTED-RL の「l → k へ遷移した形」と同じ)。再登録と C1 の氾濫が同時に減る。</li>
+      <li><strong>p-data のキーごとに箱を分け、キーを一様に選ぶ</strong> (TWISTED-RL の S ごとの一様選択)。または BFS の d で重みを付けて、d = 1 の状態 (cover の後・本物の C2) を多めに選ぶ。</li>
+      <li>容量を増やすか、上書きをリザーバサンプリングにして、古い形も確率的に残す。</li>
+    </ul>
+  </div>
+  <h3>評価の見方は論文と同じ方向</h3>
+  <p>アーカイブから始めたエピソードは途中から始まるので、成功率が水増しされます。smoke test でも固結びはアーカイブ始まりのエピソードでだけ出ました (<code>archive_success</code> 0.075、<code>scratch_success</code> 0)。これは TWISTED-RL の C 版で後の段の方策が「途中の形」から学ぶのと同じ構図で、最初に伸びるのは最後の段 (C2 → 固結び) のはずです。<code>archive_success</code> が上がっても <code>scratch_success</code> が 0 のままなら、前半の段 (0 → C1 → C2) が詰まっている、と読めます。</p>
+</section>
+
+<section id="c-reward">
+  <h2><span class="num">06</span>考察 2: 報酬と終了</h2>
+  <h3>居座りの局所解は解消した</h3>
+  <p>Report §5.5 は、v2-R2 の「毎手払う状態ボーナス」では C1 を作って維持するのが強い局所解だと指摘しました。v3 の報酬を同じ考え方で概算すると、次のようになります。</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>行動の方針</th><th class="num">v2-R2 (6 手)</th><th class="num">v3 (12 手)</th></tr></thead>
+    <tbody>
+      <tr><td>1 手目で C1 を作り、あとは維持するだけ</td><td class="num">約 2.9</td><td class="num">約 0.68</td></tr>
+      <tr><td>2 手ずつで C1 → C2 → 固結び (理想)</td><td class="num">約 8.9</td><td class="num">約 4.8</td></tr>
+      <tr><th scope="row">比 (理想 / 居座り)</th><td class="num">約 3.1</td><td class="num"><strong>約 7.1</strong></td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">v2-R2 の値は Report §5.5 から。v3 の値はこの文書での概算で、γ = 0.95、Φ は段 / 3 (ラダーと BFS がこの経路で一致する)、罰則は 0 と仮定しました。居座り = 0.5 + 0.95 × 1/3 に、残り 11 手の −0.017 を割り引いて足したもの。理想 = 2 手目に C1 (+0.817)、4 手目に C2 (+1.8)、6 手目に固結び (+3.283) をそれぞれ割り引いて足し、維持の手の小さな負を引いたもの。</p>
+  <p>整形報酬はポテンシャルの差なので、状態を行き来しても稼げません。初回ボーナスも各段 1 回しか払わないので、どちらも「繰り返して稼ぐ」ことができない設計です。TWISTED-RL の「目標で +1 して終了」とは形が違いますが、居座りと判定の抜け道の繰り返し利用を防ぐという目的は果たしています。</p>
+  <h3>段を飛ばすと合計を払う設計は、cover 経路を不利にしない</h3>
+  <p>ゲート 1 では、成功の多くが本物の C2 を経由せず、「cover の後」(R2 除去後は C1) から tuck 1 手で固結びになっていました。初回ボーナスは R2 除去後の段で払うので、cover の手には +1.5 が付きません。しかし段を飛ばした手には飛ばした段のぶんも払う (C1 → 固結び で +4.5) ので、総額は C2 経由と同じです。差は +1.5 を 1 手早くもらえるかどうかの割引だけ (1.5 × 0.05 ≈ 0.075) で、経路の選り好みはほぼ生じません。cover の手そのものは BFS の整形 (+0.30) で評価されます。</p>
+  <h3>初回ボーナスは観測に無い情報に依存する <span class="interp">解釈</span></h3>
+  <p>初回ボーナスの額は「このエピソードの最高段 (best)」で決まりますが、best は観測に入っていません。観測には現在の段しかありません。そのため、段を落としてから登り直す場面で、同じ観測・同じ行動でも報酬が違います (初めてなら +0.5 / +1.5、2 度目なら 0)。critic は MLP なので区別できず、価値の目標がぶれます。影響するのは段を落とした後だけなので大きくはないはずですが、手数を 12 に延ばしたぶん起きやすくなっています。best の one-hot (4 次元) を観測に足すか、GRU / LSTM 版と比べると確かめられます。</p>
+  <h3>意図しない遷移には −1 が無い</h3>
+  <p>TWISTED-RL は目標でない位相に変わったら −1 で終了します。v3 では、段を落とす手は整形で −Φ の差 (C1 → 自明で −0.333) を受け、エピソードは続きます。偽の C2 のように Φ が変わらない横の移動は、ほぼ 0 です。TWISTED-RL の著者は脚注で「すべての失敗に同じ罰を与えると、罰が溜まらないよう早く終わらせる方策が好まれる」と注意しています。v3 で同じことが起きるかを確かめると、C1 の状態から発散で終わらせると −0.1 − 1/3 ≈ −0.43 で、残り 11 手を居座る場合の約 −0.14 より悪いので、「わざと発散して逃げる」動機はありません。</p>
+  <h3>成功時の Φ = 1 は、固結びのボーナスを 0.95 足すのと同じ</h3>
+  <p>Ng らの保証 (整形が最適方策を変えない) は、エピソードの終端でポテンシャルを 0 と置いたときに成り立ちます。v3 は発散の終端では 0 にしますが、固結びの終端では Φ = 1 のまま払います。これは保証の外側で、実質的には固結びのボーナスが 3.0 から約 3.95 に増えるのと同じです。目的 (固結びを作る) と同じ向きの変更なので害は無いはずですが、「整形は最適方策を変えない」とは厳密には言えなくなっている点は覚えておく価値があります <span class="interp">解釈</span>。</p>
+</section>
+
+<section id="c-bfs">
+  <h2><span class="num">07</span>考察 3: BFS ポテンシャルと高レベル計画</h2>
+  <h3>列挙した状態数は TWISTED の見積もりと一致する</h3>
+  <p>v3 が列挙した状態数は、交差 1 / 2 / 3 / 4 で 4 / 40 / 528 / 7968 でした。論文の図解の記述 (交差 1 は 4 つ、交差 2 は数十、交差 3 で 500 超、交差 4 でほぼ 8000) と合っています。移植した R1 / R2 / Cross の実装が論文と同じグラフを作っている、という独立した確認になります。</p>
+  <div class="stats">
+    <div class="stat"><div class="v">4 / 40</div><div class="k">交差 1 / 2 の状態 (論文: 4 / 数十)</div></div>
+    <div class="stat"><div class="v">528</div><div class="k">交差 3 (論文: 500 超)</div></div>
+    <div class="stat"><div class="v">7,968</div><div class="k">交差 4 (論文: ほぼ 8000)</div></div>
+    <div class="stat"><div class="v">172</div><div class="k">v3 のゴール (R2 除去後に固結びを含む)</div></div>
+  </div>
+  <h3>「距離」に畳むと失うもの・得るもの</h3>
+  <div class="grid-2">
+    <div class="panel"><h4>失うもの</h4><p><strong>どの移動をするか。</strong>計画は「次は区間 2 を区間 0 の上へ Cross」まで決めるが、距離の表は「ゴールまであと 1」しか言わない。d = 1 の状態へ向かう手を方策がロープの形から探す必要がある。</p><p><strong>経路の選択。</strong>固結びへの経路は複数あり (Yan2020 は鏡像を含めて 8 通りとしている)、計画は失敗したら別の経路に切り替えられる。距離の表は最短のものに寄せるだけ。</p></div>
+    <div class="panel"><h4>得るもの</h4><p><strong>条件付けが要らない。</strong>方策の入力は固定長のまま。ρ(A) の符号化や、p-data の区間番号とロープのリンクの対応付けを実装しなくてよい。</p><p><strong>論文より寛容なゴール。</strong>尻尾の余分な輪を許す 172 状態をゴールにしており、実物のロープで起きる「結び目 + 余分な交差」を取りこぼさない。</p></div>
+  </div>
+  <h3>p-data に見えない差は critic が担う <span class="interp">解釈</span></h3>
+  <p>輪 1 つの 4 通りはどれも d = 2 で、Report §5.4 が問題にした「次の手が打てる輪 / 打てない輪」の差は p-data には現れません (幾何の差)。Yan2020 は、多段の微調整で「次のプリミティブの価値 V(s′) を前のプリミティブの報酬にする」ことでこの差を学ばせました。v3 では 1 つの critic が全段の価値を学ぶので、同じ役割を暗黙に担うことになります。ロープの形 (リンク位置) を観測に入れているのは、この意味でも必要です。</p>
+  <h3>d は移動の回数で、手の数ではない</h3>
+  <p>BFS の 1 歩は Reidemeister 移動 1 回ですが、pick&amp;place の 1 手は移動 0 回 (整える手) のことも 2 回のこともあります。TWISTED-RL の成功例では移動 1 回に平均 2.5 手かかりました。Φ の刻み 1/3 は「移動 1 回ぶん」で、その間の整える手には整形の信号がほとんど無い、という点は TWISTED-RL の「維持 0」と同じ性質です。</p>
+  <h3>他の結び目への拡張</h3>
+  <p>交差 4 で打ち切っているので、固結び (交差 3) には足りますが、8 の字結び (交差 4) の途中状態には交差 5 以上が現れうるので、表を広げる必要があります。交差 4 までで 7,968 状態、列挙に約 20 秒なので、交差 5 は桁が 1 つ以上増えると見込まれます <span class="interp">解釈</span>。</p>
+</section>
+
+<section id="c-physics">
+  <h2><span class="num">08</span>考察 4: 行動空間と物理</h2>
+  <h3>ゲート 1 は Report の予想を 1 つ覆し、1 つ裏付けた</h3>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>論点</th><th>Report (v2-R2 時点) の予想</th><th>ゲート 1 の結果</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">運搬高さ z<sub>max</sub></th><td>論文は行動に入れている。0.20 m 固定では精密に置けないので、行動に入れるべき (P3-1)</td><td><strong>不要だった</strong>。0.20 m 固定の台本 95% に対し、手ごとに高さを調整した台本は 60%</td></tr>
+      <tr><th scope="row">置き先の範囲</th><td>±0.15 L は最小ループ周長の半分しかなく怪しい</td><td><strong>そのとおり</strong>。±0.30 L で 6 次元の再生が 9% → 66%</td></tr>
+      <tr><th scope="row">ロープの長さ</th><td>(台本を試していない)</td><td><code>Twist</code> 20 リンクでは長さが足りない → <code>Knot</code> 28 リンク</td></tr>
+    </tbody>
+  </table></div>
+  <h3>「掴んだ側が上になる」は Yan2020 が構造に組み込んだ性質そのもの</h3>
+  <p>pick&amp;place では掴んだ部分が必ず上に置かれるので、固結びの「下」を作るには輪の側を掴んで尻尾の上に被せる (cover) しかありません。これは Yan2020 がネットワークの構造に組み込んだ規則性「新しい交差で上になる区間を掴み、下になる区間へ運ぶ」と同じで、Yan2020 の固結びの経路 C(2, 0, 1) も「区間 2 (輪) を区間 0 の上へ」です。v3 の方策はリンク位置を平らに並べた MLP なので、この規則性を一から学ぶ必要があります。Yan2020 のように「上になる区間 / 下になる区間 / 全体」に分けた入力や attention を使えば、学習が速くなる余地があります <span class="interp">解釈</span>。</p>
+  <h3>長いエピソードは発散に弱い <span class="interp">解釈</span></h3>
+  <p>論文は MuJoCo の自由なエンドエフェクタで、発散の話は出てきません。v3 は指の摩擦だけで掴むので、接触が原因の発散が起きます。smoke test では 1 手あたり約 5% でした。12 手を打ち切るまで発散しない確率は 0.95<sup>12</sup> ≈ 0.54 で、「エピソードの約半分が発散で終わる」という観測と合います。TWISTED-RL のように遷移ごとの短いエピソードなら、1 エピソードあたりの影響は小さくなります。1 手の発散率を 2% に下げれば、12 手で発散する割合は約 22% まで下がります。</p>
+  <div class="grid-2">
+    <div class="panel"><h4>v3 の方が現実に近い点</h4><p>把持は指の摩擦で、掴み損ね (把持距離の罰で測る) やロープの滑りが起こる。成功の判定は、ハンドを退避させてロープが床に落ちた後に測る。</p></div>
+    <div class="panel"><h4>論文と同じ単純化</h4><p>腕が無く、ハンドを直接動かす (IK・可達範囲・自己衝突が無い)。ロープの状態は完全に観測できる。TWISTED-RL が限界に挙げた sim2real の課題は v3 にもそのまま残る。</p></div>
+  </div>
+</section>
+
+<section id="missing">
+  <h2><span class="num">09</span>まだ取り込んでいないもの</h2>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>仕組み</th><th>論文での効果</th><th>v3 に入れるとしたら</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">推論時の探索</th><td>3 本とも、成功率はシミュレータで候補を試す探索込み。TWISTED-RL は 3-Medium で制限を 30 分 → 1 時間にすると 44% → 62%</td><td>アーカイブの保存・復元の関数 (<code>to_centroid_frame</code> / <code>place_at_origin</code> / 関節の書き込み) がそのまま「状態を N 環境に複製する」部品になる。方策から N 本の手を標本し、段か Φ が上がったものを残して繰り返す <span class="interp">解釈</span></td></tr>
+      <tr><th scope="row">遷移ごとのスキル (TWISTED-RL-C)</th><td>交差数ごとに分けた C 版が一貫して最良 (3-Eval 61%、G 版 43%)</td><td>アーカイブができたので現実的になった。段 k 用のタスクを登録し、<code>prob = 1.0</code>・<code>archive_classes = (k,)</code>、段が変わったら終了で +1 / −1 にする</td></tr>
+      <tr><th scope="row">移動での条件付け ρ(A)</th><td>スキルが複雑な状態に移せる (4-Eval 26% 対 TWISTED 10%)</td><td>BFS のグラフから「次の移動」を選び、そのパラメータを観測に足す。区間番号とリンクの対応付けが要る</td></tr>
+      <tr><th scope="row">対称性 (Mirror / Reverse)</th><td>学ぶべき種類とデータを 4 倍に</td><td>rsl_rl の PPO にある <code>symmetry_cfg</code> で追加できる。Reverse はリンクの順を反転、Mirror は y と符号を反転</td></tr>
+      <tr><th scope="row">off-policy 学習</th><td>TWISTED-RL は SAC で方策あたり 200 万ステップ</td><td>1 手 759 物理ステップと重いので、データを捨てる PPO との差は大きい。skrl の SAC が候補</td></tr>
+      <tr><th scope="row">初期形状の多様化</th><td>Yan2020: 広い初期形状での RL で成功率 1.14〜2.33 倍</td><td>アーカイブに段 0 の曲がった形も入れる、またはまっすぐ以外の初期形状を乱数で作る</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="eval">
+  <h2><span class="num">10</span>成功率を比べるときの注意</h2>
+  <p>論文の成功率と v3 の <code>scratch_success</code> は、同じ量ではありません。</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th></th><th>論文 (TWISTED / TWISTED-RL)</th><th>v3</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">何回試せるか</th><td>時間の上限 (30 分) まで、候補をシミュレータで試して選び直せる</td><td>1 回の展開 (学習中は確率的な方策、Play は平均の行動)</td></tr>
+      <tr><th scope="row">目標</th><td>指定された 1 つの p-data (完全一致)。3-Easy / Medium / Hard / Eval で難しさを分ける</td><td>固結びを含む状態 (172 通りのどれか)</td></tr>
+      <tr><th scope="row">手数の上限</th><td>探索の時間で決まる</td><td>12 手</td></tr>
+    </tbody>
+  </table></div>
+  <p>論文と同じ土俵で報告するなら、(a) まっすぐなロープからの 1 回展開の成功率、(b) 候補数と時間を決めた探索込みの成功率、(c) 段ごとの遷移の成功率 (0 → C1、C1 → C2 / cover の後、→ 固結び。TWISTED-RL が遷移ごとに見ているのに相当) の 3 つをそろえるのがよいと考えます。</p>
+</section>
+
+<section id="next">
+  <h2><span class="num">11</span>次に試すこと (優先順)</h2>
+  <ol class="prio">
+    <li><b class="t">本番の学習と、3 つの切り分け</b><p>v3 は P1-1〜P1-3 を同時に入れました。Report §8 は「アーカイブと報酬を別々に入れて比べる」ことを勧めていたので、Hydra の上書き (<code>prob=0.0</code> / <code>knot_tied=null</code> / <code>potential=class</code>) で 1 つずつ外した run を並べます。見る指標は <code>scratch_success</code>、<code>archive_success</code>、<code>restore_mismatch</code>、段ごとの発散率。</p></li>
+    <li><b class="t">アーカイブの保存と選び方を論文に寄せる</b><p>段が上がった手の形だけを保存し、p-data のキーごとに一様に (または BFS の d で重みを付けて) 選ぶ。まず <code>arc_size_c1</code> が毎 iteration 上限に張り付くか、キーの種類がいくつあるかをログで確かめる (<a href="#c-archive">§05</a>)。</p></li>
+    <li><b class="t">最高段 best を観測に足す</b><p>4 次元の追加で初回ボーナスの非マルコフ性が消える。観測の次元が変わるので、v3 の中で比べるなら新しいバージョンにする (<a href="#c-reward">§06</a>)。</p></li>
+    <li><b class="t">発散率を下げる</b><p>12 手ではエピソードの約半分が発散で終わる。学習が進んでも下がらないなら、尺をさらに延ばすか手数を戻す。ゲート 1 で未解明のまま残った「env.step で再生すると台本より発散が多い」理由の調査もここに含まれる。</p></li>
+    <li><b class="t">推論時の探索を評価に加える</b><p>アーカイブの復元の部品を使い、状態を N 環境に複製して候補を試す。論文と同じ土俵の成功率が出せる (<a href="#eval">§10</a>)。</p></li>
+    <li><b class="t">段別のタスク (TWISTED-RL-C 相当)</b><p>1〜5 で前半の段 (0 → C1 → C2) が詰まったままなら、アーカイブから段 k だけを始める専用タスクに分け、段が変わったら終了・+1 / −1 にする。対称性の拡張と SAC はその後。</p></li>
+  </ol>
+  <div class="nextprev">
+    <a href="v3-implementation.html"><small>前に読む</small><span class="dot v3"></span> v3 の実装の図解</a>
+    <a href="../../../../../../../paper/explainer/twisted-rl.html"><small>論文を読み直す</small><span class="dot trl"></span> TWISTED-RL の図解</a>
+  </div>
+</section>
+
+  </main>
+</div>
+<footer class="foot">論文の数値は paper/explainer の図解と paper/Report.md から、v3 の数値は <code>versions/v3/README.md</code>・各ファイルの docstring・<code>next_action.md</code> §4.8.10 から転記しました。<span class="interp">解釈</span>の付いた推定 (アーカイブの入れ替わりの速さなど) は smoke test の値からの外挿で、本番の学習では変わりえます。</footer>
+</html>

@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>v3 実装の図解</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;700&family=Zen+Old+Mincho:wght@600;700&display=swap">
+<style>
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --surface-2:#e9eeec; --ink:#162023; --ink-2:#3b474b; --muted:#667276;
+  --rule:#d3dbd8; --rule-strong:#b7c2bf;
+  --rope:#1d6b73; --rope-2:#8fb9bc; --rope-soft:#dcecec; --hl:#bf5a1c; --hl-soft:#f8e6d9;
+  --good:#1f7a36; --bad:#b83232;
+  --p-yan:#2a78d6; --p-tw:#eb6834; --p-trl:#1baf7a; --p-v3:#7a4fd0; --v3-soft:#ece5f8;
+  --f-display:"Zen Old Mincho","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"IBM Plex Sans JP","Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f1415; --surface:#161d1f; --surface-2:#1e2729; --ink:#e6ecea; --ink-2:#c3ccca; --muted:#8d989b;
+    --rule:#2a3437; --rule-strong:#3b484b;
+    --rope:#62b8bf; --rope-2:#2f6166; --rope-soft:#1b3438; --hl:#f0a25f; --hl-soft:#3a2818;
+    --good:#4cc36a; --bad:#ef7373;
+    --p-yan:#3987e5; --p-tw:#d95926; --p-trl:#199e70; --p-v3:#a384ec; --v3-soft:#2a2240;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1415; --surface:#161d1f; --surface-2:#1e2729; --ink:#e6ecea; --ink-2:#c3ccca; --muted:#8d989b;
+  --rule:#2a3437; --rule-strong:#3b484b;
+  --rope:#62b8bf; --rope-2:#2f6166; --rope-soft:#1b3438; --hl:#f0a25f; --hl-soft:#3a2818;
+  --good:#4cc36a; --bad:#ef7373;
+  --p-yan:#3987e5; --p-tw:#d95926; --p-trl:#199e70; --p-v3:#a384ec; --v3-soft:#2a2240;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.85;padding-inline:16px;}
+a{color:var(--rope);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--hl);outline-offset:2px;border-radius:4px}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+code{background:var(--surface-2);padding:.08em .35em;border-radius:4px;overflow-wrap:anywhere}
+
+.sitebar{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding-block:14px;border-bottom:1px solid var(--rule);font-size:14px}
+.sitebar .brand{font-family:var(--f-display);font-weight:700;font-size:16px;color:var(--ink);text-decoration:none;margin-right:auto}
+.sitebar nav{display:flex;flex-wrap:wrap;gap:4px 4px}
+.sitebar nav a{color:var(--ink-2);text-decoration:none;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:6px}
+.sitebar nav a:hover{background:var(--surface-2)}
+.sitebar nav a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.dot.yan{background:var(--p-yan)} .dot.tw{background:var(--p-tw)} .dot.trl{background:var(--p-trl)} .dot.v3{background:var(--p-v3)}
+
+.hero{max-width:1180px;margin:0 auto;padding-block:40px 28px;display:grid;gap:14px}
+.eyebrow{font-size:13px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.hero h1{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,4.6vw,46px);line-height:1.3;margin:0;text-wrap:balance;letter-spacing:.01em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:14px;color:var(--ink-2);margin:0;padding:0;list-style:none}
+.meta b{color:var(--muted);font-weight:500;margin-right:6px}
+
+.layout{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:32px;padding-block:8px 80px}
+@media (min-width:1080px){.layout{grid-template-columns:210px minmax(0,1fr)}}
+.toc{font-size:14px}
+.toc details{border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface);padding:10px 14px}
+.toc summary{cursor:pointer;font-weight:600}
+.toc ol{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:2px}
+.toc li a{display:block;color:var(--ink-2);text-decoration:none;padding:3px 8px;border-radius:6px;line-height:1.5}
+.toc li a:hover{background:var(--surface-2);color:var(--ink)}
+@media (min-width:1080px){
+  .toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start;max-height:calc(100vh - 32px);overflow:auto}
+  .toc details{border:0;background:none;padding:0}
+  .toc summary{list-style:none;color:var(--muted);font-size:12px;letter-spacing:.12em;font-weight:500;pointer-events:none}
+  .toc summary::-webkit-details-marker{display:none}
+}
+main{min-width:0;max-width:820px}
+main > section{padding-block:18px 8px;border-top:1px solid var(--rule)}
+main > section:first-child{border-top:0}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(23px,3vw,29px);line-height:1.4;margin:22px 0 10px;text-wrap:balance}
+h2 .num{font-family:var(--f-mono);font-size:.6em;color:var(--muted);margin-right:10px;vertical-align:.18em;font-weight:500}
+h3{font-size:18px;line-height:1.5;margin:28px 0 6px;text-wrap:balance}
+h4{font-size:15px;margin:18px 0 4px;color:var(--ink-2)}
+p{margin:10px 0}
+main ul,main ol{padding-left:1.4em;margin:10px 0}
+main li{margin:4px 0}
+.lead{font-size:17px;color:var(--ink-2)}
+.muted{color:var(--muted)}
+.small{font-size:13.5px;line-height:1.7}
+
+.tldr{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:18px 22px;margin:8px 0 6px}
+.tldr h2{margin-top:0;font-size:20px}
+.tldr ol{margin:6px 0 0}
+
+.src{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);border:1px solid var(--rule);border-radius:4px;padding:0 5px;margin-left:4px;white-space:nowrap;vertical-align:.1em;text-decoration:none}
+a.src:hover{border-color:var(--rope);color:var(--rope)}
+.tag{display:inline-block;white-space:nowrap;font-size:11.5px;font-weight:600;border:1px solid;border-radius:4px;padding:0 5px;margin-right:6px;vertical-align:.1em;letter-spacing:.03em}
+.tag.p1{color:var(--p-v3);border-color:var(--p-v3)}
+.tag.g1{color:var(--hl);border-color:var(--hl)}
+.tag.same{color:var(--muted);border-color:var(--rule-strong)}
+.callout{border-left:3px solid var(--hl);background:var(--hl-soft);padding:10px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+.callout.rope{border-left-color:var(--rope);background:var(--rope-soft)}
+.callout.v3{border-left-color:var(--p-v3);background:var(--v3-soft)}
+.callout p{margin:6px 0}
+
+figure{margin:20px 0;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:16px}
+figure .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+figure svg{display:block;width:100%;height:auto}
+figure .scroll > svg{min-width:var(--minw,0px)}
+figcaption{font-size:13.5px;line-height:1.7;color:var(--ink-2);margin-top:12px}
+figcaption b{color:var(--ink)}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+svg .t-muted{fill:var(--muted)} svg .t-hl{fill:var(--hl)} svg .t-rope{fill:var(--rope)} svg .t-v3{fill:var(--p-v3)}
+svg .mono{font-family:var(--f-mono)}
+svg .rope{fill:none;stroke:var(--rope);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+svg .box{fill:var(--surface);stroke:var(--rule-strong);stroke-width:1.2}
+svg .box2{fill:var(--surface-2);stroke:var(--rule-strong);stroke-width:1}
+svg .boxr{fill:var(--rope-soft);stroke:var(--rope);stroke-width:1.2}
+svg .boxh{fill:var(--hl-soft);stroke:var(--hl);stroke-width:1.2}
+svg .boxv{fill:var(--v3-soft);stroke:var(--p-v3);stroke-width:1.2}
+svg .ln{fill:none;stroke:var(--ink-2);stroke-width:1.4}
+svg .ln-m{fill:none;stroke:var(--muted);stroke-width:1.2}
+svg .ln-h{fill:none;stroke:var(--hl);stroke-width:1.8}
+svg .ln-r{fill:none;stroke:var(--rope);stroke-width:1.8}
+svg .grid{fill:none;stroke:var(--rule);stroke-width:1}
+svg .dash{stroke-dasharray:5 4}
+svg .fill-ink{fill:var(--ink-2)} svg .fill-hl{fill:var(--hl)} svg .fill-rope{fill:var(--rope)} svg .fill-muted{fill:var(--muted)}
+svg .fill-surface{fill:var(--surface)}
+svg .table{fill:none;stroke:var(--muted);stroke-width:1.2}
+
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 16px}
+.panel h4{margin-top:0}
+.panel p{margin:6px 0;font-size:14.5px;line-height:1.75}
+
+.tbl-wrap{overflow-x:auto;margin:14px 0;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)}
+table.tbl{border-collapse:collapse;width:100%;font-size:14px;line-height:1.6}
+.tbl th,.tbl td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+.tbl thead th{font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.04em;background:var(--surface-2);white-space:nowrap}
+.tbl tr:last-child td,.tbl tr:last-child th{border-bottom:0}
+.tbl td.num,.tbl th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl th[scope="row"]{font-weight:600;white-space:nowrap}
+.tbl tr.hl td,.tbl tr.hl th{background:var(--v3-soft)}
+.tbl code{font-size:.84em}
+
+.formula{font-family:var(--f-mono);font-size:14px;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;overflow-x:auto;white-space:pre;line-height:1.7;margin:12px 0}
+
+dl.gloss{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin:12px 0;border-top:1px solid var(--rule)}
+dl.gloss > div{display:grid;grid-template-columns:minmax(0,1fr);gap:2px 18px;padding:10px 0;border-bottom:1px solid var(--rule)}
+@media (min-width:640px){dl.gloss > div{grid-template-columns:190px minmax(0,1fr)}}
+dl.gloss dt{font-weight:700}
+dl.gloss dd{margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.75}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:12px;margin:14px 0}
+.stat{border-top:2px solid var(--ink);padding-top:8px}
+.stat .v{font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1.2}
+.stat .k{font-size:13px;color:var(--ink-2);line-height:1.5}
+
+/* 1 手のタイムライン (幅 = 物理ステップ数に比例) */
+.tl-row{margin:10px 0 14px}
+.tl-head{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--ink-2);margin-bottom:4px}
+.tl-head b{color:var(--ink)}
+.tl{display:flex;height:30px;border-radius:6px;overflow:hidden;border:1px solid var(--rule-strong);background:var(--surface)}
+.tl span{min-width:0;display:flex;align-items:center;justify-content:center;font-size:11px;white-space:nowrap;overflow:hidden;border-right:1px solid var(--surface);color:var(--ink)}
+.tl span:last-child{border-right:0}
+.tl .mv{background:var(--rope-soft)} .tl .ct{background:var(--hl-soft)} .tl .wt{background:var(--surface-2);color:var(--muted)}
+.key{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--ink-2);margin:4px 0 0;padding:0;list-style:none}
+.key li{display:inline-flex;align-items:center;gap:6px}
+.key i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--rule-strong)}
+
+/* 観測・ロープの内訳バー */
+.bar{display:flex;height:34px;border-radius:6px;overflow:hidden;border:1px solid var(--rule-strong)}
+.bar span{min-width:3px;display:flex;align-items:center;justify-content:center;font-size:11.5px;white-space:nowrap;overflow:hidden;border-right:1px solid var(--surface)}
+.bar span:last-child{border-right:0}
+.b1{background:var(--rope-soft)} .b2{background:var(--hl-soft)} .b3{background:var(--v3-soft)} .b4{background:var(--surface-2)}
+.b-miss{background:repeating-linear-gradient(45deg,var(--surface-2) 0 6px,var(--surface) 6px 12px);color:var(--bad)}
+
+.nextprev{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin-top:22px}
+.nextprev a{display:block;border:1px solid var(--rule);background:var(--surface);border-radius:var(--radius);padding:12px 16px;text-decoration:none;color:var(--ink)}
+.nextprev a:hover{border-color:var(--rope)}
+.nextprev small{display:block;color:var(--muted);font-size:12px}
+pre.cmd{font-family:var(--f-mono);font-size:13px;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;overflow-x:auto;line-height:1.7;margin:12px 0}
+footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padding-block:20px 40px;font-size:13px;color:var(--muted)}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-ink"/></marker>
+<marker id="arrM" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-muted"/></marker>
+<marker id="arrH" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-hl"/></marker>
+<marker id="arrR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-rope"/></marker>
+</defs></svg>
+<header class="sitebar"><a class="brand" href="../../../../../../../paper/explainer/index.html">紐結び 3 論文の図解</a><nav aria-label="ページ"><a href="../../../../../../../paper/explainer/index.html">はじめに</a><a href="../../../../../../../paper/explainer/yan2020.html"><span class="dot yan"></span>Yan2020</a><a href="../../../../../../../paper/explainer/twisted.html"><span class="dot tw"></span>TWISTED</a><a href="../../../../../../../paper/explainer/twisted-rl.html"><span class="dot trl"></span>TWISTED-RL</a><a href="v3-implementation.html" aria-current="page"><span class="dot v3"></span>v3 の実装</a><a href="v3-vs-papers.html"><span class="dot v3"></span>v3 と論文</a></nav></header>
+<div class="hero">
+  <div class="eyebrow"><span class="dot v3"></span>このリポジトリの実装 · Isaac-Twisted-RL-Knot-v3</div>
+  <h1>v3: 到達した形から始め、固結びで終わり、位相グラフの距離で導く</h1>
+  <p class="lead" style="margin:0;max-width:64ch">強化学習で紐結びを学ぶ現在の最新版 <code>v3</code> を、コードに沿って図で説明します。1 回の <code>env.step()</code> の中で何が起きるか、行動・観測・報酬・終了・リセットがそれぞれどう作られているかを順に見ていきます。論文との比較と考察は <a href="v3-vs-papers.html">別のページ</a> にまとめました。</p>
+  <ul class="meta">
+    <li><b>対象</b><a href="../">versions/v3/</a> (コミット 3b71145 「V3の実装」)</li>
+    <li><b>土台</b>v2-R2 を継承し、差分だけを上書き</li>
+    <li><b>状態</b>smoke test のみ。本番の学習は未実施</li>
+  </ul>
+</div>
+
+<div class="layout">
+  <aside class="toc">
+    <details open><summary>このページの内容</summary>
+      <ol>
+        <li><a href="#tldr">一言で言うと</a></li>
+        <li><a href="#diff">v2-R2 から何が変わったか</a></li>
+        <li><a href="#step">env.step 1 回 = 1 手</a></li>
+        <li><a href="#scene">ロープとハンド</a></li>
+        <li><a href="#action">行動: 6 次元</a></li>
+        <li><a href="#phases">1 手の動き: 12 フェーズ</a></li>
+        <li><a href="#obs">観測: 129 次元</a></li>
+        <li><a href="#topo">位相の判定</a></li>
+        <li><a href="#reward">報酬の全体</a></li>
+        <li><a href="#bfs">BFS 距離のポテンシャル</a></li>
+        <li><a href="#bonus">段の初回ボーナス</a></li>
+        <li><a href="#done">終了判定</a></li>
+        <li><a href="#archive">到達状態アーカイブ</a></li>
+        <li><a href="#ppo">学習器 (PPO)</a></li>
+        <li><a href="#logs">ログと切り分け</a></li>
+        <li><a href="#status">現状と未解決の点</a></li>
+        <li><a href="#gloss">用語集</a></li>
+      </ol>
+    </details>
+  </aside>
+  <main>
+
+<section id="tldr">
+  <div class="tldr">
+    <h2>一言で言うと</h2>
+    <ol>
+      <li>v3 は「まっすぐなロープから固結びまでを <strong>1 つの PPO 方策</strong>に解かせる」という v2-R2 の枠組みを保ったまま、論文 (TWISTED / TWISTED-RL) の中核を 3 つ取り込んだ版です。<strong>到達した形からエピソードを始める</strong> (P1-1)、<strong>固結びで終了し、段を初めて上がった手にだけボーナスを払う</strong> (P1-2)、<strong>p-data グラフ上の BFS 距離をポテンシャルにする</strong> (P1-3)。</li>
+      <li>「台本で固結びが結べるか」を確かめたゲート 1 の結果を受けて、ロープを 28 リンクの <code>Knot</code> に替え、置き先の範囲を ±0.30 L に広げ、1 手を 3.16 s に延ばし、手数を 12 にしました。</li>
+      <li>観測・PPO のハイパーパラメータ・発散の扱いは v2-R2 のままです。ロープが長くなったので、観測は 105 次元から 129 次元に増えています。</li>
+      <li>smoke test (64 環境 × 3 iteration) で配線が動くことを確認した段階で、本番の学習はまだ回していません。</li>
+    </ol>
+  </div>
+</section>
+
+<section id="diff">
+  <h2><span class="num">01</span>v2-R2 から何が変わったか</h2>
+  <p>v3 の <code>env_cfg.py</code> は v2-R2 の設定クラスを継承し、差分だけを上書きしています <a class="src" href="../env_cfg.py">v3/env_cfg.py</a>。タグの <span class="tag p1">P1</span> は <a href="../../../../../../../paper/Report.md">Report.md</a> §7 の論文由来の改善、<span class="tag g1">ゲート 1</span> は台本の検証 (<code>next_action.md</code> §4.8.10) から来た変更です。</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>項目</th><th>v2-R2</th><th>v3</th><th>由来</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">初期状態</th><td>常にまっすぐなロープ</td><td>確率 0.5 で<strong>到達状態アーカイブ</strong>から (C1 : C2 = 1 : 2)</td><td><span class="tag p1">P1-1</span></td></tr>
+      <tr><th scope="row">終了</th><td>時間切れ・発散</td><td>+ <strong>固結び (<code>knot_tied</code>)</strong></td><td><span class="tag p1">P1-2</span></td></tr>
+      <tr><th scope="row">疎報酬</th><td><code>success_c1/c2/success</code> を条件を満たす間<strong>毎手</strong></td><td><code>ladder_bonus</code>: 段を<strong>初めて</strong>上がった手に +0.5 / +1.5 / +3.0</td><td><span class="tag p1">P1-2</span></td></tr>
+      <tr><th scope="row">整形のポテンシャル Φ</th><td>ラダー (0, 0.35, 0.70, 1)</td><td><strong>max(BFS 距離の値, ラダー)</strong></td><td><span class="tag p1">P1-3</span></td></tr>
+      <tr><th scope="row"><code>offladder</code> 罰</th><td>交差 ≥ 2 かつ class 0 に −0.05</td><td>外す (BFS では行き止まりではなかった)</td><td><span class="tag p1">P1-3</span></td></tr>
+      <tr><th scope="row">段の判定</th><td>項によって <code>count ≥ 1</code> と <code>count == 1</code> が混在</td><td>すべて R2 除去後の <code>topology_class</code></td><td><span class="tag p1">P1-4</span></td></tr>
+      <tr><th scope="row">ロープ</th><td><code>Twist</code> 20 リンク (0.82 m)</td><td><strong><code>Knot</code> 28 リンク (1.14 m)</strong></td><td><span class="tag g1">ゲート 1</span></td></tr>
+      <tr><th scope="row">1 手の尺</th><td>2.44 s (585 物理ステップ)</td><td><strong>3.16 s (759 物理ステップ)</strong></td><td><span class="tag g1">ゲート 1</span></td></tr>
+      <tr><th scope="row">置き先の範囲</th><td>target ± 0.15 L</td><td><strong>target ± 0.30 L</strong></td><td><span class="tag g1">ゲート 1</span></td></tr>
+      <tr><th scope="row">手数</th><td>6</td><td><strong>12</strong> (成功で終わるので長くしても居座れない)</td><td><span class="tag p1">P1-2</span></td></tr>
+      <tr><th scope="row">観測・PPO・γ・発散の扱い</th><td colspan="2">v2-R2 のまま (観測の次元だけロープの長さに合わせて 105 → 129)</td><td><span class="tag same">据え置き</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">共有層 (<code>common/</code>) への変更は追加だけで、既定値なら過去のバージョンの挙動は変わりません。例外は固結び判定の 8 スロット打ち切りのバグ修正 (<a href="#topo">§07</a>) で、これは全バージョンに効きます。</p>
+</section>
+
+<section id="step">
+  <h2><span class="num">02</span>env.step 1 回 = pick&amp;place 1 手</h2>
+  <p>この環境の要は、Isaac Lab の <code>decimation</code> (1 回の <code>env.step()</code> で回す物理ステップ数) を「1 手ぶんの物理ステップ数」にしていることです。方策は 1 手に 1 回だけ行動を出し、その 1 手を実行し切ってから、終了判定・報酬・観測が 1 回ずつ計算されます <a class="src" href="../../../common/env_cfg_base.py">env_cfg_base.py</a>。</p>
+  <figure>
+    <div class="scroll" style="--minw:700px">
+    <svg viewBox="0 0 820 310" role="img" aria-label="env.step 1 回の流れ。方策が行動を出し、process_actions が掴む点と置き先を確定し、759 物理ステップの状態機械で 1 手を実行する。その後、終了判定、報酬 (アーカイブへの保存を含む)、終わった環境の reset (まっすぐに戻してからアーカイブで上書き)、観測の順に計算して方策へ戻る。">
+      <g font-size="12">
+        <rect x="20" y="24" width="150" height="76" rx="8" class="box"/>
+        <text x="95" y="48" text-anchor="middle" font-weight="700">方策 π</text>
+        <text x="95" y="68" text-anchor="middle" font-size="11" class="t-muted">PPO · MLP</text>
+        <text x="95" y="86" text-anchor="middle" font-size="11" class="t-muted">観測 129 → 行動 6</text>
+
+        <rect x="205" y="24" width="190" height="76" rx="8" class="box"/>
+        <text x="300" y="46" text-anchor="middle" font-weight="700" class="mono">process_actions</text>
+        <text x="300" y="66" text-anchor="middle" font-size="11">掴むリンク・置き先を</text>
+        <text x="300" y="84" text-anchor="middle" font-size="11">今のロープの形から確定</text>
+
+        <rect x="430" y="24" width="200" height="76" rx="8" class="boxr"/>
+        <text x="530" y="46" text-anchor="middle" font-weight="700">物理ループ × 759</text>
+        <text x="530" y="66" text-anchor="middle" font-size="11" class="mono">apply_actions → sim.step</text>
+        <text x="530" y="84" text-anchor="middle" font-size="11">12 フェーズの状態機械</text>
+
+        <rect x="665" y="24" width="135" height="76" rx="8" class="box"/>
+        <text x="732" y="46" text-anchor="middle" font-weight="700">終了判定</text>
+        <text x="732" y="66" text-anchor="middle" font-size="11">発散 · 固結び</text>
+        <text x="732" y="84" text-anchor="middle" font-size="11">· 時間切れ</text>
+
+        <line x1="170" y1="62" x2="201" y2="62" class="ln" marker-end="url(#arr)"/>
+        <line x1="395" y1="62" x2="426" y2="62" class="ln" marker-end="url(#arr)"/>
+        <line x1="630" y1="62" x2="661" y2="62" class="ln" marker-end="url(#arr)"/>
+        <path d="M732,100 V196" class="ln" marker-end="url(#arr)"/>
+
+        <rect x="620" y="200" width="180" height="92" rx="8" class="boxh"/>
+        <text x="710" y="222" text-anchor="middle" font-weight="700">報酬</text>
+        <text x="710" y="242" text-anchor="middle" font-size="11">shaping (BFS の Φ)</text>
+        <text x="710" y="260" text-anchor="middle" font-size="11">ladder_bonus · 罰則</text>
+        <text x="710" y="278" text-anchor="middle" font-size="11" class="t-hl">record_archive: 形を保存</text>
+
+        <rect x="395" y="200" width="190" height="92" rx="8" class="boxv"/>
+        <text x="490" y="222" text-anchor="middle" font-weight="700">reset (終わった env)</text>
+        <text x="490" y="242" text-anchor="middle" font-size="11" class="mono">reset_all (まっすぐ)</text>
+        <text x="490" y="260" text-anchor="middle" font-size="11" class="mono">→ reset_from_archive</text>
+        <text x="490" y="278" text-anchor="middle" font-size="11">→ 位相の抽出を無効化</text>
+
+        <rect x="205" y="200" width="155" height="92" rx="8" class="box"/>
+        <text x="282" y="222" text-anchor="middle" font-weight="700">観測</text>
+        <text x="282" y="242" text-anchor="middle" font-size="11">位相を抽出し直す</text>
+        <text x="282" y="260" text-anchor="middle" font-size="11">リンク位置 · 交差特徴</text>
+        <text x="282" y="278" text-anchor="middle" font-size="11">· class one-hot</text>
+
+        <line x1="620" y1="246" x2="589" y2="246" class="ln" marker-end="url(#arr)"/>
+        <line x1="395" y1="246" x2="364" y2="246" class="ln" marker-end="url(#arr)"/>
+        <path d="M205,246 H95 V104" class="ln" marker-end="url(#arr)"/>
+
+        <text x="420" y="140" text-anchor="middle" font-size="12.5" font-weight="600">env.step() 1 回 = pick&amp;place 1 手 = 759 物理ステップ (シム時間 3.16 s)</text>
+        <text x="420" y="162" text-anchor="middle" font-size="11.5" class="t-muted">終了判定 → 報酬 → reset → 観測 の順は Isaac Lab の ManagerBasedRLEnv が決めている</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>1 回の env.step() の中身。</b>上段が 1 手の実行、下段が手の後の処理 (右から左へ進む)。紫の reset は、終了判定が立った環境だけに走る。</figcaption>
+  </figure>
+  <p>この順序は v3 の設計に 3 か所で効いています。</p>
+  <ol>
+    <li><strong>形の保存を「報酬項」でやる。</strong>報酬は reset より前に計算されるので、手の終わりの形 (reset される前の形) を確実に読めます。そこでアーカイブへの保存 <code>record_archive</code> は、常に 0 を返す報酬項として登録してあります。重みを 0 にすると <code>RewardManager</code> が呼ばなくなるので、重みは 1.0 です。</li>
+    <li><strong>アーカイブからの復元は <code>reset_all</code> の後ろに置く。</strong>設定クラスに書いた順がそのまま適用順になります。まず基底の <code>reset_all</code> がロープとハンドをまっすぐな初期状態に戻し、その後で <code>reset_from_archive</code> が選ばれた環境のロープだけを上書きします。</li>
+    <li><strong>観測は復元後の形で計算する。</strong><code>PickPlaceAction.reset()</code> が位相の抽出器のキャッシュを捨てるので、直後の観測はアーカイブから書き込んだ形で計算されます。</li>
+  </ol>
+  <p class="small">報酬の重みは <code>__post_init__</code> で 1 env ステップの秒数 (step_dt) で割ってあります。Isaac Lab の <code>RewardManager</code> が各項に dt を掛けるためで、割っておくと設定に書いた値がそのまま「1 手あたり」の報酬になります。このページの報酬の値は、すべて 1 手あたりです。</p>
+</section>
+
+<section id="scene">
+  <h2><span class="num">03</span>ロープとハンド</h2>
+  <div class="grid-2">
+    <div class="panel">
+      <h4>ロープ: <code>Knot</code> プリセット</h4>
+      <p>PhysX の articulation で作ったカプセルの鎖です。<strong>28 リンク、全長 1.14 m、直径 20 mm</strong>。材料と太さは v2-R2 までの <code>Twist</code> と同じで、リンクの数だけを 20 から 28 に増やしました。1 リンクの物理が同じなので、把持のしやすさや「離すと指に付いてくる」対策をそのまま引き継げます。</p>
+    </div>
+    <div class="panel">
+      <h4>ハンド: キネマティックな平行グリッパ</h4>
+      <p>腕はありません。手首の位置と姿勢を毎物理ステップ直接書き込んで動かします (速度も書き込まないと摩擦が効かず、ロープが滑り落ちる)。把持は<strong>摩擦だけ</strong>です。指を「全閉」に指令し続けると、ロープの太さぶん閉じ切れず、PD 制御の定常偏差がそのまま把持力になります。</p>
+    </div>
+  </div>
+  <h3>なぜ 28 リンクなのか</h3>
+  <p>ゲート 1 では、学習環境をそのまま使い、ハンドだけを台本で動かして固結びを結びました (128 環境、台本のパラメータを ±25% 揺らす)。固結びは「本体」「輪」「尻尾」の 3 つの部分でロープを使い切ります。</p>
+  <figure>
+    <div class="tl-row">
+      <div class="tl-head"><span><b>Knot</b> · 28 リンク</span><span>1.14 m</span></div>
+      <div class="bar" role="img" aria-label="Knot の 28 リンクの使い方。本体 約 8、輪 約 12、尻尾 約 8 リンク。">
+        <span class="b4" style="flex:8 0 0">本体 ~8</span><span class="b1" style="flex:12 0 0">輪 ~12</span><span class="b2" style="flex:8 0 0">尻尾 ~8</span>
+      </div>
+    </div>
+    <div class="tl-row" style="width:71.4%">
+      <div class="tl-head"><span><b>Twist</b> · 20 リンク</span><span>0.82 m</span></div>
+      <div class="bar" role="img" aria-label="Twist の 20 リンクでは、本体と輪を作ると尻尾が 2 から 3 リンクしか残らない。">
+        <span class="b4" style="flex:8 0 0">本体</span><span class="b1" style="flex:10 0 0">輪</span><span class="b-miss" style="flex:2 0 0">尻</span>
+      </div>
+    </div>
+    <figcaption><b>固結びに要る長さ。</b>バーの長さはリンク数に比例。<code>Twist</code> では、先端を輪にくぐらせる最後の手 (tuck) の時点で輪の中に尻尾が 2〜3 リンクしか残らず、持ち上げると抜けて輪 1 つに戻る。台本の成功率は、運搬高さ 0.20 m 固定 (学習と同じ条件) で <code>Twist</code> 0/128、<code>Knot</code> 122/128 (95%) だった <span class="src">next_action.md §4.8.10</span>。</figcaption>
+  </figure>
+  <p class="small">シーンは既定で 1024 環境 (間隔 3 m)、物理は 240 Hz です。120 Hz に落とすと、把持中の接触でロープの速度が跳ね上がり発散率が 1.2% から 11.2% に上がったため、240 Hz のままにしてあります。</p>
+</section>
+
+<section id="action">
+  <h2><span class="num">04</span>行動: 6 次元で 1 手を決める</h2>
+  <p>行動は 6 次元の連続値で、すべて [−1, 1] にクリップされます。PPO はガウス方策 (連続) しか持たないので、離散の量 (リンク番号) も連続値で受け取り、環境の側で丸めます <a class="src" href="../../../common/mdp/actions.py">mdp/actions.py</a>。置き先は絶対座標ではなく、<strong>ロープ上の target リンクの今の位置からの相対</strong>で決めます。離した瞬間にロープが動くので、絶対座標で覚えても意味が薄いためです。</p>
+  <figure>
+    <div class="scroll" style="--minw:460px">
+    <svg viewBox="0 0 560 350" role="img" aria-label="行動を上から見た図。まっすぐなロープの 28 リンクのうち、両端 2 本ずつは掴めない。掴むリンクから Δlink だけ離れた target リンクの周りの正方形 (±0.30 L) の中に置き先を選び、置き終わりの手首の向き end_yaw も選ぶ。">
+      <rect x="145.2" y="46" width="288" height="288" class="ln-r dash" style="fill:var(--rope-soft);fill-opacity:.45"/>
+      <text x="289.2" y="36" text-anchor="middle" font-size="12" class="t-rope">置き先の範囲: target ± 0.30 L (= ±0.34 m)</text>
+      <line x1="40" y1="190" x2="520.6" y2="190" class="rope"/>
+      <g class="fill-surface" style="stroke:var(--rope);stroke-width:1.2">
+        <circle cx="75.6" cy="190" r="3.2"/><circle cx="93.4" cy="190" r="3.2"/><circle cx="111.2" cy="190" r="3.2"/><circle cx="129" cy="190" r="3.2"/><circle cx="146.8" cy="190" r="3.2"/><circle cx="164.6" cy="190" r="3.2"/>
+        <circle cx="200.2" cy="190" r="3.2"/><circle cx="218" cy="190" r="3.2"/><circle cx="235.8" cy="190" r="3.2"/><circle cx="253.6" cy="190" r="3.2"/><circle cx="271.4" cy="190" r="3.2"/>
+        <circle cx="307" cy="190" r="3.2"/><circle cx="324.8" cy="190" r="3.2"/><circle cx="342.6" cy="190" r="3.2"/><circle cx="360.4" cy="190" r="3.2"/><circle cx="378.2" cy="190" r="3.2"/><circle cx="396" cy="190" r="3.2"/><circle cx="413.8" cy="190" r="3.2"/><circle cx="431.6" cy="190" r="3.2"/><circle cx="449.4" cy="190" r="3.2"/><circle cx="467.2" cy="190" r="3.2"/><circle cx="485" cy="190" r="3.2"/>
+      </g>
+      <g class="fill-muted"><circle cx="40" cy="190" r="3.6"/><circle cx="57.8" cy="190" r="3.6"/><circle cx="502.8" cy="190" r="3.6"/><circle cx="520.6" cy="190" r="3.6"/></g>
+      <text x="40" y="174" font-size="11" class="t-muted" text-anchor="middle">0</text>
+      <text x="520.6" y="174" font-size="11" class="t-muted" text-anchor="middle">27</text>
+      <text x="8" y="216" font-size="11" class="t-muted">両端 2 本は掴まない</text>
+      <text x="552" y="216" font-size="11" class="t-muted" text-anchor="end">(滑るため)</text>
+      <circle cx="182.4" cy="190" r="8" class="fill-hl"/>
+      <circle cx="289.2" cy="190" r="9" class="ln-r" style="stroke-width:2.4;fill:var(--surface)"/>
+      <text x="182.4" y="238" font-size="12" text-anchor="middle" class="t-hl" style="paint-order:stroke;stroke:var(--surface);stroke-width:5px">掴むリンク (ch0)</text>
+      <text x="289.2" y="238" font-size="12" text-anchor="middle" class="t-rope">target リンク</text>
+      <path d="M182.4,250 V258 H289.2 V250" class="ln-m"/>
+      <text x="236" y="276" font-size="11.5" text-anchor="middle">Δlink = +6 (ch1, −8〜+8)</text>
+      <line x1="289.2" y1="190" x2="364" y2="108" class="ln-m dash"/>
+      <text x="334" y="160" font-size="11" class="t-muted">変位 (ch2, ch3)</text>
+      <path d="M182.4,180 C215,112 300,94 360,102" class="ln-h dash" marker-end="url(#arrH)"/>
+      <circle cx="368.4" cy="103.6" r="6" class="fill-hl"/>
+      <text x="380" y="92" font-size="12" class="t-hl">置き先</text>
+      <path d="M386,108 A18,18 0 0 1 362,122" class="ln" marker-end="url(#arr)"/>
+      <text x="388" y="134" font-size="11">end_yaw (ch5)</text>
+    </svg>
+    </div>
+    <figcaption><b>行動を真上から見た図 (まっすぐな初期状態の例)。</b>橙の点を掴み、target リンクの今の位置から (ch2, ch3) だけずらした点へ運ぶ。ティールの破線の正方形が置き先として選べる範囲。高さ (ch4) と手首の向き (ch5) もこの 1 手で決める。</figcaption>
+  </figure>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>ch</th><th>名前</th><th>[−1, 1] からの変換</th><th>Knot での範囲</th></tr></thead>
+    <tbody>
+      <tr><td class="num">0</td><td><code>grasp_link</code></td><td>リンク 2〜25 に写して丸める</td><td>24 通り</td></tr>
+      <tr><td class="num">1</td><td><code>delta_link</code></td><td>×8 して丸める。target = clip(grasp + Δ, 0, 27)</td><td>−8〜+8 の 17 通り</td></tr>
+      <tr class="hl"><td class="num">2, 3</td><td><code>drop_x/y_rel</code></td><td>target の今の xy + a × 0.30 L</td><td>±0.342 m (v2-R2 は ±0.15 L)</td></tr>
+      <tr><td class="num">4</td><td><code>drop_z_rel</code></td><td>把持高さ + 0〜3 直径</td><td>手のひら 0.077〜0.137 m</td></tr>
+      <tr><td class="num">5</td><td><code>end_yaw</code></td><td>×π</td><td>置き終わりの手首の向き ±π</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li>掴むときの手首の向きは行動ではなく、掴むリンクでのロープの接線から自動で決めます (指がロープを真横から挟む向き)。</li>
+    <li><strong>運搬高さは 0.20 m で固定</strong>です。Report は「z<sub>max</sub> を行動に入れるべき」と予想しましたが、ゲート 1 では手ごとに高さを調整した台本 (60%) より 0.20 m 固定の台本 (95%) のほうがよく結べました。</li>
+    <li><strong>置き先の範囲を ±0.30 L に広げた理由</strong>: ゲート 1 の cover の手 (輪の片側を掴んで尻尾に被せる) の置き先は、128 環境中 79〜97 で ±0.15 L の外にあり、クリップされて輪ごと崩れました。±0.30 L にすると、台本を 6 次元の行動に写して <code>env.step()</code> で再生したときの成功率が 9% から 66% に上がりました。</li>
+  </ul>
+</section>
+
+<section id="phases">
+  <h2><span class="num">05</span>1 手の動き: 12 フェーズの状態機械</h2>
+  <p>1 手は 12 個のフェーズの列です。全環境が同時に別のフェーズにいるので、フェーズ番号と経過ステップ数を環境ごとのテンソルで持ちます。各フェーズの中は smoothstep で補間し、始点と終点で速度が 0 になるようにしています (等速補間だと、端で速度が不連続になった慣性でロープが指から滑る)。</p>
+  <figure>
+    <div class="scroll" style="--minw:640px">
+    <svg viewBox="0 0 760 250" role="img" aria-label="1 手の軌道を横から見た図。0.30 m の待機高さから真下へ降りて掴み、0.20 m まで持ち上げ、置き先の真上へ水平に運び、置く高さまで下ろして離す。その後 0.30 m へ上がり、ロープが静止するのを待ってから報酬を測る。次の手の最初は、次の掴む点の真上へ瞬間移動する。">
+      <line x1="30" y1="214" x2="740" y2="214" class="table"/>
+      <text x="740" y="232" font-size="11" class="t-muted" text-anchor="end">床</text>
+      <line x1="30" y1="40" x2="740" y2="40" class="grid dash"/>
+      <line x1="30" y1="97" x2="740" y2="97" class="grid dash"/>
+      <line x1="30" y1="166" x2="740" y2="166" class="grid dash"/>
+      <text x="34" y="34" font-size="11" class="t-muted">待機 0.30 m</text>
+      <text x="34" y="91" font-size="11" class="t-muted">運搬 0.20 m</text>
+      <text x="34" y="160" font-size="11" class="t-muted">把持 0.077 m</text>
+      <line x1="60" y1="208" x2="700" y2="208" class="rope" style="stroke-width:4;opacity:.55"/>
+      <path d="M600,40 C500,22 220,22 116,40" class="ln-m dash" marker-end="url(#arrM)"/>
+      <text x="358" y="12" font-size="11" text-anchor="middle" class="t-muted">approach: 次の手の掴む点の真上へ瞬間移動 (尺 0)</text>
+      <path d="M116,40 V162" class="ln-h" marker-end="url(#arrH)"/>
+      <path d="M126,166 V101" class="ln-h" marker-end="url(#arrH)"/>
+      <path d="M126,97 H556" class="ln-h" marker-end="url(#arrH)"/>
+      <path d="M560,97 V146" class="ln-h" marker-end="url(#arrH)"/>
+      <path d="M560,150 H596" class="ln-m" marker-end="url(#arrM)"/>
+      <path d="M600,150 V44" class="ln-m" marker-end="url(#arrM)"/>
+      <circle cx="121" cy="166" r="6" class="fill-hl"/>
+      <circle cx="560" cy="150" r="6" class="fill-hl"/>
+      <circle cx="600" cy="40" r="5" class="fill-muted"/>
+      <text x="108" y="118" font-size="11.5" text-anchor="end">descend 0.3 s</text>
+      <text x="136" y="186" font-size="11.5">close 0.3 s + hold 0.2 s (摩擦で把持)</text>
+      <text x="134" y="136" font-size="11.5">lift 0.3 s</text>
+      <text x="343" y="89" font-size="11.5" text-anchor="middle">carry 0.6 s (手首を置きの向きへ回す)</text>
+      <text x="552" y="126" font-size="11.5" text-anchor="end">lower 0.3 s</text>
+      <text x="552" y="172" font-size="11.5" text-anchor="end">release 0.25 s + settle_out 0.3 s</text>
+      <text x="608" y="104" font-size="11.5">retreat 0.105 s</text>
+      <text x="608" y="58" font-size="11.5">relax 0.5 s → 報酬を測る</text>
+      <text x="121" y="236" font-size="11.5" text-anchor="middle" class="t-hl">掴むリンク</text>
+      <text x="560" y="236" font-size="11.5" text-anchor="middle" class="t-hl">置き先 (x, y)</text>
+    </svg>
+    </div>
+    <figcaption><b>1 手の軌道を横から見た図。</b>橙が掴んでいる区間、灰色が離した後。置く高さ (ch4) は 0.077〜0.137 m の範囲で選ぶ。離した後は運搬の向きへ 4 直径だけ横へ抜ける (clear、尺 0) ので、retreat は置き先の少し先から上がる。</figcaption>
+  </figure>
+  <p>下の帯は、フェーズの長さを物理ステップ数 (240 Hz) に比例した幅で並べたものです。v2-R2 の帯は、全体の長さも比べられるよう v3 と同じ縮尺で描いています。</p>
+  <figure>
+    <div class="tl-row">
+      <div class="tl-head"><span><b>v3</b> (<code>KNOT_DURATIONS</code>)</span><span>759 ステップ · 3.16 s</span></div>
+      <div class="tl" role="img" aria-label="v3 の 1 手: descend 72, close 72, hold 48, lift 72, carry 144, lower 72, release 60, settle_out 72, retreat 25, relax 120 ステップ。approach と clear は 1 ステップ。">
+        <span class="mv" style="flex:1 0 0" title="approach 1"></span><span class="mv" style="flex:72 0 0" title="descend 72">desc</span><span class="ct" style="flex:72 0 0" title="close 72">close</span><span class="ct" style="flex:48 0 0" title="hold 48">hold</span><span class="mv" style="flex:72 0 0" title="lift 72">lift</span><span class="mv" style="flex:144 0 0" title="carry 144">carry</span><span class="mv" style="flex:72 0 0" title="lower 72">lower</span><span class="ct" style="flex:60 0 0" title="release 60">rel</span><span class="wt" style="flex:72 0 0" title="settle_out 72">settle</span><span class="mv" style="flex:1 0 0" title="clear 1"></span><span class="mv" style="flex:25 0 0" title="retreat 25"></span><span class="wt" style="flex:120 0 0" title="relax 120">relax</span>
+      </div>
+    </div>
+    <div class="tl-row" style="width:77.1%">
+      <div class="tl-head"><span><b>v2-R2</b> (<code>SHORT_DURATIONS</code>)</span><span>585 · 2.44 s</span></div>
+      <div class="tl" role="img" aria-label="v2-R2 の 1 手: descend 34, close 72, hold 48, lift 34, carry 84, lower 34, release 60, settle_out 72, retreat 25, relax 120 ステップ。">
+        <span class="mv" style="flex:1 0 0"></span><span class="mv" style="flex:34 0 0"></span><span class="ct" style="flex:72 0 0">close</span><span class="ct" style="flex:48 0 0">hold</span><span class="mv" style="flex:34 0 0"></span><span class="mv" style="flex:84 0 0">carry</span><span class="mv" style="flex:34 0 0"></span><span class="ct" style="flex:60 0 0">rel</span><span class="wt" style="flex:72 0 0">settle</span><span class="mv" style="flex:1 0 0"></span><span class="mv" style="flex:25 0 0"></span><span class="wt" style="flex:120 0 0">relax</span>
+      </div>
+    </div>
+    <ul class="key"><li><i style="background:var(--rope-soft)"></i>移動 (ロープを運ぶ・空中を動く)</li><li><i style="background:var(--hl-soft)"></i>指の開閉と接触の安定待ち</li><li><i style="background:var(--surface-2)"></i>ロープが落ち着くのを待つ</li></ul>
+    <figcaption><b>v3 で延ばしたのは移動系の 4 フェーズだけ。</b>descend / lift / lower を 0.14 → 0.3 s、carry を 0.35 → 0.6 s にした。接触と待ちのフェーズは v2-R2 と同じ。</figcaption>
+  </figure>
+  <p>尺を延ばしたのは発散を抑えるためです。1.14 m の <code>Knot</code> を v2-R2 の尺 (carry 0.35 s) で運ぶと、ロープの大部分を 0.5 m 以上引きずることになり、1 手目で 32 環境中 13 が発散しました。carry を 0.6 s にすると 0/32 になりました。descend が速いと、結び目の上へ指を降ろす手でも発散します。</p>
+  <p class="small">approach と clear の尺 0 は v2 から引き継いだものです。尺 0 のフェーズは 1 物理ステップになり、補間の終点がそのまま書き込まれ、速度の指令は 0 になります。つまり「移動」ではなく「位置の書き換え」で、0.30 m (ロープ直径の 15 倍) の高さなのでロープには触れません。</p>
+</section>
+
+<section id="obs">
+  <h2><span class="num">06</span>観測: 129 次元</h2>
+  <p>観測は v2 から項も並びも変えていません。ロープが 28 リンクになったぶん、リンク位置が 60 次元から 84 次元に増えただけです <a class="src" href="../../../common/mdp/observations.py">mdp/observations.py</a>。critic も方策と同じ観測を見ます (特権観測はありません)。</p>
+  <figure>
+    <div class="bar" role="img" aria-label="観測 129 次元の内訳。リンク位置 84、交差数 1、writhe 1、交差特徴 30、class one-hot 4、ハンド位置 3、前回の行動 6。">
+      <span class="b1" style="flex:84 0 0">リンク位置 84</span><span class="b4" style="flex:1 0 0" title="交差数 1"></span><span class="b4" style="flex:1 0 0" title="writhe 1"></span><span class="b2" style="flex:30 0 0">交差特徴 30</span><span class="b3" style="flex:4 0 0" title="class one-hot 4"></span><span class="b4" style="flex:3 0 0" title="ハンド位置 3"></span><span class="b4" style="flex:6 0 0" title="前回の行動 6"></span>
+    </div>
+    <div class="tbl-wrap" style="margin-bottom:0"><table class="tbl">
+      <thead><tr><th>項</th><th class="num">次元</th><th>中身</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><code>rope_link_pos</code></th><td class="num">84</td><td>28 リンクの中心の env 原点相対の座標。±3 m でクリップ (発散判定をすり抜けた巨大な座標が critic を壊さないための保険)</td></tr>
+        <tr><th scope="row"><code>crossings</code></th><td class="num">1</td><td>交差数 (R2 除去前)</td></tr>
+        <tr><th scope="row"><code>writhe</code></th><td class="num">1</td><td>交差の符号の総和</td></tr>
+        <tr><th scope="row"><code>crossing_feats</code></th><td class="num">30</td><td>交差 5 個 × (有効, 上下, 符号, 点番号 i/2N, 点番号 j/2N, gap/2N)。頭からたどった順に並べ替える</td></tr>
+        <tr class="hl"><th scope="row"><code>knot_class</code></th><td class="num">4</td><td>R2 除去後の段 (0〜3) の one-hot。報酬と同じ判定器</td></tr>
+        <tr><th scope="row"><code>hand_pos</code></th><td class="num">3</td><td>ハンドの env 原点相対の位置</td></tr>
+        <tr><th scope="row"><code>actions</code></th><td class="num">6</td><td>前の手の生の行動</td></tr>
+      </tbody>
+    </table></div>
+    <figcaption><b>幾何と位相の両方を渡す。</b>位相の量 (交差数・段) だけでは「次にどこを掴めば結べるか」が決まらないので、ロープの形そのものも渡す。位相の量は離散なので、観測ノイズは入れない。BFS 距離の値 (Φ) と、エピソード内の最高段 (<a href="#bonus">§10</a> の best) は観測に入っていない。</figcaption>
+  </figure>
+</section>
+
+<section id="topo">
+  <h2><span class="num">07</span>位相の判定: 交差から「段」と「Φ」へ</h2>
+  <p>報酬・終了・アーカイブ・観測はどれも、毎手の終わりに測る「ロープの位相」から作られます。p-data の文字列を作ると 4096 環境で 94 ms かかるので、学習中は文字列を作らず、テンソルのまま (4096 環境で 1.6 ms) 判定します <a class="src" href="../../../common/topology/knot_detect.py">topology/knot_detect.py</a>。</p>
+  <figure>
+    <div class="scroll" style="--minw:700px">
+    <svg viewBox="0 0 820 250" role="img" aria-label="位相判定の流れ。リンク中心の点列からポリラインを作って xy に射影し、自己交差を検出する。そこから 2 つに分かれ、一方は R2 除去をして部分列判定で段 0 から 3 を求める。もう一方は R2 除去前の交差から整数のキーを作り、BFS の表を引いて Φ_bfs を得る。Φ は Φ_bfs と段/3 の大きいほう。">
+      <g font-size="12">
+        <rect x="10" y="62" width="110" height="56" rx="8" class="box"/>
+        <text x="65" y="85" text-anchor="middle" font-weight="600">リンク中心</text>
+        <text x="65" y="104" text-anchor="middle" font-size="11" class="t-muted">28 点 (3D)</text>
+        <rect x="140" y="62" width="115" height="56" rx="8" class="box"/>
+        <text x="197" y="85" text-anchor="middle" font-weight="600">ポリライン</text>
+        <text x="197" y="104" text-anchor="middle" font-size="11" class="t-muted">xy 平面に射影</text>
+        <rect x="275" y="62" width="150" height="56" rx="8" class="boxr"/>
+        <text x="350" y="85" text-anchor="middle" font-weight="600">自己交差の検出</text>
+        <text x="350" y="104" text-anchor="middle" font-size="10.5" class="mono">IntersectionBatch</text>
+        <line x1="120" y1="90" x2="136" y2="90" class="ln" marker-end="url(#arr)"/>
+        <line x1="255" y1="90" x2="271" y2="90" class="ln" marker-end="url(#arr)"/>
+
+        <path d="M425,80 H445 V42 H461" class="ln" marker-end="url(#arr)"/>
+        <rect x="465" y="14" width="110" height="56" rx="8" class="box"/>
+        <text x="520" y="37" text-anchor="middle" font-weight="600">R2 除去</text>
+        <text x="520" y="56" text-anchor="middle" font-size="11" class="t-muted">二角形を外す</text>
+        <line x1="575" y1="42" x2="591" y2="42" class="ln" marker-end="url(#arr)"/>
+        <rect x="595" y="14" width="110" height="56" rx="8" class="boxv"/>
+        <text x="650" y="37" text-anchor="middle" font-weight="600">部分列判定</text>
+        <text x="650" y="56" text-anchor="middle" font-size="11">段 (class) 0〜3</text>
+
+        <path d="M425,100 H445 V140 H461" class="ln" marker-end="url(#arr)"/>
+        <rect x="465" y="112" width="240" height="56" rx="8" class="boxh"/>
+        <text x="585" y="135" text-anchor="middle" font-weight="600">R2 除去前の交差 → int64 キー</text>
+        <text x="585" y="154" text-anchor="middle" font-size="11">BFS の表を二分探索 → Φ_bfs</text>
+
+        <rect x="720" y="66" width="95" height="52" rx="8" class="boxh" style="stroke-width:1.8"/>
+        <text x="767" y="88" text-anchor="middle" font-size="11.5" font-weight="700">Φ = max(</text>
+        <text x="767" y="106" text-anchor="middle" font-size="11.5" font-weight="700">Φ_bfs, 段/3)</text>
+        <path d="M705,42 H767 V62" class="ln" marker-end="url(#arr)"/>
+        <path d="M705,140 H767 V122" class="ln" marker-end="url(#arr)"/>
+
+        <line x1="10" y1="196" x2="815" y2="196" class="grid"/>
+        <circle cx="22" cy="220" r="5" style="fill:var(--p-v3)"/>
+        <text x="34" y="224" font-size="12">段の使い道: 観測の one-hot · 段の初回ボーナス · 固結びで終了 · アーカイブの分類 · Φ のラダー側</text>
+        <circle cx="22" cy="242" r="5" class="fill-hl"/>
+        <text x="34" y="246" font-size="12">Φ の使い道: 整形報酬 γΦ(s′) − Φ(s) (前後とも同じ判定器で測る)</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>位相判定の流れ。</b>交差の検出は 1 env ステップに 1 回だけ走り、観測・報酬・終了判定で共有する。紫の段は R2 除去<em>後</em>、橙の BFS の表は R2 除去<em>前</em>の交差で引く (理由は <a href="#bfs">§09</a>)。</figcaption>
+  </figure>
+  <h3>段 (class) の定義</h3>
+  <p>段は上から順に判定します。どの段にも当てはまらなければ 0 です。</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>段</th><th>呼び名</th><th>条件 (R2 除去後の交差で判定)</th></tr></thead>
+    <tbody>
+      <tr><td class="num">3</td><td>固結び (C3)</td><td>3 交差の<strong>部分列</strong>で、番号を振り直すと相手までの距離 (gap) がすべて 3、かつ符号がすべて同じ</td></tr>
+      <tr><td class="num">2</td><td>絡んだ 2 交差 (C2)</td><td>2 交差の部分列で、gap がすべて 2、かつ同符号</td></tr>
+      <tr><td class="num">1</td><td>輪 1 つ (C1)</td><td>交差数がちょうど 1</td></tr>
+      <tr><td class="num">0</td><td>それ以外</td><td>交差なし、または上のどれにも当てはまらない</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><strong>部分列判定</strong>: 実物のロープでは、固結びの尻尾に小さな輪が 1 つ付いただけで交差数が 7 になり、番号がすべて振り直されます。「交差数 == 3」で判定すると本物の固結びを取りこぼすので、「交差の k 個組のうち、その k 個だけで条件を満たす組があるか」を見ます。</li>
+    <li><strong>R2 除去</strong> (v2-R2 で導入): 部分列判定は、先端で輪を上から跨いだだけの状態 (偽の C2) も C2 と判定してしまいます。両方の紐の上で隣り合う 2 交差で、同じ紐が両方とも上なら、その 2 交差は二角形を作っていて持ち上げれば外れる (Reidemeister II) ので、先に取り除きます。上下が交互になる組は消さないので、固結びが消えることはありません。</li>
+    <li><strong>8 スロット打ち切りの修正</strong> (v3、全バージョンに効く): 部分列の探索は交差 8 個までに打ち切ります。以前は頭側の 8 個をそのまま使っていたため、交差が 9 個以上あると結び目が紐のどちら側にあるかで結果が変わりました。gap 1 の交差 (R1 のねじれ) はどの部分列でも条件を満たさないので、打ち切る前に後ろへ回すようにしました。結果は変えずに見落としだけが減ります。</li>
+  </ul>
+  <h3>代表的な状態</h3>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>状態</th><th>p-data の例 (R2 除去前)</th><th class="num">段</th><th class="num">BFS 距離 d</th><th class="num">Φ</th></tr></thead>
+    <tbody>
+      <tr><td>まっすぐ (自明)</td><td><span class="muted">交差なし</span></td><td class="num">0</td><td class="num">3</td><td class="num">0</td></tr>
+      <tr><td>輪 1 つ</td><td><code>1U2+_2O1+</code></td><td class="num">1</td><td class="num">2</td><td class="num">1/3</td></tr>
+      <tr class="hl"><td>輪の上に先端を置いただけ</td><td><code>1U3+_2U4-_3O1+_4O2-</code></td><td class="num">0</td><td class="num">2</td><td class="num">1/3</td></tr>
+      <tr><td>偽の C2 (輪を跨いだだけ)</td><td><code>1U4+_2U5-_3U6+_4O1+_5O2-_6O3+</code></td><td class="num">1</td><td class="num">届かない</td><td class="num">1/3</td></tr>
+      <tr><td>本物の C2</td><td><code>1U3+_2O4+_3O1+_4U2+</code></td><td class="num">2</td><td class="num">1</td><td class="num">2/3</td></tr>
+      <tr class="hl"><td>cover の後</td><td><code>1U4+_2O5+_3O6-_4O1+_5U2+_6U3-</code></td><td class="num">1</td><td class="num">1</td><td class="num">2/3</td></tr>
+      <tr><td>固結び</td><td><code>1U4+_2O5+_3U6+_4O1+_5U2+_6O3+</code></td><td class="num">3</td><td class="num">0</td><td class="num">1</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">紫の行は、段だけで見たときより BFS で Φ が上がる状態です。成功と数えるのは、どの判定でも「段 + ロープの最高点が 3 直径 (0.06 m) 以下 + 発散していない」がそろったときです。最高点の条件は「ハンドで吊って結び目を見せかける」方策を防ぐ保険です。</p>
+</section>
+
+<section id="reward">
+  <h2><span class="num">08</span>報酬の全体</h2>
+  <p>v3 の報酬は 7 項です <a class="src" href="../../../common/mdp/rewards.py">mdp/rewards.py</a>。値はすべて 1 手あたりです。</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>項</th><th>1 手あたりの値</th><th>いつ払うか</th><th>v2-R2 との差</th></tr></thead>
+    <tbody>
+      <tr class="hl"><th scope="row"><code>shaping</code></th><td>γΦ(s′) − Φ(s)、γ = 0.95</td><td>毎手</td><td>Φ を BFS との max に (<a href="#bfs">§09</a>)</td></tr>
+      <tr class="hl"><th scope="row"><code>ladder_bonus</code></th><td>段 1 / 2 / 3 に +0.5 / +1.5 / +3.0</td><td>段をエピソード内で<strong>初めて</strong>上がった手</td><td>新設。毎手払う 3 項を置き換え (<a href="#bonus">§10</a>)</td></tr>
+      <tr><th scope="row"><code>grasp_shaping</code></th><td>−0.05 × min(把持距離, 0.30 m)</td><td>毎手 (指を閉じた時点の、指先と狙ったリンクの距離)</td><td>同じ</td></tr>
+      <tr><th scope="row"><code>failure</code></th><td>−0.1</td><td>ロープが NaN で手を実行できない、または発散した</td><td>同じ</td></tr>
+      <tr><th scope="row"><code>held_up</code></th><td>−0.1</td><td>手の終わりにロープの最高点が 5 直径 (0.10 m) を超える</td><td>同じ</td></tr>
+      <tr><th scope="row"><code>record_archive</code></th><td>0</td><td>毎手。副作用でアーカイブへ保存 (<a href="#archive">§12</a>)</td><td>新設</td></tr>
+      <tr><th scope="row"><code>topology_stats</code></th><td>0</td><td>毎手。ログ用の集計</td><td>同じ</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">外した項: <code>success_c1</code> / <code>success_c2</code> / <code>success</code> (毎手払う疎報酬) と <code>offladder</code>。発散した手は、<code>failure</code> 以外の項をすべて 0 にし、整形では Φ(s′) = 0 として扱います (発散はエピソードの終端なので、終端のポテンシャルを 0 とするのが整形の正しい扱い)。</p>
+</section>
+
+<section id="bfs">
+  <h2><span class="num">09</span>BFS 距離のポテンシャル <span class="tag p1">P1-3</span></h2>
+  <p>整形報酬 F = γΦ(s′) − Φ(s) は、Φ が「ゴールへの近さ」をよく表すほど役に立ちます。v2-R2 の Φ は 4 段のラダー (0, 0.35, 0.70, 1) でした。v3 は、TWISTED / TWISTED-RL が高レベルの計画に使う <strong>p-data のグラフ</strong>を起動時に列挙し、各状態から固結びまでの最短手数 d を表にして、Φ に使います <a class="src" href="../../../common/topology/knot_graph.py">topology/knot_graph.py</a>。</p>
+  <div class="formula">Φ(s) = max( 1 − d(s) / 3 ,  段(s) / 3 )
+
+d(s)  : p-data グラフ上で、s から「R2 除去後に固結びを含む状態」までの最短の移動回数
+        (移動 = R1 / R2 / Cross。d(自明) = 3)
+段(s) : R2 除去後の段 0〜3 (表に無い状態はこちらだけで決まる)</div>
+  <h3>表の作り方</h3>
+  <ol>
+    <li>交差のない状態から、R1 / R2 / Cross の 3 種類の移動で幅優先に状態を広げ、<strong>交差 4 個以下</strong>の状態と辺をすべて列挙します。交差 0 / 1 / 2 / 3 / 4 の状態は 1 / 4 / 40 / 528 / 7968 個、合計 8541 個で、約 20 秒かかります (起動時に 1 回だけ)。</li>
+    <li>そのうち「R2 除去すると固結びを含む」状態 (172 個) をゴールにし、辺を逆にたどる BFS で各状態の d を求めます。同じ p-data で面の構造だけが違う状態は、最小の d を取ります (実物のロープからは p-data しか取れないため)。</li>
+    <li>実行時は、交差の情報から p-data の文字列を作らずに int64 のキーを作り (交差数 3 bit + 点ごとに相手の番号 4 bit・上下 1 bit・符号 1 bit、最大 51 bit)、ソート済みのキーの表を GPU 上で二分探索します。</li>
+  </ol>
+  <figure>
+    <div class="scroll" style="--minw:620px">
+    <svg viewBox="0 0 770 320" role="img" aria-label="ラダーと、v3 の BFS との max で、状態ごとの Φ を比べた図。輪の上に先端を置いただけの状態は 0 から 1/3 へ、cover の後は 1/3 から 2/3 へ上がる。他の状態は同じ値のまま。">
+      <g font-size="12">
+        <text x="278" y="18" text-anchor="middle" font-weight="700">ラダーだけ (段 / 3)</text>
+        <text x="608" y="18" text-anchor="middle" font-weight="700" class="t-v3">v3: max(BFS, ラダー)</text>
+        <line x1="110" y1="50" x2="760" y2="50" class="grid dash"/>
+        <line x1="110" y1="130" x2="760" y2="130" class="grid dash"/>
+        <line x1="110" y1="210" x2="760" y2="210" class="grid dash"/>
+        <line x1="110" y1="290" x2="760" y2="290" class="grid dash"/>
+        <line x1="440" y1="30" x2="440" y2="305" class="grid"/>
+        <text x="100" y="54" text-anchor="end" class="t-muted">Φ = 1</text>
+        <text x="100" y="134" text-anchor="end" class="t-muted">2/3</text>
+        <text x="100" y="214" text-anchor="end" class="t-muted">1/3</text>
+        <text x="100" y="294" text-anchor="end" class="t-muted">0</text>
+
+        <rect x="136" y="37" width="92" height="26" rx="13" class="box"/><text x="182" y="54" text-anchor="middle">固結び</text>
+        <rect x="136" y="117" width="92" height="26" rx="13" class="box"/><text x="182" y="134" text-anchor="middle">本物の C2</text>
+        <rect x="136" y="197" width="92" height="26" rx="13" class="box"/><text x="182" y="214" text-anchor="middle">輪 1 つ</text>
+        <rect x="232" y="197" width="92" height="26" rx="13" class="box" style="stroke-dasharray:4 3"/><text x="278" y="214" text-anchor="middle">cover の後</text>
+        <rect x="328" y="197" width="92" height="26" rx="13" class="box"/><text x="374" y="214" text-anchor="middle">偽の C2</text>
+        <rect x="136" y="277" width="92" height="26" rx="13" class="box"/><text x="182" y="294" text-anchor="middle">自明</text>
+        <rect x="232" y="277" width="92" height="26" rx="13" class="box" style="stroke-dasharray:4 3"/><text x="278" y="294" text-anchor="middle" font-size="11">輪に置いただけ</text>
+
+        <rect x="466" y="37" width="92" height="26" rx="13" class="box"/><text x="512" y="54" text-anchor="middle">固結び</text>
+        <rect x="466" y="117" width="92" height="26" rx="13" class="box"/><text x="512" y="134" text-anchor="middle">本物の C2</text>
+        <rect x="562" y="117" width="92" height="26" rx="13" class="boxh"/><text x="608" y="134" text-anchor="middle">cover の後</text>
+        <rect x="466" y="197" width="92" height="26" rx="13" class="box"/><text x="512" y="214" text-anchor="middle">輪 1 つ</text>
+        <rect x="562" y="197" width="92" height="26" rx="13" class="boxh"/><text x="608" y="214" text-anchor="middle" font-size="11">輪に置いただけ</text>
+        <rect x="658" y="197" width="92" height="26" rx="13" class="box"/><text x="704" y="214" text-anchor="middle">偽の C2</text>
+        <rect x="466" y="277" width="92" height="26" rx="13" class="box"/><text x="512" y="294" text-anchor="middle">自明</text>
+        <text x="662" y="116" font-size="11" class="t-hl">+1/3</text>
+        <text x="662" y="196" font-size="11" class="t-hl">+1/3</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>BFS で Φ が上がる状態。</b>橙の 2 つは、段だけでは進んでいないように見えるが、グラフ上ではゴールに近い状態。「cover の後」はゲート 1 で見つかった状態で、R2 除去すると輪 1 つと同じになるのに、そこから tuck 1 手で約 7 割が固結びになった。「輪に置いただけ」(独立したねじれ 2 つも同じ) は d = 2 で、輪 1 つと同じ近さだった。そのため v2-R2 がこれらに与えていた <code>offladder</code> 罰 (行き止まりとみなす) は外した。</figcaption>
+  </figure>
+  <h3>なぜ「R2 除去前・交差 4 個まで」なのか</h3>
+  <p>最初は Report の案どおり、R2 除去後の p-data を交差 3 個まで BFS しました。しかし固結びに届く p-data は 13 個 (自明・輪 4・C2 4・固結び 4) だけで、経路上の値はラダーと完全に同じになり、何も足しませんでした。cover の後の状態は、R2 除去前の p-data で見て初めて「tuck 1 手で、R2 除去すると固結びになる 4 交差の状態へ行ける」とわかるので、除去前の p-data を 4 交差まで見る必要がありました。</p>
+  <h3>なぜラダーとの max を取るのか</h3>
+  <p>探索は交差 4 個で打ち切るので、4 交差の途中状態や、尻尾に余分な輪が付いた状態は表の上で「届かない」(値 0) になります。BFS の値だけを使うと、これらがラダーより低くなり、「ねじれを 1 つ足すと 0、2 つ足すとラダーの値」のような逆転が起きます。そこで BFS は<strong>加点にだけ</strong>使い、ラダーより下げないようにしています。</p>
+  <h3>整形報酬の値の例 (γ = 0.95)</h3>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>1 手で起きたこと</th><th>計算</th><th class="num">F</th></tr></thead>
+    <tbody>
+      <tr><td>まっすぐ → 輪 1 つ</td><td>0.95 × 1/3 − 0</td><td class="num">+0.317</td></tr>
+      <tr><td>輪 1 つのまま (形だけ整えた)</td><td>0.95 × 1/3 − 1/3</td><td class="num">−0.017</td></tr>
+      <tr><td>輪 1 つ → cover の後</td><td>0.95 × 2/3 − 1/3</td><td class="num">+0.300</td></tr>
+      <tr><td>cover の後 → 固結び (終了)</td><td>0.95 × 1 − 2/3</td><td class="num">+0.283</td></tr>
+      <tr><td>輪 1 つ → まっすぐ (ほどけた)</td><td>0.95 × 0 − 1/3</td><td class="num">−0.333</td></tr>
+      <tr><td>どこかで発散</td><td>0 − Φ(s)</td><td class="num">−Φ(s)</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">固結びで終わる手でも Φ(s′) は実際の値 1.0 のまま払います。終端のポテンシャルを 0 にすると、固結びを作った手に −Φ(s) の罰が乗ってしまうためです (発散のときとは逆の扱い)。</p>
+</section>
+
+<section id="bonus">
+  <h2><span class="num">10</span>段の初回ボーナス <span class="tag p1">P1-2</span></h2>
+  <p>v2-R2 は、段の条件を満たしている間<strong>毎手</strong> +0.5 / +1.5 / +3.0 を払っていました。すると「1 手目で輪を作って、あとは維持するだけ」が強い局所解になり、判定に抜け道があればそれも毎手繰り返し悪用されます (v2 の偽の C2)。v3 の <code>LadderProgressBonus</code> は、同じ値を「<strong>そのエピソードで到達した最高段を更新した手</strong>」にだけ払います。</p>
+  <figure>
+    <div class="scroll" style="--minw:640px">
+    <svg viewBox="0 0 760 220" role="img" aria-label="初回ボーナスの 2 つの例。例 1 はまっすぐなロープから始まり、段 0, 1, 0, 1, 2, 3 と進む。最初に段 1 になった手に +0.5、段 2 で +1.5、段 3 で +3.0 を払い、段 1 に戻って登り直した手には払わない。例 2 はアーカイブの C2 から始まり、段 3 になった手にだけ +3.0 を払う。">
+      <g font-size="12">
+        <text x="10" y="56" font-weight="600">例 1</text>
+        <text x="10" y="74" font-size="11" class="t-muted">まっすぐから</text>
+        <text x="10" y="156" font-weight="600">例 2</text>
+        <text x="10" y="174" font-size="11" class="t-muted">アーカイブの</text>
+        <text x="10" y="190" font-size="11" class="t-muted">C2 から</text>
+        <text x="118" y="104" font-size="11" class="t-muted" text-anchor="end">best</text>
+        <text x="118" y="204" font-size="11" class="t-muted" text-anchor="end">best</text>
+        <g class="mono">
+          <circle cx="150" cy="60" r="17" class="box2"/><text x="150" y="65" text-anchor="middle">0</text>
+          <circle cx="245" cy="60" r="17" class="box2"/><text x="245" y="65" text-anchor="middle">1</text>
+          <circle cx="340" cy="60" r="17" class="box2"/><text x="340" y="65" text-anchor="middle">0</text>
+          <circle cx="435" cy="60" r="17" class="box2"/><text x="435" y="65" text-anchor="middle">1</text>
+          <circle cx="530" cy="60" r="17" class="box2"/><text x="530" y="65" text-anchor="middle">2</text>
+          <circle cx="625" cy="60" r="17" class="boxv"/><text x="625" y="65" text-anchor="middle">3</text>
+          <text x="150" y="104" text-anchor="middle" class="t-muted">0</text><text x="245" y="104" text-anchor="middle" class="t-muted">1</text><text x="340" y="104" text-anchor="middle" class="t-muted">1</text><text x="435" y="104" text-anchor="middle" class="t-muted">1</text><text x="530" y="104" text-anchor="middle" class="t-muted">2</text><text x="625" y="104" text-anchor="middle" class="t-muted">3</text>
+        </g>
+        <line x1="167" y1="60" x2="226" y2="60" class="ln-h" marker-end="url(#arrH)"/><text x="197" y="44" text-anchor="middle" class="t-hl" font-weight="600">+0.5</text>
+        <line x1="262" y1="60" x2="321" y2="60" class="ln" marker-end="url(#arr)"/><text x="292" y="44" text-anchor="middle">0</text>
+        <line x1="357" y1="60" x2="416" y2="60" class="ln" marker-end="url(#arr)"/><text x="387" y="44" text-anchor="middle">0</text><text x="387" y="84" text-anchor="middle" font-size="10.5" class="t-muted">2 度目</text>
+        <line x1="452" y1="60" x2="511" y2="60" class="ln-h" marker-end="url(#arrH)"/><text x="482" y="44" text-anchor="middle" class="t-hl" font-weight="600">+1.5</text>
+        <line x1="547" y1="60" x2="606" y2="60" class="ln-h" marker-end="url(#arrH)"/><text x="577" y="44" text-anchor="middle" class="t-hl" font-weight="600">+3.0</text>
+        <text x="652" y="65" font-size="11.5">固結びで終了</text>
+        <g class="mono">
+          <circle cx="150" cy="160" r="17" class="boxv" style="fill:var(--v3-soft)"/><text x="150" y="165" text-anchor="middle">2</text>
+          <circle cx="245" cy="160" r="17" class="box2"/><text x="245" y="165" text-anchor="middle">2</text>
+          <circle cx="340" cy="160" r="17" class="box2"/><text x="340" y="165" text-anchor="middle">1</text>
+          <circle cx="435" cy="160" r="17" class="boxv"/><text x="435" y="165" text-anchor="middle">3</text>
+          <text x="150" y="204" text-anchor="middle" class="t-muted">2</text><text x="245" y="204" text-anchor="middle" class="t-muted">2</text><text x="340" y="204" text-anchor="middle" class="t-muted">2</text><text x="435" y="204" text-anchor="middle" class="t-muted">3</text>
+        </g>
+        <line x1="167" y1="160" x2="226" y2="160" class="ln" marker-end="url(#arr)"/><text x="197" y="144" text-anchor="middle">0</text>
+        <line x1="262" y1="160" x2="321" y2="160" class="ln" marker-end="url(#arr)"/><text x="292" y="144" text-anchor="middle">0</text>
+        <line x1="357" y1="160" x2="416" y2="160" class="ln-h" marker-end="url(#arrH)"/><text x="387" y="144" text-anchor="middle" class="t-hl" font-weight="600">+3.0</text>
+        <text x="462" y="165" font-size="11.5">段 2 → 3 は飛ばしていないので 3.0 だけ</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>初回ボーナスの払い方。</b>丸の中の数字が手の後の段、下の best がそのエピソードでの最高段。整形報酬 (§09) は別に毎手払われる。例 2 の 2 → 1 の手は、整形で −1/3 程度の損になる。</figcaption>
+  </figure>
+  <ul>
+    <li>best はリセットで「未定」にし、最初の手で「手を打つ前の段」から初期化します。アーカイブから C2 で始めたエピソードは最初から best = 2 なので、もらえるボーナスは固結びの +3.0 だけです。</li>
+    <li>段を飛ばして上がったら、飛ばした段のぶんも合計して払います (例: 輪 1 つ → cover の後 → 固結び なら、最後の手に +1.5 + 3.0 = +4.5)。</li>
+    <li>段を落としてから登り直しても、2 度目は払いません。</li>
+    <li>支払いの条件は終了判定と同じ (ロープが床に落ちている、発散していない) です。報酬が払われたのに続く・払われないのに終わる、ということが起きないようにそろえてあります。</li>
+  </ul>
+</section>
+
+<section id="done">
+  <h2><span class="num">11</span>終了判定</h2>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>項</th><th>条件</th><th>種類</th></tr></thead>
+    <tbody>
+      <tr><th scope="row"><code>time_out</code></th><td>12 手を打ち終えた (シム時間 37.95 s)</td><td>打ち切り (PPO は価値で bootstrap する)</td></tr>
+      <tr><th scope="row"><code>diverged</code></th><td>ロープの座標が NaN / 高さ &gt; 5 m / env 原点から水平に &gt; 3 m / リンク速度 &gt; 20 m/s</td><td>終端</td></tr>
+      <tr class="hl"><th scope="row"><code>knot_tied</code></th><td>R2 除去後の段が 3、かつ最高点 ≤ 0.06 m、かつ発散していない</td><td>終端 (成功)。v3 で追加 <span class="tag p1">P1-2</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">発散の閾値は、ランダム方策の実測 (512 環境 × 24 手) で、正常な手の終わりが水平 1.52 m・速度 3.3 m/s 以内、発散時が数十 m 以上・60〜175 m/s だったことから、正常側に 2 倍以上の余裕を取って決めたものです (v2-R2)。報酬の側はこの終了項の判定を読み直して「発散した手」を見分けるので、閾値はこの 1 か所にしかありません。</p>
+</section>
+
+<section id="archive">
+  <h2><span class="num">12</span>到達状態アーカイブ <span class="tag p1">P1-1</span></h2>
+  <p>v2-R2 は毎回まっすぐなロープから始めていたので、C2 からの手を練習できるのは「偶然 C1 に着いたエピソードの残りの手」だけでした。v3 は、学習中に到達した C1 / C2 の形を保存しておき、reset の半分をそこから始めます。TWISTED の到達木や TWISTED-RL の初期状態の選び方 (Go-Explore 型) にならったものです <a class="src" href="../../../common/mdp/archive.py">mdp/archive.py</a><a class="src" href="../../../common/state_archive.py">state_archive.py</a>。</p>
+  <figure>
+    <div class="scroll" style="--minw:700px">
+    <svg viewBox="0 0 800 300" role="img" aria-label="アーカイブの保存と復元。毎手の終わりに、床に落ちていて発散しておらず、R2 除去後の段が 1 か 2 の形を、段ごとのリングバッファに保存する。reset のときは、まっすぐに戻したあと確率 0.5 でアーカイブを使い、段を 1 対 2 の重みで選んで中から一様に 1 件取り出し、重心を env 原点に置いてランダムに回し、関節角を書き込み、位相を測り直して保存時と一致するか数える。">
+      <g font-size="12">
+        <text x="20" y="24" font-weight="700">保存: 毎手の終わり</text>
+        <text x="20" y="42" font-size="11" class="t-muted">(報酬項 record_archive)</text>
+        <rect x="20" y="54" width="270" height="140" rx="8" class="box"/>
+        <text x="34" y="82" font-size="12">✓ 床に落ちている (最高点 ≤ 0.06 m)</text>
+        <text x="34" y="106" font-size="12">✓ 発散していない</text>
+        <text x="34" y="130" font-size="12">✓ R2 除去後の段が 1 か 2</text>
+        <line x1="34" y1="146" x2="276" y2="146" class="grid"/>
+        <text x="34" y="166" font-size="11" class="t-muted">保存するもの: root リンクの姿勢</text>
+        <text x="34" y="182" font-size="11" class="t-muted">(xy は重心からの相対) + 関節角</text>
+        <line x1="290" y1="118" x2="326" y2="118" class="ln" marker-end="url(#arr)"/>
+
+        <text x="340" y="70" font-weight="700">C1</text>
+        <rect x="340" y="78" width="150" height="30" rx="4" class="boxv"/>
+        <g class="grid"><line x1="358.75" y1="78" x2="358.75" y2="108"/><line x1="377.5" y1="78" x2="377.5" y2="108"/><line x1="396.25" y1="78" x2="396.25" y2="108"/><line x1="415" y1="78" x2="415" y2="108"/><line x1="433.75" y1="78" x2="433.75" y2="108"/><line x1="452.5" y1="78" x2="452.5" y2="108"/><line x1="471.25" y1="78" x2="471.25" y2="108"/></g>
+        <text x="340" y="140" font-weight="700">C2</text>
+        <rect x="340" y="148" width="150" height="30" rx="4" class="boxv"/>
+        <g class="grid"><line x1="358.75" y1="148" x2="358.75" y2="178"/><line x1="377.5" y1="148" x2="377.5" y2="178"/><line x1="396.25" y1="148" x2="396.25" y2="178"/><line x1="415" y1="148" x2="415" y2="178"/><line x1="433.75" y1="148" x2="433.75" y2="178"/><line x1="452.5" y1="148" x2="452.5" y2="178"/><line x1="471.25" y1="148" x2="471.25" y2="178"/></g>
+        <text x="340" y="204" font-size="11" class="t-muted">段ごとに 4,096 件のリングバッファ</text>
+        <text x="340" y="220" font-size="11" class="t-muted">満杯なら古いものから上書き</text>
+        <text x="340" y="236" font-size="11" class="t-muted">固結び (段 3) は入れない</text>
+        <path d="M490,128 C510,128 508,135 526,135" class="ln" marker-end="url(#arr)"/>
+
+        <text x="530" y="20" font-weight="700">復元: reset のたび (event 項)</text>
+        <rect x="530" y="30" width="260" height="34" rx="6" class="box"/><text x="660" y="52" text-anchor="middle" font-size="11.5">reset_all: まっすぐなロープに戻す</text>
+        <rect x="530" y="74" width="260" height="34" rx="6" class="boxv"/><text x="660" y="96" text-anchor="middle" font-size="11.5">確率 0.5 でアーカイブから始める</text>
+        <rect x="530" y="118" width="260" height="34" rx="6" class="boxv"/><text x="660" y="140" text-anchor="middle" font-size="11.5">C1 : C2 = 1 : 2 で段を選び、一様に 1 件</text>
+        <rect x="530" y="162" width="260" height="34" rx="6" class="box"/><text x="660" y="184" text-anchor="middle" font-size="11.5">重心を env 原点へ · z 軸まわりに乱数で回す</text>
+        <rect x="530" y="206" width="260" height="34" rx="6" class="box"/><text x="660" y="228" text-anchor="middle" font-size="11.5">root 姿勢と関節角を書き込む (速度 0)</text>
+        <rect x="530" y="250" width="260" height="34" rx="6" class="box"/><text x="660" y="272" text-anchor="middle" font-size="11.5">位相を測り直す → restore_mismatch</text>
+        <line x1="660" y1="64" x2="660" y2="72" class="ln" marker-end="url(#arr)"/>
+        <line x1="660" y1="108" x2="660" y2="116" class="ln" marker-end="url(#arr)"/>
+        <line x1="660" y1="152" x2="660" y2="160" class="ln" marker-end="url(#arr)"/>
+        <line x1="660" y1="196" x2="660" y2="204" class="ln" marker-end="url(#arr)"/>
+        <line x1="660" y1="240" x2="660" y2="248" class="ln" marker-end="url(#arr)"/>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>アーカイブの保存と復元。</b>保存は「手が終わった後・reset の前」に毎手、復元は reset のたびに走る。空の段は選ばれず、アーカイブ全体が空 (学習の最初) ならまっすぐなロープのまま始める。</figcaption>
+  </figure>
+  <h3>設計の細部</h3>
+  <ul>
+    <li><strong>xy を重心からの相対で持つ理由</strong>: 復元のたびに重心を env 原点に置き直すためです。アーカイブから始めた環境の形がまたアーカイブに入る連鎖で、ロープが原点から離れていき、発散判定 (水平 3 m) に近づくのを防ぎます。</li>
+    <li><strong>z 軸まわりに回してよい理由</strong>: 真上から見た図を回すだけなので、p-data (交差の順・上下・符号) は変わりません。同じ形でも向きの違う初期状態が得られます。</li>
+    <li><strong>復元の検算</strong>: 関節角を書き込んだ直後にリンクの位置を読むと Isaac Lab が順運動学を計算し直すので、その場で位相を測り、保存時の段と一致するかを <code>restore_mismatch</code> に数えます。0 に近くなければ復元が壊れています。</li>
+    <li><strong>重み C1 : C2 = 1 : 2</strong>: 交差の多い状態を優先する TWISTED の開始点の選び方にならいました。重みは空でない段の中で正規化します。</li>
+    <li><strong>評価への影響</strong>: アーカイブから始めたエピソードは途中の段から始まるので、成功率が水増しされます。方策の実力は、まっすぐなロープから始めたエピソードの成功率 <code>scratch_success</code> で見ます。Play では確率を 0 にして、常にまっすぐなロープから 12 手を打ちます。</li>
+    <li>アーカイブはプロセスのメモリにだけ持つので、<code>--resume</code> で再開すると空から始まります。</li>
+  </ul>
+</section>
+
+<section id="ppo">
+  <h2><span class="num">13</span>学習器: PPO (RSL-RL)</h2>
+  <p>v3 は環境側 (リセット・報酬・終了・ロープ・行動の範囲・尺) を変えた版なので、PPO のハイパーパラメータは効果を切り分けられるよう v2-R2 (= v2) から据え置いています <a class="src" href="../../../versions/v2/agents/rsl_rl_ppo_cfg.py">v2/agents/rsl_rl_ppo_cfg.py</a>。</p>
+  <div class="grid-2">
+    <div class="tbl-wrap" style="margin:0"><table class="tbl">
+      <thead><tr><th>設定</th><th>値</th></tr></thead>
+      <tbody>
+        <tr><td>ネットワーク</td><td>MLP [512, 256, 128]、ELU。actor と critic は別</td></tr>
+        <tr><td>初期の行動ノイズ</td><td>std 1.0</td></tr>
+        <tr><td>観測の正規化</td><td>なし</td></tr>
+        <tr><td>γ / λ</td><td>0.95 / 0.95 (γ は整形報酬と共有)</td></tr>
+        <tr><td>学習率</td><td>1e-4、KL で適応 (目標 0.01)</td></tr>
+        <tr><td>clip / エントロピー係数</td><td>0.2 / 0.01</td></tr>
+        <tr><td>エポック / ミニバッチ</td><td>5 / 4</td></tr>
+        <tr><td>1 iteration の手数</td><td>環境あたり 12 手 (既定 1024 環境で 12,288 手)</td></tr>
+        <tr><td>最大 iteration</td><td>2000</td></tr>
+      </tbody>
+    </table></div>
+    <div class="panel">
+      <h4>3 つの変種</h4>
+      <p><code>Isaac-Twisted-RL-Knot-v3</code> が MLP (学習の本命)、<code>-RNN</code> が GRU、<code>-LSTM</code> が LSTM (隠れ層 256、ミニバッチ 2)。環境は同じで、ネットワークだけを変えて比べるための登録です。</p>
+      <h4>γ を共有する理由</h4>
+      <p>ポテンシャル整形が最適方策を変えないという保証 (Ng ら 1999) は、整形に使う γ と方策の割引率が一致して初めて成り立つので、<code>GAMMA</code> を 1 か所で定義して両方から参照しています。</p>
+      <h4>v2-R2 から暖機できない</h4>
+      <p>観測が 105 → 129 次元に変わったので、v2-R2 のチェックポイントはそのままでは読めません。</p>
+    </div>
+  </div>
+</section>
+
+<section id="logs">
+  <h2><span class="num">14</span>ログと切り分け</h2>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>TensorBoard のキー</th><th>意味</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td><code>Curriculum/archive_log/scratch_success</code></td><td><strong>主指標。</strong>まっすぐなロープから始めたエピソードが固結びで終わった割合</td></tr>
+      <tr><td><code>…/archive_success</code></td><td>アーカイブから始めたエピソードの成功率 (途中から始まるので高めに出る)</td></tr>
+      <tr><td><code>…/archive_frac</code></td><td>reset のうちアーカイブから始めた割合 (アーカイブが埋まれば 0.5 に近づく)</td></tr>
+      <tr><td><code>…/arc_size_c1</code>, <code>arc_size_c2</code></td><td>アーカイブの件数 (上限 4096)</td></tr>
+      <tr><td><code>…/restore_mismatch</code></td><td>復元した形の段が保存時と違った割合。0 に近くないなら復元が壊れている</td></tr>
+      <tr><td><code>Episode_Termination/knot_tied</code></td><td>reset のうち固結びで終わった割合 (開始の種類は混ざる)</td></tr>
+      <tr><td><code>Episode_Reward/ladder_bonus</code></td><td>段の初回ボーナス</td></tr>
+      <tr><td><code>Curriculum/topology_log/*</code></td><td>v2-R2 と同じ (本物の C2 <code>r2_c2</code>、固結び <code>r2_c3</code>、偽の C2 <code>fake_c2</code>、段ごとの発散 <code>div_cls*</code> など)。v3 で打ち切りの発生率 <code>r2_trunc</code> を追加</td></tr>
+    </tbody>
+  </table></div>
+  <p>v3 は 4 つの変更 (P1-1〜P1-4) を同時に入れたので、効果を切り分けるには Hydra の上書きで 1 つずつ外して比べます。</p>
+  <pre class="cmd"># P1-1 を外す (常にまっすぐなロープから)
+uv run train --task Isaac-Twisted-RL-Knot-v3 --headless env.events.reset_from_archive.params.prob=0.0
+# P1-2 の終了を外す (時間切れまで続ける)
+uv run train --task Isaac-Twisted-RL-Knot-v3 --headless env.terminations.knot_tied=null
+# P1-3 を外す (4 段のラダー。値は BFS と同じ k/3)
+uv run train --task Isaac-Twisted-RL-Knot-v3 --headless env.rewards.shaping.params.potential=class</pre>
+</section>
+
+<section id="status">
+  <h2><span class="num">15</span>現状と未解決の点</h2>
+  <h3>smoke test (2026-09-28、Knot、64 環境 × 3 iteration、ほぼランダムな初期方策)</h3>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th class="num">iter</th><th class="num">arc_size c1 / c2</th><th class="num">archive_frac</th><th class="num">restore_mismatch</th><th class="num">knot_tied</th><th class="num">diverged</th><th class="num">value_function</th></tr></thead>
+    <tbody>
+      <tr><td class="num">0</td><td class="num">141 / 3</td><td class="num">0.44</td><td class="num">0.000</td><td class="num">0.000</td><td class="num">0.26</td><td class="num">0.13</td></tr>
+      <tr><td class="num">1</td><td class="num">417 / 10</td><td class="num">0.52</td><td class="num">0.000</td><td class="num">0.003</td><td class="num">0.47</td><td class="num">0.09</td></tr>
+      <tr><td class="num">2</td><td class="num">672 / 22</td><td class="num">0.45</td><td class="num">0.000</td><td class="num">0.031</td><td class="num">0.46</td><td class="num">0.15</td></tr>
+    </tbody>
+  </table></div>
+  <div class="grid-2">
+    <div class="panel"><h4 style="color:var(--good)">確かめられたこと</h4><p>アーカイブは最初の iteration から埋まり、復元した形の位相は全件一致した。固結びはアーカイブから始めたエピソードでだけ出ている (<code>archive_success</code> 0.075、<code>scratch_success</code> 0)。価値関数の損失は O(0.1) で、v2-R2 の最初の run のような発散は無い。3 つの切り分けの上書きと Play も動いた。</p></div>
+    <div class="panel"><h4 style="color:var(--bad)">気になること</h4><p><strong>発散が多い。</strong>1 手あたり約 5% (<code>div_cls0</code> 3%、<code>div_cls1</code> 2%) で、12 手のエピソードの約半分が発散で終わる。ランダムな手が結び目の上へ指を降ろすなど乱暴なためと見ている。1 手 (env.step 1 回) に約 25 s かかり、v2-R2 の約 19 s に尺の延長 (×1.3) を掛けた値になっている。</p></div>
+  </div>
+  <h3>この版で解決していないこと</h3>
+  <ul>
+    <li><strong>本番の学習は未実施</strong>。smoke test で配線が動くことだけを確かめた。</li>
+    <li>ゲート 1 の台本の途中状態 (輪 / cover の後 / C2) でアーカイブを初期化すれば、学習の最初からアーカイブを使える (Report P0-2)。未実装。</li>
+    <li>推論時の探索 (Report P2-4)、対称性によるデータ拡張 (P2-1)、遷移ごとのスキルへの分解 (P3-4) は範囲外。</li>
+    <li>ゲート 1 で見つかった「同じ尺でも <code>env.step()</code> で再生すると台本より発散が多い」理由はまだわかっていない。</li>
+  </ul>
+  <div class="callout v3"><p>論文の仕組みとの対応、取り込めていない部分、この設計で起こりそうなことの考察は <a href="v3-vs-papers.html">「v3 と 3 論文の比較・考察」</a> にまとめています。</p></div>
+</section>
+
+<section id="gloss">
+  <h2><span class="num">16</span>用語集</h2>
+  <dl class="gloss">
+    <div><dt>1 手</dt><dd>pick&amp;place 1 回 (掴む → 運ぶ → 置く → 離す)。env.step 1 回、759 物理ステップ。</dd></div>
+    <div><dt>段 (class) · C1 / C2 / C3</dt><dd>R2 除去後の位相で決める 0〜3 の段。C1 = 輪 1 つ、C2 = 先端を輪に 1 回くぐらせた状態、C3 = 固結び。</dd></div>
+    <div><dt>R2 除去</dt><dd>二角形を作っていて持ち上げれば外れる 2 交差の組を取り除く処理。偽の C2 を弾く。</dd></div>
+    <div><dt>部分列判定</dt><dd>余分な交差があっても、k 個の交差の組だけで結び目の条件を満たすものを探す判定。</dd></div>
+    <div><dt>cover / tuck</dt><dd>ゲート 1 の台本の手。cover は輪の片側を掴んで尻尾の上に被せる手、tuck は先端を輪の反対側の上へ運ぶ最後の手。掴んだ部分が必ず上になる pick&amp;place で固結びの「下」を作るには cover が要る。</dd></div>
+    <div><dt>BFS 距離 d</dt><dd>p-data のグラフ (R1 / R2 / Cross が辺) で、ある状態から固結びを含む状態までの最短の移動回数。</dd></div>
+    <div><dt>Φ (ポテンシャル)</dt><dd>整形報酬 γΦ(s′) − Φ(s) に使う「ゴールへの近さ」。v3 は max(1 − d/3, 段/3)。</dd></div>
+    <div><dt>到達状態アーカイブ</dt><dd>学習中に到達した C1 / C2 の形を保存しておき、reset の一部をそこから始める仕組み。</dd></div>
+    <div><dt>ゲート 1</dt><dd>学習の前に「台本なら固結びが結べるか」を確かめた検証。<code>Knot</code> プリセット・±0.30 L・3.16 s/手はここから来た。</dd></div>
+    <div><dt>scratch_success</dt><dd>まっすぐなロープから始めたエピソードが固結びで終わった割合。v3 の主指標。</dd></div>
+  </dl>
+  <div class="nextprev">
+    <a href="../../../../../../../paper/explainer/twisted-rl.html"><small>前に読む</small><span class="dot trl"></span> TWISTED-RL の図解</a>
+    <a href="v3-vs-papers.html"><small>次に読む</small><span class="dot v3"></span> v3 と 3 論文の比較・考察 →</a>
+  </div>
+</section>
+
+  </main>
+</div>
+<footer class="foot">対象コード: <a href="../">versions/v3/</a> と <a href="../../../common/">common/</a> (コミット 3b71145)。数値は各ファイルの docstring・<code>versions/v3/README.md</code>・<code>next_action.md</code> §4.8.10 から転記しました。</footer>
+</html>

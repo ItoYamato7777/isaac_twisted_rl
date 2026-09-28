@@ -2,7 +2,7 @@
 
 ## 摩擦材の bind がマルチ env で必要になる理由
 
-`rope_catch_demo.py` / `topology_debug_demo.py` は把持を **接触摩擦だけ** で
+`demos/rope_catch.py` / `demos/topology_debug.py` は把持を **接触摩擦だけ** で
 成立させている。固定ジョイントで拘束しないので「ロープのどのリンクでも
 掴める」という性質が得られ、それが `grasp_link_id` を自由に選ばせる前提に
 なっている。この摩擦把持は指のプリムに高摩擦材 (μ=4.0,

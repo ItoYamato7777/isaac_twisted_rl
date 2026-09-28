@@ -28,7 +28,7 @@ Framework 的な粒度) と決めた。これを manager-based Isaac Lab に落�
 
 ## デモとの違い: 逐次ループ -> テンソルのステートマシン
 
-`topology_debug_demo.py` の `grasp_move()` は 13 個のフェーズを Python の
+`demos/topology_debug.py` の `grasp_move()` は 13 個のフェーズを Python の
 for ループで順に実行していた。RL では全環境が同時に別々のフェーズにいるので、
 **フェーズ ID と経過ステップ数を `(num_envs,)` のテンソルで持つ**必要がある
 (`next_action.md` 4.3)。補間そのもの (smoothstep) や掴む点の決め方といった
@@ -46,7 +46,7 @@ for ループで順に実行していた。RL では全環境が同時に別々�
 
 ## 把持は摩擦のみ (固定ジョイントを使わない)
 
-`rope_catch_demo.py` の方式を踏襲する。指を常に「全閉」で指令し続けると
+`demos/rope_catch.py` の方式を踏襲する。指を常に「全閉」で指令し続けると
 ロープの太さぶん閉じ切れず、PD の定常偏差がそのまま把持力になる。
 固定ジョイントで拘束しないので **どのリンクでも掴める**。
 この性質が `grasp_link_id` を自由に選ばせる前提になっている。
@@ -89,10 +89,9 @@ class PickPlaceAction(ActionTerm):
     5    `end_yaw`         置き終わりの手首 yaw (±π)
     ===  ================  ===============================================
 
-    `next_action.md` 4.1 の 7 次元との差: あちらは `grasp_link_id` と
-    `delta_link` を別々に数えて「離散 2 + 連続 4 = 7」としているが、
-    列挙されているチャネル自体は 6 つ (grasp / delta / x / y / z / yaw)。
-    ここでは実際のチャネル数どおり 6 次元とした。
+    `next_action.md` 4.1 の当初の設計書は「計 7 次元」と書いていたが、数え間違いで、
+    列挙されているチャネルは 6 つ (grasp / delta / x / y / z / yaw)。
+    実際のチャネル数どおり 6 次元とした (設計書側も修正済み)。
     """
 
     cfg: PickPlaceActionCfg

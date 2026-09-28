@@ -9,7 +9,7 @@
 `open_ratio * (絶対値が大きい側の可動域端点)` で求まる。
 
 実行方法 (IsaacLab リポジトリのルートから):
-    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/parallel_gripper/parallel_gripper_demo.py
+    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/parallel_gripper.py
 
 """
 

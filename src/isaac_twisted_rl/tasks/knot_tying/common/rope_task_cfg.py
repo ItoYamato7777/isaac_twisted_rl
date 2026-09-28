@@ -1,15 +1,16 @@
-"""ロープのプリセットごとの環境設定 (`simple` / `stiff` / `twist` / `fine`)。
+"""ロープのプリセットごとの環境設定 (`simple` / `stiff` / `twist` / `fine` / `knot`)。
 
-`rope_specs.py` の 4 プリセットそれぞれに 1 タスクを割り当てる。基底
+`rope_specs.py` の 5 プリセットそれぞれに 1 タスクを割り当てる。基底
 (`KnotTyingEnvCfg`) との差は **ロープの USD とそれに紐づく寸法・ゲインだけ**
 なので、共通の `_apply_rope` に押し込んである。
 
-## 学習に使うのは `twist`
+## 学習に使うのは `twist` (v0〜v2-R2) と `knot` (v3)
 
 `next_action.md` 3(c) の決定。`twist` だけヤング率を 1/10 (1.0e5 Pa) に
 下げてあり、これが「指を開いてもロープが腰で引っかかって付いてくる」
-問題の解決策になっている。他のプリセットは比較用に元の剛性のまま残して
-あるので、学習に使うならこの現象が再発しないか必ず確認すること。
+問題の解決策になっている。`knot` は `twist` と同じ材料で 28 リンクに延ばした
+固結び用 (`next_action.md` 4.8.10)。他のプリセットは比較用に元の剛性のまま
+残してあるので、学習に使うならこの現象が再発しないか必ず確認すること。
 
 ## グリッパーの設定がデモと同じでなければならない理由
 
@@ -32,7 +33,7 @@ from .parallel_gripper.gripper_cfg import PARALLEL_GRIPPER_CFG
 from .rope_model.rope_cfg import make_rope_cfg
 from .rope_model.rope_specs import RopeSpec, get_spec
 
-# 把持まわりの定数。すべて topology_debug_demo.py と同じ値。
+# 把持まわりの定数。すべて demos/topology_debug.py と同じ値。
 _FINGER_DAMPING_RATIO = 0.04
 _FINGER_EFFORT_LIMIT = 100.0
 _ROPE_INIT_Z = 0.06
@@ -112,7 +113,7 @@ def _apply_rope(cfg: KnotTyingEnvCfg, rope_name: str) -> RopeSpec:
 ##
 
 _PRESET_DOCS = {
-    "twist": "`twist` (橙, 20 リンク, 直径 20 mm)。**学習に使うのはこれ** (4.0 の決定)。",
+    "twist": "`twist` (橙, 20 リンク, 直径 20 mm)。v0〜v2-R2 の学習に使う。",
     "simple": "`simple` (青, 20 リンク)。曲げ剛性なしの比較用ベースライン。",
     "stiff": "`stiff` (緑, 20 リンク)。曲げ剛性ありの比較用。",
     "fine": (
@@ -126,7 +127,7 @@ _PRESET_DOCS = {
         "    `twist` なので当面はこのままにしてあるが、`fine` で本格的に\n"
         "    学習を回すならさらに `sim.dt` を詰める必要がある。"
     ),
-    "knot": "`knot` (紫, 28 リンク, 直径 20 mm)。`twist` と同じ材料で長くした固結び用 (ゲート 1)。",
+    "knot": "`knot` (紫, 28 リンク, 直径 20 mm)。`twist` と同じ材料で長くした固結び用 (ゲート 1)。v3 の学習に使う。",
 }
 
 _PLAY_RENDER_STEPS = 8
@@ -154,14 +155,14 @@ def make_preset_cfgs(
     module_name: str,
     play_post_init: Callable[[KnotTyingEnvCfg], None] | None = None,
 ) -> dict[str, type]:
-    """バージョンの基底クラスから、プリセット別の設定クラス 8 個を作る。
+    """バージョンの基底クラスから、プリセット別の設定クラス (プリセット数 x 2) を作る。
 
     返すのは ``{"TwistEnvCfg": <class>, "TwistPlayEnvCfg": <class>, ...}``。
     呼び出し側は ``globals().update(make_preset_cfgs(...))`` で自分の
     モジュールに生やす。`__init__.py` はこれを文字列 entry point で引く。
 
-    **なぜファクトリにするか。** プリセット 4 種 x (通常/Play) の 8 クラスは
-    「基底が違うだけで中身は同じ」。バージョンを増やすたびに 8 個の空クラスを
+    **なぜファクトリにするか。** プリセット 5 種 x (通常/Play) の 10 クラスは
+    「基底が違うだけで中身は同じ」。バージョンを増やすたびに 10 個の空クラスを
     書き写すのは間違いの元なので、ここで 1 回だけ定義する。バージョン側が
     書くのは課題の中身 (観測・報酬・エピソード長) だけで済む。
 

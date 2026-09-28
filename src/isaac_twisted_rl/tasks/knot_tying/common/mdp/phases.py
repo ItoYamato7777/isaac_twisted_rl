@@ -1,6 +1,6 @@
 """pick&place 1 手を構成するフェーズ表と、その尺 (時間) の定義。
 
-`topology_debug_demo.py` の `grasp_move()` が組み立てる `plan` (13 個の
+`demos/topology_debug.py` の `grasp_move()` が組み立てる `plan` (13 個の
 フェーズを逐次実行するリスト) を、**RL で使えるよう定数側へ切り出した**もの。
 デモ側は 1 環境を Python ループで回せばよかったが、RL では全環境が同時に
 別々のフェーズにいるため、フェーズ列そのものは「テンソルで索引できる表」に
@@ -13,7 +13,8 @@
 指示がある。1 手 = 11.4 s のままだと 240 Hz で 2736 物理ステップ、
 1 エピソード 5 手で 13680 ステップになり、学習の実時間がここで決まってしまう。
 
-そこで各フェーズをおおむね半分以下に詰めて合計 5.0 s とした。詰めるときの
+そこで各フェーズをおおむね半分以下に詰めて合計 5.0 s とした (その後さらに
+2.855 s まで詰めた。`PhaseDurations` の docstring)。詰めるときの
 判断基準は「その尺が物理の落ち着きを待つためのものか、単に見やすさのためか」:
 
 * `settle_out` (離した後ロープが落ち切るのを待つ) は **物理の待ち**なので
@@ -34,7 +35,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 # ---------------------------------------------------------------- 高さ・開度
-# いずれも topology_debug_demo.py と同じ値。ハンドの形状 (指先が base_link
+# いずれも demos/topology_debug.py と同じ値。ハンドの形状 (指先が base_link
 # 中心から 0.075 m 下) に紐づく量なので、勝手に変えると把持できなくなる。
 GRASP_PALM_Z = 0.077
 """把持時の手のひら (root) 高さ [m]。指先が床上 0.002 m に来る。"""
@@ -104,7 +105,7 @@ PHASE_NAMES = (
 class PhaseDurations:
     """各フェーズの尺 [s]。合計が「1 手 = 1 RL ステップ」の長さになる。
 
-    デモ (`topology_debug_demo.py`) の値を括弧内に併記する。`carry` は
+    デモ (`demos/topology_debug.py`) の値を括弧内に併記する。`carry` は
     デモでは経由点で等分される合計時間だったが、本実装は経由点を持たない
     (`next_action.md` 4.1 で `via_*` を入れないと決めた) ので 1 区間ぶん。
 
@@ -196,7 +197,7 @@ class GraspLimits:
 
     値の根拠は `next_action.md` 4.1。ロープ全長 `L` と直径に対する比で
     持つのは、プリセットによって寸法が違う (simple/stiff/twist は
-    L=0.82 m / dia=20 mm、fine は L=0.78 m / dia=8 mm) ため。
+    L=0.82 m / dia=20 mm、fine は L=0.78 m / dia=8 mm、knot は L=1.14 m / dia=20 mm) ため。
     """
 
     max_delta_link: int = 8

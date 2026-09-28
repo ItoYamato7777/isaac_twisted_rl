@@ -16,7 +16,7 @@ TWISTED-RL (itoyama_twisted_rl リポジトリ) の MuJoCo 実装を Isaac Lab �
     versions/   バージョンごとの配線 (観測・報酬・PPO・README)
     demos/      RL 環境からは import されない独立スクリプト
 
-USD 資産 (ロープ 4 種とグリッパー) はリポジトリにコミットしていない
+USD 資産 (ロープ 5 種とグリッパー) はリポジトリにコミットしていない
 (`.gitignore` の `**/*.usd`)。学習やデモの前に一度だけ生成すること:
 
     uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/generate_assets.py
@@ -45,7 +45,8 @@ def _version_package(ver: str) -> str:
     return ver.replace("-", "_").lower()
 
 
-# ロープのプリセット。学習に使うのは `Twist` で、他 3 つは比較用ベースライン。
+# ロープのプリセット。学習に使うのは `Twist` (v0〜v2-R2) と `Knot` (v3) で、
+# `Simple` / `Stiff` / `Fine` は比較用ベースライン。
 _ROPE_PRESETS = ("Twist", "Simple", "Stiff", "Fine", "Knot")
 
 # バージョンごとの **エージェント変種**。キーがタスク ID の接尾辞、値が

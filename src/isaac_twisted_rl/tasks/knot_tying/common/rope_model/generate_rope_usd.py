@@ -21,7 +21,7 @@ Kit ランタイムを起動せず、素の `pxr` のみで動く。
 
 ## プリセットと表示色の対応
 
-`multi_rope_catch_demo.py` で 4 本を横並びにしたときに、どれがどの
+`demos/multi_rope_catch.py` で 4 本を横並びにしたときに、どれがどの
 プリセットかを一目で見分けられるよう、作り方に応じて色を変えている
 (`rope_specs.py` の `RopeSpec.color`)。物理挙動には影響しない。
 

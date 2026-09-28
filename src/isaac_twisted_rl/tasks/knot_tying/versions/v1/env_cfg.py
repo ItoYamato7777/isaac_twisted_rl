@@ -144,7 +144,7 @@ class KnotTyingV1EnvCfg(KnotTyingEnvCfg):
     """
 
 
-# ロープのプリセット 4 種 x (通常 / Play) の設定クラスを生成する。
-# 生成されるのは TwistEnvCfg / SimpleEnvCfg / StiffEnvCfg / FineEnvCfg と
+# ロープのプリセット 5 種 x (通常 / Play) の設定クラスを生成する。
+# 生成されるのは TwistEnvCfg / SimpleEnvCfg / StiffEnvCfg / FineEnvCfg / KnotEnvCfg と
 # それぞれの *PlayEnvCfg。`__init__.py` が文字列 entry point で引く。
 globals().update(make_preset_cfgs(KnotTyingV1EnvCfg, __name__))

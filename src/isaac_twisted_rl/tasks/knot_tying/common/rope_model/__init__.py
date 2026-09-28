@@ -24,7 +24,7 @@ USD の生成:
     $ python generate_rope_usd.py --rope fine  # 特定のものだけ
 
 デモ側での選択:
-    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/rope_catch_demo.py --rope stiff
+    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/rope_catch.py --rope stiff
 
 注意: isaaclab_tasks のパッケージ自動インポートで読み込まれるため、
 この __init__ には重い import を置かないこと。

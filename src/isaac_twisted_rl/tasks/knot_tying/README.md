@@ -4,7 +4,7 @@
 TWISTED-RL (itoyama_twisted_rl) の MuJoCo 実装を Isaac Lab へ移植したもの。
 
 ```bash
-# 最初に一度だけ: USD 資産 (ロープ 4 種 + グリッパー) を生成する
+# 最初に一度だけ: USD 資産 (ロープ 5 種 + グリッパー) を生成する
 uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/generate_assets.py
 
 uv run train --task Isaac-Twisted-RL-Twist-v0 --headless   # 交差を 1 つ作る
@@ -14,25 +14,27 @@ uv run train --task Isaac-Twisted-RL-Twist-v2-R2 --headless   # v2 + R2 除去�
 uv run train --task Isaac-Twisted-RL-Knot-v3 --headless    # 論文の中核を取り込んだ版 (Knot で学習)
 ```
 
+| 文書 | 内容 |
+|---|---|
+| この README | 使い方・バージョン一覧・フォルダ構成・規約・開発の約束 |
+| [`common/README.md`](common/README.md) | 全バージョン共通の仕組み (1 手 = 1 RL ステップ、フェーズ、行動、終了判定、Play の描画) |
+| `versions/vN/README.md` | 各バージョンの課題・観測・報酬・結果 |
+| [`next_action.md`](next_action.md) | 設計判断と経緯の記録、**現在地と次の作業** |
+| [`paper/Report.md`](../../../../paper/Report.md) | 3 本の論文と v2-R2 の比較 (v3 の根拠) |
+
 ## バージョン一覧
 
 **課題はバージョン制**。実装を改良するときは既存バージョンを書き換えず、
 新しいバージョンを足す。過去のバージョンをいつでも再学習・再評価でき、
 改良の効果を比較できるようにするため。
 
-| バージョン | 課題 | エピソード長 | 詳細 |
-|---|---|---|---|
-| `v0` | ロープに**交差を 1 つ**作って、手を離しても残す | 5 手 | [versions/v0/README.md](versions/v0/README.md) |
-| `v1` | **固結び (overhand knot)** を作る (**学習は失敗した**) | 8 手 | [versions/v1/README.md](versions/v1/README.md) |
-| `v2` | 固結び。v1 の失敗を実測から特定して作り直したもの | 6 手 | [versions/v2/README.md](versions/v2/README.md) |
-| `v2-R2` | v2 の報酬ラダーを **R2 除去後の位相**で判定する (v2 の C2 は偽物だった) | 6 手 | [versions/v2_r2/README.md](versions/v2_r2/README.md) |
-| `v3` | 論文の中核を取り込む: **到達状態アーカイブからのリセット・固結びで終了・BFS 距離のポテンシャル** (Report §7 P1)。学習は `Knot` | 12 手 (成功で終了) | [versions/v3/README.md](versions/v3/README.md) |
-
-v1 は 4000 iteration の設定に対し 157 で打ち切られ、報酬が下降を続けた。
-原因は「疎報酬 (`overhand_achieved`) が一度も発火せず、PPO が受け取る勾配が
-失敗罰則だけになった」こと。v2 はそこに到達可能な中間目標を 3 段置き、
-併せて発散源だった `approach` フェーズの速度指令を消している
-(詳細と TensorBoard の実測値は [versions/v2/README.md](versions/v2/README.md))。
+| バージョン | 課題 | エピソード長 | 結果 | 詳細 |
+|---|---|---|---|---|
+| `v0` | ロープに**交差を 1 つ**作って、手を離しても残す | 5 手 | 学習成功 | [versions/v0/README.md](versions/v0/README.md) |
+| `v1` | **固結び (overhand knot)** を作る | 8 手 | 失敗: 疎報酬が一度も発火しない | [versions/v1/README.md](versions/v1/README.md) |
+| `v2` | 固結び。到達可能な中間目標を 3 段置き、発散源だった `approach` の速度指令を消した | 6 手 | 偽の C2 に居座った | [versions/v2/README.md](versions/v2/README.md) |
+| `v2-R2` | v2 の報酬ラダーを **R2 除去後の位相**で判定する | 6 手 | 本物の C2 が稀で詰まる | [versions/v2_r2/README.md](versions/v2_r2/README.md) |
+| `v3` | 論文の中核を取り込む: **到達状態アーカイブからのリセット・固結びで終了・BFS 距離のポテンシャル** (Report §7 P1)。学習は `Knot` | 12 手 (成功で終了) | smoke test のみ | [versions/v3/README.md](versions/v3/README.md) |
 
 各バージョンには 5 つのロープのプリセットがある
 (`Twist` / `Simple` / `Stiff` / `Fine` / `Knot`)。**v2-R2 までの学習は `Twist`、v3 は `Knot`** で、
@@ -69,7 +71,9 @@ v2 以降は **1 つの環境設定に対してエージェント設定が 3 つ
 knot_tying/
 ├── __init__.py       gym.register (バージョン x プリセットの二重ループ)
 │
-├── common/           ← バージョン非依存の共有層
+├── next_action.md    設計判断と経緯の記録、現在地と次の作業
+│
+├── common/           ← バージョン非依存の共有層 (仕組みは common/README.md)
 │   ├── env_cfg_base.py     シーン・物理・decimation (KnotTyingEnvCfg)
 │   ├── rope_task_cfg.py    プリセット別クラスを作るファクトリ (make_preset_cfgs)
 │   ├── rope_state.py       Articulation <-> topology/ の接続層
@@ -83,19 +87,23 @@ knot_tying/
 │   │   ├── topology_log.py   位相ラダーの集計ログと Play 時の p-data 表示 (v2-R2)
 │   │   ├── archive.py        アーカイブからのリセット・保存・ログ (v3)
 │   │   └── events.py         起動時イベント (摩擦材 bind, body 順序検算)
-│   ├── topology/           3D 点列 -> 位相 (交差・p-data・結び目判定)。
+│   ├── topology/           3D 点列 -> 位相 (交差・p-data・結び目判定・R2 除去・BFS 距離)。
 │   │                       isaaclab を import しないので Sim 無しでテストできる
 │   ├── rope_model/         ロープの USD 生成と設定
 │   └── parallel_gripper/   グリッパーの USD 生成と設定
 │
 ├── versions/         ← バージョンごとの「配線」
 │   ├── v0/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}
-│   ├── v1/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}
+│   ├── v1/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md, diff_to_TwistedRL.md}
 │   ├── v2/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← 3 変種
 │   ├── v2_r2/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v2 を継承、判定器だけ差し替え
 │   └── v3/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v2-R2 を継承、リセット・終了・報酬を差し替え
 │
 └── demos/            ← RL 環境から import されない独立スクリプト
+    ├── generate_assets.py   USD 資産の生成
+    ├── rope_catch.py        ロープを掴むだけのデモ
+    ├── topology_debug.py    台本で操作しながら位相抽出を目視検証
+    └── overhand_script.py   ゲート 1: 台本で固結びを結ぶ
 ```
 
 ## 設計方針: 「バージョン = 設定」であって「バージョン = コードのコピー」ではない
@@ -115,21 +123,22 @@ knot_tying/
 
 **トレードオフ:** `common/` を変えると v0 の挙動も変わりうる。これは
 意図的な選択で、「過去バージョンの完全凍結」より「共通基盤の改善が全
-バージョンに効く」ことを優先している。厳密な再現が要るときは git の
-コミットを遡ること (各バージョンの README に基準コミットを書いてある)。
+バージョンに効く」ことを優先している。厳密な再現が要るときは、git の
+コミットを遡ること (v0 は README に基準コミットを書いてある。他のバージョンは、
+そのバージョンを追加したコミットが基準)。
 
 ## バージョンを追加するときの規約 (v2 以降)
 
 1. `versions/vN/` を作り、`env_cfg.py` / `agents/rsl_rl_ppo_cfg.py` /
    `README.md` を置く。`__init__.py` の `_VERSIONS` に `"vN"` を足す
-   (**変更はこの 1 行だけ**)。
+   (MLP / GRU / LSTM の変種を持たせるなら `_AGENT_VARIANTS` にも足す)。
 2. **`common/mdp/` の項は「追加」する。既存の項を削除・改名しない。**
    過去バージョンの設定がその項を参照しているため。役目を終えた項は
    docstring に `.. deprecated::` を書いて残す
    (`first_crossing_feature` が既にこの形)。
 3. 既存項の**挙動**を変えたいときは、新しい名前の項を足して新バージョン
    だけが使う。バグ修正は例外 (全バージョンに効かせる)。
-4. `experiment_name` は `knot_tying_vN` にする。
+4. `experiment_name` は `knot_tying_vN` にする (変種は `_rnn` / `_lstm` を付ける)。
 5. `vN/README.md` に「v(N-1) から何を・なぜ変えたか」を表で書く。
 
 ## デモ / 検証
@@ -148,10 +157,9 @@ uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/topology_debug.py -
 uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py --task Isaac-Twisted-RL-Knot-v2-R2 --num_envs 128 --jitter 0.25 --headless
 #   同じ台本を 6 次元の行動に写して env.step() で再生する
 uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py --task Isaac-Twisted-RL-Knot-v2-R2 --num_envs 128 --jitter 0.25 --headless --replay_actions
-
-# 位相まわりの単体テスト (Isaac Sim を起動せずに走る)
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/
 ```
+
+単体テストの実行方法は、下の「開発の約束」を参照。
 
 ## 注意: Kit 起動前に import されるファイル
 
@@ -165,6 +173,25 @@ import すると `list_envs` / `train` が丸ごと落ちる。
 - デモ本体はプレーンモジュールなので自動 import されない
   (`import_packages` はパッケージの `__init__` しか実行しない)。
 - `common/mdp/` が除外されるのは、ブラックリスト `".mdp"` の**部分文字列
-  一致**による。**`mdp` というフォルダ名は変えないこと。**
+  一致**による (`isaaclab_tasks/utils/importer.py` の `_walk_packages`)。
+  **`mdp` というフォルダ名は変えないこと。**
 
-設計の経緯と判断の記録は [`next_action.md`](next_action.md) を参照。
+## 開発の約束
+
+- **`common/topology/` と `common/state_archive.py` に `isaaclab` / `omni` / `pxr` を import しない。**
+  崩すと単体テストが Isaac Sim 無しで走らなくなり、開発サイクルが桁違いに遅くなる。
+  `Articulation` に触るのは `common/rope_state.py` と `common/mdp/` だけ。
+- **テストを壊さない。** 変更したら必ず通すこと:
+  ```bash
+  PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/
+  ```
+  環境変数が要るのは、`/opt/ros/jazzy` の `launch_testing` が pytest のプラグイン自動読み込みに
+  引っかかり、`ModuleNotFoundError: lark` で落ちるため (テスト自体とは無関係)。
+- **lint / format を通す。** `.pre-commit-config.yaml` の ruff v0.14.10、line-length 120。
+  `ruff check <path> && ruff format <path>`。
+- **Isaac Sim を起動するスクリプトは `python -u` で回す。** 出力をファイルへリダイレクトすると
+  stdout がブロックバッファリングされ、数分間なにも出ずハングしたように見える。
+- **docstring は日本語で書き、「何をするか」より「なぜそうしたか」を書く。** 移植元と挙動を変えるときは、
+  変えた理由と検証結果を docstring に残す。
+- **rsl-rl は 3.0.1、isaaclab は 2.3.0** (`.venv` 内)。`/home/itoyama/work/IsaacLab` の checkout は
+  rsl-rl 5.x 前提の別物なので、そこの例をそのまま写さない (注意点は [v2 README](versions/v2/README.md) §4)。

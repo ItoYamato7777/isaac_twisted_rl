@@ -62,7 +62,7 @@ KNOT_DURATIONS = phases.PhaseDurations(
     clear=0.0,
     relax=0.5,
 )
-"""v3 の 1 手の尺 (合計 3.17 s)。v2 の `SHORT_DURATIONS` (2.44 s) の移動系を延ばしたもの。
+"""v3 の 1 手の尺 (合計 3.1625 s = 759 物理ステップ @240 Hz)。v2 の `SHORT_DURATIONS` (2.44 s) の移動系を延ばしたもの。
 
 ゲート 1 (`next_action.md` §4.8.10) の実測: `Knot` (1.14 m) を v2 の尺 (carry 0.35 s) で
 運ぶと 1 手目で 13/32 が発散した。運搬速度が原因で、carry 0.6 s で 0/32 になった。

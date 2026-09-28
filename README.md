@@ -3,7 +3,7 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Isaac Sim](https://img.shields.io/badge/IsaacSim-5.1.0-76B900.svg)](https://docs.isaacsim.omniverse.nvidia.com/latest/index.html)
 [![Isaac Lab](https://img.shields.io/badge/IsaacLab-2.3.0-8A2BE2.svg)](https://isaac-sim.github.io/IsaacLab/main/index.html)
-[![Python](https://img.shields.io/badge/python-3.11-3776AB.svg)](https://docsthon.org/3/whatsnew/3.11.html)
+[![Python](https://img.shields.io/badge/python-3.11-3776AB.svg)](https://docs.python.org/3/whatsnew/3.11.html)
 
 This repository implements the **Twisted-RL** knot-tying task in Isaac Lab: a kinematic
 parallel gripper picks and places a rope to tie a knot, the resulting knot is detected
@@ -43,28 +43,34 @@ Rope manipulation with topology (p-data) extraction, ported from the MuJoCo-base
 TWISTED-RL implementation. A kinematic parallel gripper picks and places a rope to tie
 a knot; the resulting knot is detected as a topological invariant and turned into reward.
 
-The task is **versioned**: improvements are added as a new version rather than by
-rewriting the existing one, so every earlier version stays runnable and comparable.
-
-```bash
-uv run train --task Isaac-Twisted-RL-Twist-v0 --headless   # make a single crossing
-uv run train --task Isaac-Twisted-RL-Twist-v1 --headless   # tie an overhand knot
-uv run train --task Isaac-Twisted-RL-Twist-v2 --headless   # latest version
-```
-
-Evaluate a trained policy.
-
-```bash
-uv run play --task Isaac-Twisted-RL-Twist-Play-v0
-uv run play --task Isaac-Twisted-RL-Twist-Play-v1
-uv run play --task Isaac-Twisted-RL-Twist-Play-v2
-```
-
 The USD assets are **not committed** (see `**/*.usd` in `.gitignore`). Generate them once
 before training or running any demo:
 
 ```bash
 uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/generate_assets.py
+```
+
+The task is **versioned**: improvements are added as a new version rather than by
+rewriting the existing one, so every earlier version stays runnable and comparable.
+
+| Version | Goal | Status |
+|---|---|---|
+| `v0` | make a single crossing that survives release | trained successfully |
+| `v1` | tie an overhand knot | failed (sparse reward never fired) |
+| `v2` | overhand knot with a 3-step reward ladder | exploited a false intermediate state |
+| `v2-R2` | v2 with the ladder judged after Reidemeister-II reduction | stuck on the rare real intermediate state |
+| `v3` | reset from an archive of reached states, terminate on success, BFS-distance potential | latest; smoke-tested only |
+
+```bash
+uv run train --task Isaac-Twisted-RL-Twist-v0 --headless   # single crossing
+uv run train --task Isaac-Twisted-RL-Knot-v3 --headless    # latest (uses the 28-link Knot rope)
+```
+
+Evaluate a trained policy.
+
+```bash
+uv run play --task Isaac-Twisted-RL-Twist-Play-v0 --num_envs 1
+uv run play --task Isaac-Twisted-RL-Knot-Play-v3 --num_envs 1
 ```
 
 Grasp a rope with a parallel gripper:
@@ -83,12 +89,18 @@ uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/topology_debug.py -
 The topology layer imports no `isaaclab`/`omni`/`pxr`, so its unit tests run without Isaac Sim:
 
 ```bash
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/test_knot_tying_topology.py tests/test_knot_detect.py
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/
 ```
 
-See `src/isaac_twisted_rl/tasks/knot_tying/README.md` for the package layout, the version
-list and the rules for adding a new version, and `next_action.md` (Japanese) for the
-design notes and the remaining work.
+Documentation (Japanese):
+
+| Document | Contents |
+|---|---|
+| [`knot_tying/README.md`](src/isaac_twisted_rl/tasks/knot_tying/README.md) | package layout, version list, rules for adding a version, development rules |
+| [`knot_tying/common/README.md`](src/isaac_twisted_rl/tasks/knot_tying/common/README.md) | mechanisms shared by all versions (one action = one RL step, phases, action space) |
+| `knot_tying/versions/vN/README.md` | per-version task, observations, rewards and results |
+| [`knot_tying/next_action.md`](src/isaac_twisted_rl/tasks/knot_tying/next_action.md) | design decisions and history, current status and next steps |
+| [`paper/Report.md`](paper/Report.md) | comparison of v2-R2 with three knot-tying papers (basis for v3) |
 
 ## Sim2Real Transfer
 
@@ -105,7 +117,7 @@ This project builds upon the excellent work of several open-source projects and 
 - **[Isaac Lab](https://isaac-sim.github.io/IsaacLab/)** — The foundational robotics simulation framework that powers this project
 - **[NVIDIA Isaac Sim](https://developer.nvidia.com/isaac-sim)** — The underlying physics simulation platform
 - **[RSL-RL](https://github.com/leggedrobotics/rsl_rl)** — Reinforcement learning library used for training policies
-- **TWISTED-RL** (Freund et al.) — The hierarchical knot-tying approach this project ports to Isaac Lab (see `Twisted-RL.pdf`)
+- **TWISTED-RL** (Freund et al.) — The hierarchical knot-tying approach this project ports to Isaac Lab (papers in `paper/`)
 
 This project was originally scaffolded from the Isaac Lab SO-ARM100/SO-ARM101 project;
 the SO-ARM task code has since been removed as this repository now focuses exclusively

@@ -117,5 +117,5 @@ class KnotTyingV0EnvCfg(KnotTyingEnvCfg):
     """1 エピソードで打てる手の数 (`next_action.md` 4.0 の「3〜5 アクション」)。"""
 
 
-# ロープのプリセット 4 種 x (通常 / Play) の設定クラスを生成する。
+# ロープのプリセット 5 種 x (通常 / Play) の設定クラスを生成する。
 globals().update(make_preset_cfgs(KnotTyingV0EnvCfg, __name__))

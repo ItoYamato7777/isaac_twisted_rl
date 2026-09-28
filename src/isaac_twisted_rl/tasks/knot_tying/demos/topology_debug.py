@@ -6,7 +6,7 @@
 カプセル連鎖) を通すのはここが初めてになる。
 
 実行方法 (リポジトリのルートから):
-    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/topology_debug_demo.py --rope twist --headless
+    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/topology_debug.py --rope twist --headless
 
 出力 (既定は `outputs/topology_debug/`):
     events.log          p-data が変化した瞬間だけを並べたログ
@@ -14,15 +14,15 @@
 
 ## なぜ「台本」で動かすのか
 
-`rope_catch_demo.py` のようなランダムな pick&place では、ロープはほとんど
+`rope_catch.py` のようなランダムな pick&place では、ロープはほとんど
 真っ直ぐなまま運ばれるだけで **交差が生まれない**。それでは
 「交差が 0 個のとき空文字列を返す」ことしか検証できない。
 
 そこでここでは、移植元 twisted_rl の `LowLevelAction` (link, x, y, z) と
 同じ「指定リンクを掴んで指定位置へ運ぶ」プリミティブを組み、端を本体の上に
 渡してループを作る一連の動作を台本として与える。p-data が `''` から
-1 交差へ育つところまでは動く。**手を離しても残る**ところは道半ば
-(`LOOP_SCRIPT` の docstring に現状と原因)。
+1 交差へ育ち、手を離しても残る (「離すと付いてくる」問題は
+`next_action.md` 3(c) の物理パラメータで解決済み)。
 
 台本を作るうえで効いた 2 つの幾何 (詳細は `GraspMove.over_link_frac` と
 `RELEASE_RATIO` の docstring):
@@ -39,7 +39,7 @@
 ## 把持まわり
 
 グリッパーの駆動方式・摩擦把持の作り方・指ゲインのスケーリングは
-`rope_catch_demo.py` と全く同じなので、そちらの docstring を参照。
+`rope_catch.py` と全く同じなので、そちらの docstring を参照。
 このデモが足しているのは以下だけ:
 
 * 掴む点と置く先を **ロープ全長に対する比** で指定する (プリセットごとに
@@ -157,7 +157,7 @@ CLOSE_RATIO = 0.0
 RELEASE_RATIO = 1.0
 """離すときの指の開度 (0=全閉, 1=全開)。接近時の `OPEN_RATIO` より広く開ける。
 
-`rope_catch_demo.py` は離すときも `OPEN_RATIO` (0.8) までしか開かない。
+`demos/rope_catch.py` は離すときも `OPEN_RATIO` (0.8) までしか開かない。
 搬送してその場に落とすだけならそれで足りるが、この台本のように
 **離した後にハンドを真上へ引き上げる** と、指の間に残ったロープが
 そのまま持ち上がってしまう (実測: 離したはずのロープ端が z=0.27 m まで
@@ -416,7 +416,7 @@ def main():  # noqa: C901 (デモなので状態機械を 1 箇所にまとめ�
     rope_cfg.init_state.pos = ROPE_INIT_POS
     rope = Articulation(cfg=rope_cfg)
 
-    # グリッパーは rope_catch_demo と同じ「キネマティックな手」構成。
+    # グリッパーは demos/rope_catch.py と同じ「キネマティックな手」構成。
     gripper_cfg = PARALLEL_GRIPPER_CFG.copy()
     gripper_cfg.prim_path = GRIPPER_PRIM_PATH
     gripper_cfg.init_state.pos = (0.0, 0.0, HOME_PALM_Z)

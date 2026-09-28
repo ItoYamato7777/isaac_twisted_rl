@@ -6,7 +6,7 @@
 `ROPE_SPECS` に登録する。
 
     generate_rope_usd.py --rope <name>   ... USD を生成
-    rope_catch_demo.py   --rope <name>   ... そのロープを使ってデモ
+    demos/rope_catch.py   --rope <name>   ... そのロープを使ってデモ
 
 このモジュールは `pxr` も `isaaclab` も import しない (純粋な dataclass と
 math のみ)。パッケージ自動インポート経路に乗っても軽いままにするため。
@@ -21,7 +21,7 @@ math のみ)。パッケージ自動インポート経路に乗っても軽い�
 | `fine`   | 赤   | 結び目が結べる細径・高分解能   | あり     | ±60°         | 自由(低剛性) | 48       | 8 mm   |
 | `knot`   | 紫   | `twist` を 28 リンク (1.14 m) に延ばした固結び用 | あり(弱) | ±60° | 自由(低剛性) | 28 | 20 mm |
 
-色は `multi_rope_catch_demo.py` で 4 本を横並びにしたとき、どれがどの
+色は `demos/multi_rope_catch.py` で 4 本を横並びにしたとき、どれがどの
 プリセットかを一目で見分けるためのもの。
 
 `simple` → `stiff` → `twist` → `fine` は 1 段ずつ単一の軸だけを変えてあるので、
@@ -182,7 +182,7 @@ class RopeSpec:
     color: tuple[float, float, float]
     """カプセルの表示色 (linear RGB, 0-1)。プリセットごとに変えてある。
 
-    複数のロープを横並びにしたとき (`multi_rope_catch_demo.py`) に、
+    複数のロープを横並びにしたとき (`demos/multi_rope_catch.py`) に、
     どれがどのプリセットかを目視で判別するためのもの。物理には影響しない。
     """
 

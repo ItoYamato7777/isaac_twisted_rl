@@ -370,7 +370,7 @@ def test_knot_detect_imports_no_isaaclab():
     """`topology/` の不変条件を機械的に守る。
 
     ここが崩れるとこのテスト自体が Isaac Sim 無しで走らなくなり、
-    開発サイクルが桁で遅くなる (`next_action.md` 5 節)。
+    開発サイクルが桁で遅くなる (`knot_tying/README.md` の「開発の約束」)。
     """
     for forbidden in ("isaaclab", "omni", "pxr"):
         assert forbidden not in sys.modules

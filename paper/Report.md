@@ -7,6 +7,18 @@
   2. **Sudry et al., "Hierarchical Planning for Rope Manipulation using Knot Theory and a Learned Inverse Model" (TWISTED)**, 2023 — 以下 **TWISTED**
   3. **Freund et al., "TWISTED-RL: Hierarchical Skilled Agents for Knot-Tying without Human Demonstrations"**, arXiv 2602.14526, 2026 — 以下 **TWISTED-RL**
 
+> **この文書は 2026-09-26 時点のスナップショット。** 本文は書き換えず、その後の対応をここにまとめる。
+>
+> | 項目 | 対応 |
+> |---|---|
+> | §6.1 把持距離の非有界化 (P0-1) | 2026-09-27 に v2-R2 で修正 ([v2-R2 README](../src/isaac_twisted_rl/tasks/knot_tying/versions/v2_r2/README.md) の「発散した手の報酬」) |
+> | §5.8 / P0-2 ゲート 1 | 2026-09-27 に通過。`twist` では長さが足りず、28 リンクの `knot` プリセットと `drop_xy_rel_frac` 0.30 が必要だった ([next_action.md §4.8.10](../src/isaac_twisted_rl/tasks/knot_tying/next_action.md)) |
+> | P1-1〜P1-3 | v3 で実装 ([v3 README](../src/isaac_twisted_rl/tasks/knot_tying/versions/v3/README.md)) |
+> | §6.3 8 スロット打ち切り | v3 で共有層を修正 (全バージョンに効く) |
+> | §6.4 C1 定義の不一致 | v3 で `topology_class` に統一 |
+> | P3-1 運搬高さを行動に入れる | ゲート 1 で、0.20 m 固定のほうが成功率が高いと分かった (固結びには不要) |
+> | P2 / P3 のその他 | 未着手 |
+
 ---
 
 ## 0. 要旨

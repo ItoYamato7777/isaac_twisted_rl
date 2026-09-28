@@ -25,16 +25,16 @@ import して呼ぶ。ジェネレータ本体 (`generate_rope_usd.py` /
 
 デモを動かす前に **一度だけ** 実行すること:
 
-    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/generate_assets.py
+    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/generate_assets.py
 
     # 一部だけ作り直す
-    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/generate_assets.py --rope fine
-    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/generate_assets.py --only gripper
+    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/generate_assets.py --rope fine
+    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/generate_assets.py --only gripper
 
 生成物 (いずれも .gitignore 対象):
 
-    rope_model/data/rope_{simple,stiff,twist,fine}.usd
-    parallel_gripper/data/gripper_simple.usd
+    common/rope_model/data/rope_<preset>.usd   (`rope_specs.ROPE_SPECS` の全プリセット)
+    common/parallel_gripper/data/gripper_simple.usd
 
 `python -u` で回すのは、出力をリダイレクトしたときにブロックバッファリングで
 「数分なにも出ずハングしたように見える」のを避けるため。

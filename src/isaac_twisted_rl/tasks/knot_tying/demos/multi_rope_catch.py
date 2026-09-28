@@ -12,15 +12,15 @@ docstring に対応表がある):
     青 simple / 緑 stiff / 橙 twist / 赤 fine
 
 実行方法 (リポジトリのルートから):
-    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/multi_rope_catch_demo.py
+    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/multi_rope_catch.py
 
     # 一部のプリセットだけ比べる
-    python .../multi_rope_catch_demo.py --ropes simple,stiff
+    python .../demos/multi_rope_catch.py --ropes simple,stiff
 
 前提として `rope_model/generate_rope_usd.py` を実行して USD を生成して
 おくこと (`data/*.usd` は .gitignore 対象の生成物)。
 
-## 単体デモ (`rope_catch_demo.py`) との違い
+## 単体デモ (`demos/rope_catch.py`) との違い
 
 単体デモは 1 台のグリッパーを逐次的な状態機械で動かしていたが、こちらは
 全レーンが **同じフェーズ時刻を共有** して並列に動く。フェーズの尺は
@@ -105,7 +105,7 @@ CARRY_PALM_Z = 0.15   # 持ち上げ・搬送の高さ
 OPEN_RATIO = 0.8      # 接近時の指の開き (0=全閉, 1=全開)
 CLOSE_RATIO = 0.0     # 把持時の指令 (全閉を指令し続けて押し付け力を出す)
 RELEASE_RATIO = 1.0
-"""離すときの指の開度 (0=全閉, 1=全開)。`rope_catch_demo.py` の同名定数と同じ理由
+"""離すときの指の開度 (0=全閉, 1=全開)。`demos/rope_catch.py` の同名定数と同じ理由
 (`OPEN_RATIO` までしか開かずに退避すると、指に残ったロープが持ち上がってくる)。
 """
 

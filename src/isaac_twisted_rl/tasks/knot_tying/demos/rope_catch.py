@@ -9,7 +9,7 @@
 既定は `simple` で、これは以前からこのデモが前提にしてきたモデルそのもの。
 
 実行方法 (リポジトリのルートから):
-    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/rope_catch_demo.py --rope stiff
+    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/rope_catch.py --rope stiff
 
 ## グリッパーの移動方法 (スクリプト駆動のキネマティックハンド)
 
@@ -134,7 +134,7 @@ RELEASE_RATIO = 1.0
 """離すときの指の開度 (0=全閉, 1=全開)。接近時の `OPEN_RATIO` より広く開ける。
 
 `OPEN_RATIO` (0.8) までしか開かずに真上へ退避すると、指の間に残った
-ロープがそのまま持ち上がってくることがある (`topology_debug_demo.py` で
+ロープがそのまま持ち上がってくることがある (`demos/topology_debug.py` で
 実測済み: 離したはずのロープ端が z=0.27〜0.29 m までついてきた)。
 全開にして隙間をロープ直径の数倍まで広げ、退避前に横へ抜けてから
 引き上げると確実に落ちる (`RELEASE_TIME` 以降のフェーズ構成を参照)。
@@ -233,7 +233,7 @@ def main():
         f"-> max hold {2 * GRASP_FRICTION * grip_force:.1f} N vs rope weight {rope_weight:.2f} N"
     )
 
-    # -- 指関節のインデックスと「全開」目標値 (parallel_gripper_demo と同方式)
+    # -- 指関節のインデックスと「全開」目標値 (demos/parallel_gripper.py と同方式)
     finger_ids, _ = gripper.find_joints(
         ["left_finger_joint", "right_finger_joint"], preserve_order=True
     )

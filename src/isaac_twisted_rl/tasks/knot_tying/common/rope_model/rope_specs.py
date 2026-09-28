@@ -19,6 +19,7 @@ math のみ)。パッケージ自動インポート経路に乗っても軽い�
 | `stiff`  | 緑   | 曲げ剛性を入れた「腰のある」縄 | あり     | ±60°         | ロック      | 20       | 20 mm  |
 | `twist`  | 橙   | `stiff` より柔らかい曲げ剛性 (1/10) + 捩り自由度を解放 | あり(弱) | ±60°         | 自由(低剛性) | 20       | 20 mm  |
 | `fine`   | 赤   | 結び目が結べる細径・高分解能   | あり     | ±60°         | 自由(低剛性) | 48       | 8 mm   |
+| `knot`   | 紫   | `twist` を 28 リンク (1.14 m) に延ばした固結び用 | あり(弱) | ±60° | 自由(低剛性) | 28 | 20 mm |
 
 色は `multi_rope_catch_demo.py` で 4 本を横並びにしたとき、どれがどの
 プリセットかを一目で見分けるためのもの。
@@ -452,8 +453,56 @@ _FINE = _make_physical_spec(
     lock_twist=False,
 )
 
+KNOT_NUM_LINKS = 28
+"""`knot` プリセットのリンク数 (全長 1.14 m)。
+
+## なぜ `twist` を長くしただけなのか (ゲート 1, 2026-09-27)
+
+`demos/overhand_script.py` で台本の固結びを試したところ、`twist` (20 リンク,
+0.82 m) で足りなかったのは **長さ** だった。pick&place の固結びは
+「本体 -> 輪 -> 輪の片側の下をくぐる尻尾 -> 反対側の上を越える尻尾」の順に
+ロープを使い、グリッパーが輪の片側だけを掴めるよう輪の径は 15 cm 前後要る
+(開いた指は掴む軸から ±4 cm を占める)。本体 ~8 / 輪 ~12 / 尻尾 ~8 リンクで
+20 リンクでは尻尾が 2〜3 リンクしか輪の中に残らず、最後の手で持ち上げると
+輪の下から抜けてしまう。
+
+**材料・太さ・リンク長は `twist` と同じ** (直径 20 mm, ヤング率 1e5 Pa)。
+1 リンクあたりの質量・慣性・関節ゲイン・把持力が `twist` と一致するので、
+`twist` で調整済みの「離すと付いてくる」対策 (next_action.md 3(c)) と発散しにくさを
+そのまま引き継げる。細く・細かくした `fine` は結び目の分解能では有利だが、
+慣性が小さく発散しやすい (`rope_task_cfg.py` の `fine` の docstring)。
+
+台本 (`overhand_script.py`, ±25% 揺らし, 128 環境) の固結び成功率:
+
+| ロープ | 台本 (ゆっくり, 7.8 s/手) | 台本 (3.2 s/手) |
+|---|---|---|
+| `twist` | 最高 23/128 (18%)。`knot` 用の既定値では 0/128 | — |
+| `knot`  | **122/128 (95%)**, 発散 0 | **116/128 (91%)**, 発散 3 |
+
+詳細と 6 次元の行動空間での再生結果は `next_action.md` §4.8.10。
+
+### 注意: 速く運ぶと発散する
+
+学習環境の既定の尺 (v2 の `SHORT_DURATIONS`: carry 0.35 s) で 0.5 m 以上運ぶと、
+引きずる本体が長く重いぶん `twist` より発散しやすい (1 手目で 13/32 が発散)。
+carry を 0.6 s にすると 0/32 になった。ソルバ反復 32 や指ゲイン 2 倍では
+改善しなかったので、原因は運搬速度そのもの。`knot` で学習するなら
+carry (と descend/lift/lower) を延ばした尺を使うこと。
+"""
+
+_KNOT = _make_physical_spec(
+    name="knot",
+    description="twist と同じ材料・太さで 28 リンク (全長 1.14 m) に延ばした固結び用ロープ",
+    color=(0.55, 0.20, 0.75),
+    color_name="紫",
+    num_links=KNOT_NUM_LINKS,
+    capsule_radius=0.01,
+    lock_twist=False,
+    youngs_modulus=TWIST_YOUNGS_MODULUS,
+)
+
 ROPE_SPECS: dict[str, RopeSpec] = {
-    spec.name: spec for spec in (_SIMPLE, _STIFF, _TWIST, _FINE)
+    spec.name: spec for spec in (_SIMPLE, _STIFF, _TWIST, _FINE, _KNOT)
 }
 """名前 -> `RopeSpec` のレジストリ。`--rope` の選択肢はここから引く。"""
 

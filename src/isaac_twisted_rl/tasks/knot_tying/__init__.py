@@ -45,7 +45,7 @@ def _version_package(ver: str) -> str:
 
 
 # ロープのプリセット。学習に使うのは `Twist` で、他 3 つは比較用ベースライン。
-_ROPE_PRESETS = ("Twist", "Simple", "Stiff", "Fine")
+_ROPE_PRESETS = ("Twist", "Simple", "Stiff", "Fine", "Knot")
 
 # バージョンごとの **エージェント変種**。キーがタスク ID の接尾辞、値が
 # `versions/vN/agents/rsl_rl_ppo_cfg.py` 内の Runner クラス名。

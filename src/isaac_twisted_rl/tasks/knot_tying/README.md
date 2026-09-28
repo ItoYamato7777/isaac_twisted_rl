@@ -32,15 +32,18 @@ v1 は 4000 iteration の設定に対し 157 で打ち切られ、報酬が下�
 併せて発散源だった `approach` フェーズの速度指令を消している
 (詳細と TensorBoard の実測値は [versions/v2/README.md](versions/v2/README.md))。
 
-各バージョンには 4 つのロープのプリセットがある
-(`Twist` / `Simple` / `Stiff` / `Fine`)。**学習に使うのは `Twist`** で、
-他 3 つは比較用ベースライン。`-Play-` 付きは推論の様子を見る用
+各バージョンには 5 つのロープのプリセットがある
+(`Twist` / `Simple` / `Stiff` / `Fine` / `Knot`)。**学習に使うのは `Twist`** で、
+`Simple` / `Stiff` / `Fine` は比較用ベースライン。`Knot` は `Twist` と同じ材料で
+28 リンク (1.14 m) に延ばした固結び用で、**台本で固結びが結べることを確かめた
+唯一のプリセット** (ゲート 1。`Twist` は長さが足りない。詳細は
+[`next_action.md`](next_action.md) §4.8.10)。`-Play-` 付きは推論の様子を見る用
 (環境数を絞り、描画間隔を短くしてある)。
 
 ```
-Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine}[-Play]-{v0,v1}          # 16 タスク
-Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine}[-Play]-v2[-RNN|-LSTM]   # 24 タスク
-Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine}[-Play]-v2-R2[-RNN|-LSTM]   # 24 タスク
+Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-{v0,v1}          # 20 タスク
+Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2[-RNN|-LSTM]   # 30 タスク
+Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2-R2[-RNN|-LSTM]   # 30 タスク
 ```
 
 `v2-R2` のようにハイフンを含むバージョン表記は、パッケージ名では
@@ -134,6 +137,11 @@ uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/rope_catch.py --rop
 
 # 位相抽出が動く物理の上でも正しいかの目視検証 (xy 投影図を出力)
 uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/topology_debug.py --rope twist --headless
+
+# ゲート 1: 台本で固結びを結ぶ (学習環境をそのまま使い、ハンドだけ台本で動かす)
+uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py --task Isaac-Twisted-RL-Knot-v2-R2 --num_envs 128 --jitter 0.25 --headless
+#   同じ台本を 6 次元の行動に写して env.step() で再生する
+uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py --task Isaac-Twisted-RL-Knot-v2-R2 --num_envs 128 --jitter 0.25 --headless --replay_actions
 
 # 位相まわりの単体テスト (Isaac Sim を起動せずに走る)
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/test_knot_tying_topology.py tests/test_knot_detect.py tests/test_r2_reduce.py

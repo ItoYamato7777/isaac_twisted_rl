@@ -121,7 +121,16 @@ class TerminationsCfg:
 class KnotTyingEnvCfg(ManagerBasedRLEnvCfg):
     """紐結び環境の基底。プリセットごとの派生は `rope_task_cfg.py`。"""
 
-    scene: KnotTyingSceneCfg = KnotTyingSceneCfg(num_envs=1024, env_spacing=3.0)
+    scene: KnotTyingSceneCfg = KnotTyingSceneCfg(num_envs=4096, env_spacing=3.0)
+    """既定の並列環境数。
+
+    RTX 3090 (24 GB) で実測: 4096 env のシーン構築時ピーク VRAM は約 10 GB
+    (2 GPU 共有環境でも安全マージンを残せる)。ロープの物理は GPU 並列なので
+    `num_envs` を増やすのが学習速度に最も効く (`next_action.md` 4.8.9)。
+    一方で p-data 生成 (記号層、CPU) は 4096 env で 94 ms/回かかり
+    (`topology/__init__.py` の使用例)、これ以上 (8192 など) 増やすと
+    ログ・観測のたびに呼ぶ処理が逆にボトルネック化しうるため 4096 に留めた。
+    """
     actions: ActionsCfg = ActionsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()

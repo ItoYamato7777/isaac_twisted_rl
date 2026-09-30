@@ -201,6 +201,20 @@ class KnotTyingEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.gpu_total_aggregate_pairs_capacity = 16 * 1024
         self.sim.physx.bounce_threshold_velocity = 0.05
 
+        # `gpu_max_rigid_patch_count` / `gpu_max_rigid_contact_count` は
+        # IsaacLab の既定 (163840 / 8388608) のままだと 4096 env で
+        # 学習序盤 (~150 iter, 方策がまだ緩い結び目しか作れない段階) で
+        # 早くも "Patch buffer overflow" で落ちる (2026-09-30 実測,
+        # `logs/rsl_rl/knot_tying_v3/2026-09-28_17-28-57`)。結び目が
+        # 締まるほど 1 env あたりの自己接触パッチ数は増えるため、既定値は
+        # env 数を増やした構成 (num_envs=4096) には全く足りない。
+        # エラーメッセージが要求した実測下限 (188392) に対して
+        # 十分な安全マージンを載せて 4 倍の 2**19 (524288) に設定する。
+        # VRAM 予算: 4096 env で従来の実測ピークが約 10 GB (24 GB 中) なので、
+        # このバッファ増分 (数百 MB 程度) を載せても余裕がある。
+        self.sim.physx.gpu_max_rigid_patch_count = 2**19
+        self.sim.physx.gpu_max_rigid_contact_count = 2**24
+
         self._rescale_reward_weights()
 
     def _rescale_reward_weights(self):

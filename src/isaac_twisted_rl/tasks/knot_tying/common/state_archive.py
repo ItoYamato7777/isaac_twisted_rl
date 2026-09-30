@@ -25,6 +25,7 @@ root の xy は **ロープの重心からの相対** で持つ。復元時に�
 from __future__ import annotations
 
 import math
+import os
 from collections.abc import Sequence
 
 import torch
@@ -104,6 +105,49 @@ class StateArchive:
         u = torch.rand(n, device=self.device, generator=generator)
         i = (u * sizes[k]).long().clamp(max=self.capacity - 1)
         return self._classes_t[k], self.root_pose[k, i], self.joint_pos[k, i]
+
+    # ------------------------------------------------------------ ファイル (v4 で追加)
+
+    def state_dict(self) -> dict:
+        """保存されている件数ぶんだけを CPU のテンソルにした辞書。`save` / `load` の中身。"""
+        out: dict = {"num_joints": int(self.joint_pos.shape[-1]), "entries": {}}
+        for k, c in enumerate(self.classes):
+            n = self._size[k]
+            if n > 0:
+                out["entries"][c] = {
+                    "root_pose": self.root_pose[k, :n].cpu(),
+                    "joint_pos": self.joint_pos[k, :n].cpu(),
+                }
+        return out
+
+    def save(self, path: str) -> None:
+        """`state_dict()` を `torch.save` する。書きかけのファイルを残さないよう一時ファイル経由で置き換える。"""
+        tmp = f"{path}.tmp"
+        torch.save(self.state_dict(), tmp)
+        os.replace(tmp, path)
+
+    def load(self, path: str) -> dict[int, int]:
+        """`save` したファイルの状態を **追加** する (今ある分は消さない)。
+
+        このアーカイブが保存しないクラスの項目は無視する。関節数が違うファイル (別のロープの
+        プリセットで作ったもの) は ValueError にする。黙って読むと形状が壊れるため。
+
+        Returns:
+            クラス -> 読み込んだ件数。
+        """
+        data = torch.load(path, map_location=self.device)
+        num_joints = int(self.joint_pos.shape[-1])
+        if int(data["num_joints"]) != num_joints:
+            raise ValueError(f"{path}: 関節数が違う (ファイル {data['num_joints']}, ロープ {num_joints})")
+        loaded: dict[int, int] = {}
+        for c, entry in data["entries"].items():
+            c = int(c)
+            if c not in self.classes:
+                continue
+            root, joint = entry["root_pose"].to(self.device), entry["joint_pos"].to(self.device)
+            self.add(torch.full((root.shape[0],), c, dtype=torch.long, device=self.device), root, joint)
+            loaded[c] = int(root.shape[0])
+        return loaded
 
 
 # ---------------------------------------------------------------- 姿勢の変換 (quaternion は w, x, y, z)

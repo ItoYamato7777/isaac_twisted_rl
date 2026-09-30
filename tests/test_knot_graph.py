@@ -194,3 +194,33 @@ def test_bfs_potential_never_below_ladder(seed: int):
     ladder = tp.topology_class(reduced).float() / 3.0
     assert (pot >= ladder).all()
     assert torch.equal(pot, kg.BfsPotential()(batch))  # reduced を省略しても同じ
+
+
+# ---------------------------------------------------------------- 段 (v4)
+
+
+def test_stage_values():
+    """v4 のエージェントを分ける段。固結びへの経路上の交差数 (0 -> 1 -> 2 -> 3) に当たる。"""
+    pot = kg.BfsPotential()
+    cases = {"": 0, **{pd: 1 for pd in _R1}, **{pd: 2 for pd in _C2}, _COVER: 2, _FAKE_C2: 1}
+    cases.update({pd: 3 for pd in kg.OVERHAND_P_DATA})
+    stage = pot.stage(_from_p_data(list(cases)))
+    assert stage.dtype == torch.int64
+    assert stage.tolist() == list(cases.values())
+
+
+def test_stage_on_shapes():
+    pot = kg.BfsPotential()
+    assert pot.stage(_batch(_straight())).item() == 0
+    assert pot.stage(_batch(_independent_twists())).item() == 1
+    assert pot.stage(_batch(_trefoil())).item() == tp.STAGE_GOAL
+    assert pot.stage(_batch(_trefoil_with_tail_loop())).item() == tp.STAGE_GOAL
+
+
+@pytest.mark.parametrize("seed", range(3))
+def test_stage_matches_potential(seed: int):
+    batch = tp.segment_intersections(_random_ropes(400, seed=seed, scale=0.35))
+    pot = kg.BfsPotential()
+    stage = pot.stage(batch)
+    assert ((stage >= 0) & (stage <= tp.STAGE_GOAL)).all()
+    assert torch.allclose(stage.float() / tp.STAGE_GOAL, pot(batch))

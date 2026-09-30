@@ -12,10 +12,18 @@
 from isaaclab.envs.mdp import *  # noqa: F401, F403
 
 from .actions import PickPlaceAction, PickPlaceActionCfg  # noqa: F401
-from .archive import ResetFromArchive, log_archive_stats, record_archive  # noqa: F401
+from .archive import (  # noqa: F401
+    ResetFromArchive,
+    ResetToStage,
+    log_archive_stats,
+    log_stage_stats,
+    record_archive,
+    record_stage_archive,
+)
 from .events import bind_grasp_material, check_rope_link_order  # noqa: F401
 from .observations import *  # noqa: F401, F403
 from .phases import GraspLimits, PhaseDurations  # noqa: F401
 from .rewards import *  # noqa: F401, F403
+from .stages import current_stage, knot_stage_one_hot, stage_changed, stage_transition, stage_transition_reward  # noqa: F401
 from .terminations import *  # noqa: F401, F403
 from .topology_log import TopologyStats, log_topology_stats  # noqa: F401

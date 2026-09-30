@@ -318,6 +318,20 @@ class BfsPotential:
         ladder = topology_class(reduced_batch).float() / 3.0
         return torch.maximum(self.bfs_only(raw_batch), ladder)
 
+    def stage(self, raw_batch: IntersectionBatch, reduced_batch: IntersectionBatch | None = None) -> torch.Tensor:
+        """段 `(num_envs,)` int64 = `round(3 Φ)`。0 = 自明 〜 `STAGE_GOAL` = 固結び。v4 で追加。
+
+        v4 が「交差数ごとのエージェント」(TWISTED-RL-C) を分ける単位。固結びへの正規の経路
+        (交差 0 → 1 → 2 → 3) に対応する: 輪 1 つは 1、本物の C2 と cover 後は 2。
+        生の交差数を使わないのは、cover 後 (生 3・R2 除去後 1) や偽の C2 (生 3) が
+        固結びまでの近さと合わないため。Φ は d_max = 3 なのでちょうど k/3 の値を取る。
+        """
+        return (self(raw_batch, reduced_batch) * STAGE_GOAL).round().long()
+
+
+STAGE_GOAL = 3
+"""`BfsPotential.stage` の最上段 (固結び)。v4 のエージェントは段 0〜2 の 3 つ。"""
+
 
 _POTENTIAL_CACHE: dict[str, BfsPotential] = {}
 

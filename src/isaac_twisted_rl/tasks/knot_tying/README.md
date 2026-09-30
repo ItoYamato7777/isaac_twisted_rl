@@ -12,6 +12,7 @@ uv run train --task Isaac-Twisted-RL-Twist-v1 --headless   # 固結び (学習�
 uv run train --task Isaac-Twisted-RL-Twist-v2 --headless   # 固結び (作り直し)
 uv run train --task Isaac-Twisted-RL-Twist-v2-R2 --headless   # v2 + R2 除去で段を判定
 uv run train --task Isaac-Twisted-RL-Knot-v3 --headless    # 論文の中核を取り込んだ版 (Knot で学習)
+uv run train --task Isaac-Twisted-RL-Knot-v4 --headless    # 段ごとのエージェント + 1 遷移 = 1 エピソード
 ```
 
 | 文書 | 内容 |
@@ -35,9 +36,10 @@ uv run train --task Isaac-Twisted-RL-Knot-v3 --headless    # 論文の中核を�
 | `v2` | 固結び。到達可能な中間目標を 3 段置き、発散源だった `approach` の速度指令を消した | 6 手 | 偽の C2 に居座った | [versions/v2/README.md](versions/v2/README.md) |
 | `v2-R2` | v2 の報酬ラダーを **R2 除去後の位相**で判定する | 6 手 | 本物の C2 が稀で詰まる | [versions/v2_r2/README.md](versions/v2_r2/README.md) |
 | `v3` | 論文の中核を取り込む: **到達状態アーカイブからのリセット・固結びで終了・BFS 距離のポテンシャル** (Report §7 P1)。学習は `Knot` | 12 手 (成功で終了) | smoke test のみ | [versions/v3/README.md](versions/v3/README.md) |
+| `v4` | TWISTED-RL-C: **段 (固結びへの BFS 距離) ごとに独立したエージェント**、**1 遷移 = 1 エピソード** (+1 / 0 / −1)、段ごとのアーカイブ (台本の途中状態で初期化)。学習は `Knot` | 1 遷移 6 手 (Play は 18 手) | 未学習 | [versions/v4/README.md](versions/v4/README.md) |
 
 各バージョンには 5 つのロープのプリセットがある
-(`Twist` / `Simple` / `Stiff` / `Fine` / `Knot`)。**v2-R2 までの学習は `Twist`、v3 は `Knot`** で、
+(`Twist` / `Simple` / `Stiff` / `Fine` / `Knot`)。**v2-R2 までの学習は `Twist`、v3 / v4 は `Knot`** で、
 `Simple` / `Stiff` / `Fine` は比較用ベースライン。`Knot` は `Twist` と同じ材料で
 28 リンク (1.14 m) に延ばした固結び用で、**台本で固結びが結べることを確かめた
 唯一のプリセット** (ゲート 1。`Twist` は長さが足りない。詳細は
@@ -49,6 +51,7 @@ Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-{v0,v1}          # 20 タ
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2[-RNN|-LSTM]   # 30 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2-R2[-RNN|-LSTM]   # 30 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v3[-RNN|-LSTM]   # 30 タスク
+Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v4               # 10 タスク (MLP のみ)
 ```
 
 `v2-R2` のようにハイフンを含むバージョン表記は、パッケージ名では
@@ -61,7 +64,7 @@ v2 以降は **1 つの環境設定に対してエージェント設定が 3 つ
 
 学習ログはバージョンごと、**さらに v2 以降は変種ごと**に分かれる:
 `logs/rsl_rl/knot_tying_v0/` / `knot_tying_v1/` / `knot_tying_v2/` /
-`knot_tying_v2_rnn/` / `knot_tying_v2_lstm/` / `knot_tying_v2_r2{,_rnn,_lstm}/` / `knot_tying_v3{,_rnn,_lstm}/`。混ざっていると `--resume` で
+`knot_tying_v2_rnn/` / `knot_tying_v2_lstm/` / `knot_tying_v2_r2{,_rnn,_lstm}/` / `knot_tying_v3{,_rnn,_lstm}/` / `knot_tying_v4/`。混ざっていると `--resume` で
 誤って別バージョン・別構造のチェックポイントを読んでしまうため
 (`load_state_dict` は `strict=True` なので、構造が違えば `RuntimeError`)。
 
@@ -85,8 +88,10 @@ knot_tying/
 │   │   ├── rewards.py        報酬項
 │   │   ├── terminations.py   終了判定 (NaN 対策)
 │   │   ├── topology_log.py   位相ラダーの集計ログと Play 時の p-data 表示 (v2-R2)
-│   │   ├── archive.py        アーカイブからのリセット・保存・ログ (v3)
+│   │   ├── archive.py        アーカイブからのリセット・保存・ログ (v3、段ごとの版は v4)
+│   │   ├── stages.py         段の観測・遷移の報酬・段が変わったら終了 (v4)
 │   │   └── events.py         起動時イベント (摩擦材 bind, body 順序検算)
+│   ├── policies/           独自の方策ネットワーク (v4: 段ごとのエージェント StageGatedActorCritic)
 │   ├── topology/           3D 点列 -> 位相 (交差・p-data・結び目判定・R2 除去・BFS 距離)。
 │   │                       isaaclab を import しないので Sim 無しでテストできる
 │   ├── rope_model/         ロープの USD 生成と設定
@@ -97,7 +102,8 @@ knot_tying/
 │   ├── v1/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md, diff_to_TwistedRL.md}
 │   ├── v2/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← 3 変種
 │   ├── v2_r2/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v2 を継承、判定器だけ差し替え
-│   └── v3/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v2-R2 を継承、リセット・終了・報酬を差し替え
+│   ├── v3/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v2-R2 を継承、リセット・終了・報酬を差し替え
+│   └── v4/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v3 を継承、段ごとのエージェントと 1 遷移 = 1 エピソード
 │
 └── demos/            ← RL 環境から import されない独立スクリプト
     ├── generate_assets.py   USD 資産の生成
@@ -157,6 +163,8 @@ uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/topology_debug.py -
 uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py --task Isaac-Twisted-RL-Knot-v2-R2 --num_envs 128 --jitter 0.25 --headless
 #   同じ台本を 6 次元の行動に写して env.step() で再生する
 uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py --task Isaac-Twisted-RL-Knot-v2-R2 --num_envs 128 --jitter 0.25 --headless --replay_actions
+#   台本の途中状態を段ごとに保存する (v4 の初期アーカイブ。outputs/archive_seed/)
+uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py --task Isaac-Twisted-RL-Knot-v2-R2 --num_envs 128 --jitter 0.25 --headless --dump_archive
 ```
 
 単体テストの実行方法は、下の「開発の約束」を参照。

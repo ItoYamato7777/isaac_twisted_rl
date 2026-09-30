@@ -9,6 +9,7 @@ TWISTED-RL (itoyama_twisted_rl リポジトリ) の MuJoCo 実装を Isaac Lab �
     uv run train --task Isaac-Twisted-RL-Twist-v2 --headless   # 固結び (作り直し)
     uv run train --task Isaac-Twisted-RL-Twist-v2-R2 --headless   # v2 + R2 除去で段を判定
     uv run train --task Isaac-Twisted-RL-Knot-v3 --headless    # 論文の中核を取り込んだ版 (Knot で学習)
+    uv run train --task Isaac-Twisted-RL-Knot-v4 --headless    # 段ごとのエージェント + 1 遷移 = 1 エピソード
 
 構成と設計方針、バージョンの増やし方は `README.md` を参照。
 
@@ -33,7 +34,7 @@ import gymnasium as gym
 
 # 登録するバージョン。**新しいバージョンを足すときはここに 1 行足すだけ**
 # (`versions/vN/` に env_cfg.py と agents/ を置いたうえで)。
-_VERSIONS = ("v0", "v1", "v2", "v2-R2", "v3")
+_VERSIONS = ("v0", "v1", "v2", "v2-R2", "v3", "v4")
 
 
 def _version_package(ver: str) -> str:

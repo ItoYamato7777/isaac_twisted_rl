@@ -11,6 +11,9 @@
     # 同じ台本を学習と同じ 6 次元の行動に写して env.step() で再生する
     ... --replay_actions [--cfg "actions.pick_place.limits.drop_xy_rel_frac=0.30"]
 
+    # 各手の後の形状を段ごとに保存する (v4 の初期アーカイブ。既定のパスは v4 が読む場所)
+    ... --dump_archive
+
 出力 (既定は `outputs/overhand_script/<task>/`):
     summary.log         手ごとの位相クラス (R2 除去後) の分布・発散・最終成功率
     envs.log            環境ごと・手ごとの p-data (R2 除去前後)
@@ -107,6 +110,17 @@ parser.add_argument(
     help="環境設定の上書き (切り分け用)。'a.b.c=value;a.b.d=value' (value は Python リテラル)。",
 )
 parser.add_argument("--override", type=str, default="", help="既定パラメータの上書き。'name=value,name=value'。")
+parser.add_argument(
+    "--dump_archive",
+    type=str,
+    nargs="?",
+    const=os.path.join(_REPO_ROOT, "outputs", "archive_seed", "overhand_{num_links}links.pt"),
+    default="",
+    help=(
+        "各手の後の形状を段 (v4) ごとに保存する。v4 の初期アーカイブになる。パスを省くと v4 が既定で読む "
+        "outputs/archive_seed/overhand_{num_links}links.pt ({num_links} はリンク数に置き換える)。"
+    ),
+)
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
@@ -123,6 +137,7 @@ import torch  # noqa: E402
 
 import isaac_twisted_rl.tasks  # noqa: E402, F401
 from isaac_twisted_rl.tasks.knot_tying.common import topology as tp  # noqa: E402
+from isaac_twisted_rl.tasks.knot_tying.common import state_archive as sa  # noqa: E402
 from isaac_twisted_rl.tasks.knot_tying.common.mdp import phases  # noqa: E402
 from isaac_twisted_rl.tasks.knot_tying.common.rope_state import RopeTopologyExtractor  # noqa: E402
 from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
@@ -401,6 +416,22 @@ class ScriptRunner:
         cls = tp.topology_class(batch)
         cls_r2 = tp.topology_class(red)
         return batch, red, cls, cls_r2, self.extractor.p_data(), self.extractor.p_data_r2()
+
+    def dump(self, archive: sa.StateArchive, batch, red) -> torch.Tensor:
+        """いまの形状のうち、床に落ちていて発散していないものを段ごとに `archive` へ入れる (`--dump_archive`)。
+
+        判定は v4 の `ResetToStage.record` と同じ (段 = `BfsPotential.stage`、床 = 最高点が直径の 3 倍以下)。
+        Returns: 段 `(N,)` (入れなかった env は −1)。
+        """
+        stage = tp.get_bfs_potential(self.device).stage(batch, red)
+        links_w = self.rope.data.body_pos_w[:, self.body_index]
+        ok = torch.isfinite(links_w).all(dim=-1).all(dim=-1) & ~self.diverged
+        ok &= torch.nan_to_num(self.links()[..., 2], nan=1e9).amax(dim=1) <= 3.0 * self.diameter
+        rows = ok.nonzero(as_tuple=False).squeeze(-1)
+        if rows.numel() > 0:
+            rel = sa.to_centroid_frame(self.rope.data.root_link_pose_w[rows], links_w[rows], self.origins[rows])
+            archive.add(stage[rows], rel, self.rope.data.joint_pos[rows])
+        return torch.where(ok, stage, torch.full_like(stage, -1))
 
 
 def gather(links: torch.Tensor, ids: torch.Tensor) -> torch.Tensor:
@@ -699,6 +730,14 @@ def main():
     )
 
     runner.hold(SETTLE_TIME)
+    dump = None
+    if args_cli.dump_archive:
+        dump = sa.StateArchive(
+            classes=(0, 1, 2),
+            capacity=runner.num_envs * (args_cli.moves + 1),
+            num_joints=runner.rope.num_joints,
+            device=runner.device,
+        )
     state: dict = {}
     snaps: list[tuple[str, dict]] = []
     if args_cli.plot_ids:
@@ -728,6 +767,9 @@ def main():
         else:
             runner.execute(plan)
         batch, red, cls, cls_r2, pd, pd_r2 = runner.topology()
+        if dump is not None:
+            st = runner.dump(dump, batch, red)
+            log(f"    dump: stage hist={torch.bincount(st[st >= 0], minlength=4).tolist()} (段 3 は保存しない)")
         hist = torch.bincount(cls_r2[~runner.diverged], minlength=4).tolist()
         log(
             f"[move {k + 1} {plan.label:6s}] class_r2 hist={hist} diverged={int(runner.diverged.sum())} "
@@ -745,6 +787,12 @@ def main():
     zmax = runner.links()[..., 2].amax(dim=1)
     ok = (cls_r2 == tp.CLASS_OVERHAND) & ~runner.diverged
     snaps.append(("final", snapshot(runner, cls_r2, pd)))
+    if dump is not None:
+        runner.dump(dump, batch, red)
+        path = args_cli.dump_archive.format(num_links=runner.num_links)
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        dump.save(path)
+        log(f"[dump] {path}: 段 -> 件数 {dump.sizes()}")
     # 既定では「4 手目で C2 に達した環境」を優先して描く (5 手目の成否を見比べるため)。
     if not args_cli.plot_ids and len(snaps) >= 5:
         c2 = [e for e, c in enumerate(snaps[3][1]["cls_r2"]) if c == tp.CLASS_INTERLEAVED2]

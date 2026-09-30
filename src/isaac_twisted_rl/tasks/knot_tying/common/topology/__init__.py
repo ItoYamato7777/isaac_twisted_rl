@@ -35,7 +35,7 @@ Isaac Sim を起動せずに `pytest` 単体で検証できる。Isaac Lab の
     state_2_topology.py 交差リスト -> AbstractState -> p-data (記号層)
     polyline.py         ポリラインの前処理 (節点生成・中心寄せ・細分・再標本化)
     knot_detect.py      固結びの判定と報酬ラダーの段・R2 除去 (テンソル層のみ)
-    knot_graph.py       R1/R2/cross の位相グラフと固結びまでの BFS 距離 (v3、交差 4 個まで)
+    knot_graph.py       R1/R2/cross の位相グラフと固結びまでの BFS 距離 (v3、交差 4 個まで) と段 (v4)
 """
 
 from .intersections import (
@@ -66,6 +66,7 @@ from .knot_detect import (
 )
 from .knot_graph import (
     OVERHAND_P_DATA,
+    STAGE_GOAL,
     BfsPotential,
     batch_keys,
     distance_to_overhand,
@@ -96,6 +97,7 @@ __all__ = [
     "AbstractState",
     "BfsPotential",
     "OVERHAND_P_DATA",
+    "STAGE_GOAL",
     "CLASS_INTERLEAVED2",
     "CLASS_OVERHAND",
     "CLASS_SINGLE",

@@ -117,3 +117,43 @@ def test_random_yaw_range_and_disable():
     y = sa.random_yaw(1000, "cpu")
     assert (y.abs() <= math.pi).all() and y.std() > 1.0
     assert (sa.random_yaw(10, "cpu", enabled=False) == 0).all()
+
+
+# ---------------------------------------------------------------- ファイル (v4)
+
+
+def test_save_load_roundtrip(tmp_path):
+    arc = sa.StateArchive(classes=(0, 1, 2), capacity=8, num_joints=J, device="cpu")
+    root, jp = _states([10, 11, 12, 13, 14])
+    arc.add(torch.tensor([0, 1, 1, 2, 3]), root, jp)  # 段 3 は保存しない
+    path = str(tmp_path / "arc.pt")
+    arc.save(path)
+
+    other = sa.StateArchive(classes=(1, 2), capacity=8, num_joints=J, device="cpu")
+    other.add(torch.tensor([2]), *_states([99]))
+    loaded = other.load(path)  # 追加で読む (今ある分は消さない)。段 0 は対象外なので無視。
+    assert loaded == {1: 2, 2: 1}
+    assert other.sizes() == {1: 2, 2: 2}
+    # root_pose の 1 つ目の添字はスロット (classes の並び) で、class 1 -> 0、class 2 -> 1。
+    assert sorted(other.root_pose[0, :2, 0].tolist()) == [11.0, 12.0]
+    assert sorted(other.root_pose[1, :2, 0].tolist()) == [13.0, 99.0]
+    assert torch.equal(other.joint_pos[0, :2], other.root_pose[0, :2, 0:1].expand(-1, J))
+
+
+def test_save_writes_only_filled_entries(tmp_path):
+    arc = sa.StateArchive(classes=(1, 2), capacity=8, num_joints=J, device="cpu")
+    arc.add(torch.tensor([1]), *_states([5]))
+    data = arc.state_dict()
+    assert data["num_joints"] == J
+    assert set(data["entries"]) == {1}
+    assert data["entries"][1]["root_pose"].shape == (1, 7)
+
+
+def test_load_rejects_other_rope(tmp_path):
+    arc = sa.StateArchive(classes=(1,), capacity=4, num_joints=J, device="cpu")
+    arc.add(torch.tensor([1]), *_states([1]))
+    path = str(tmp_path / "arc.pt")
+    arc.save(path)
+    other = sa.StateArchive(classes=(1,), capacity=4, num_joints=J + 1, device="cpu")
+    with pytest.raises(ValueError, match="関節数"):
+        other.load(path)

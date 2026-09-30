@@ -59,11 +59,13 @@ rewriting the existing one, so every earlier version stays runnable and comparab
 | `v1` | tie an overhand knot | failed (sparse reward never fired) |
 | `v2` | overhand knot with a 3-step reward ladder | exploited a false intermediate state |
 | `v2-R2` | v2 with the ladder judged after Reidemeister-II reduction | stuck on the rare real intermediate state |
-| `v3` | reset from an archive of reached states, terminate on success, BFS-distance potential | latest; smoke-tested only |
+| `v3` | reset from an archive of reached states, terminate on success, BFS-distance potential | smoke-tested only |
+| `v4` | one agent per stage (TWISTED-RL-C), one topological transition per episode, stage archive seeded from the scripted knot | latest; smoke-tested only |
 
 ```bash
 uv run train --task Isaac-Twisted-RL-Twist-v0 --headless   # single crossing
-uv run train --task Isaac-Twisted-RL-Knot-v3 --headless    # latest (uses the 28-link Knot rope)
+uv run train --task Isaac-Twisted-RL-Knot-v3 --headless    # archive resets (uses the 28-link Knot rope)
+uv run train --task Isaac-Twisted-RL-Knot-v4 --headless    # latest (see versions/v4/README.md for the seed archive)
 ```
 
 Evaluate a trained policy.
@@ -71,6 +73,7 @@ Evaluate a trained policy.
 ```bash
 uv run play --task Isaac-Twisted-RL-Twist-Play-v0 --num_envs 1
 uv run play --task Isaac-Twisted-RL-Knot-Play-v3 --num_envs 1
+uv run play --task Isaac-Twisted-RL-Knot-Play-v4 --num_envs 16
 ```
 
 Grasp a rope with a parallel gripper:

@@ -73,6 +73,18 @@ def _apply_rope(cfg: KnotTyingEnvCfg, rope_name: str) -> RopeSpec:
     finger_actuator.effort_limit_sim = _FINGER_EFFORT_LIMIT
     cfg.scene.gripper = gripper_cfg
 
+    # バージョンがソルバの反復回数を指定していれば、ロープとグリッパーの両方に入れる
+    # (PhysX はシーン内の最大値で解くので片方だけでは効かない。`KnotTyingEnvCfg` の docstring)。
+    iterations = getattr(cfg, "solver_position_iterations", None)
+    if iterations is not None:
+        rope_cfg.spawn.articulation_props.solver_position_iteration_count = iterations
+        gripper_cfg.spawn.articulation_props.solver_position_iteration_count = iterations
+
+    # バージョンがロープのめり込み解消速度を指定していれば入れる (v5。`KnotTyingEnvCfg` の docstring)。
+    depenetration = getattr(cfg, "rope_max_depenetration_velocity", None)
+    if depenetration is not None:
+        rope_cfg.spawn.rigid_props.max_depenetration_velocity = depenetration
+
     # -- アクション
     cfg.actions.pick_place = PickPlaceActionCfg(
         asset_name="gripper",

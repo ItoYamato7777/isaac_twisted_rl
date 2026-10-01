@@ -153,6 +153,31 @@ class KnotTyingEnvCfg(ManagerBasedRLEnvCfg):
     バージョン側の設定からはここを通して変える (`durations` と同じ経路)。
     """
 
+    solver_position_iterations: int | None = None
+    """ロープとグリッパーの PhysX ソルバの位置反復回数の上書き。`None` なら各資産の既定値のまま。
+
+    既定値はロープ `min(32, max(16, リンク数 // 2))` (`rope_cfg.py`)、グリッパー 16。v4 で追加
+    (`None` の既定では v0〜v3 は変わらない)。`actions.pick_place` と同じく、プリセット適用
+    (`rope_task_cfg._apply_rope`) がロープとグリッパーの `articulation_props` に書き込む。
+
+    **反復回数が物理ステップの時間のほぼ全部を決める** (2026-09-30 実測、RTX 3090、`Knot`、
+    v4、ランダム方策): 1 物理ステップ ≈ 34 ms (環境数によらない固定費) + 0.019 ms x 環境数
+    (反復 16)。4096 環境のスループットは反復 16 / 8 / 4 で 47 / 87 / 144 手/s。PhysX は
+    シーン内の最大値で解くので、グリッパーだけ下げても速くならない。
+
+    Hydra の CLI からは効かない (`__post_init__` の後に上書きされるため)。CLI では
+    `env.scene.rope.spawn.articulation_props.solver_position_iteration_count=...` と
+    `env.scene.gripper.spawn.articulation_props.solver_position_iteration_count=...` を直接指定する。
+    """
+
+    rope_max_depenetration_velocity: float | None = None
+    """ロープのめり込み解消速度の上限 [m/s] の上書き。`None` なら `rope_cfg.py` の既定 (半径から
+    スケールした値。`Knot` で 0.96 m/s) のまま。v5 で追加 (`None` の既定では v0〜v4 は変わらない)。
+
+    `solver_position_iterations` と同じく、プリセット適用 (`rope_task_cfg._apply_rope`) がロープの
+    `rigid_props` に書き込む。根拠は `versions/v5/README.md` (下げると発散が減る)。
+    """
+
     actions_per_episode: int = MISSING
     """1 エピソードで打てる手の数。
 

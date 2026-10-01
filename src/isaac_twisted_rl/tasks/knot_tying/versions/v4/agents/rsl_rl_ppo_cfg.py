@@ -1,6 +1,10 @@
 """v4 の PPO ハイパーパラメータ。**方策を段ごとのエージェント (TWISTED-RL-C) にし、行動の初期 std を下げる。**
 
-PPO 本体 (γ・学習率・エポック数など) は v3 (= v2) のまま。変えたのは方策だけ:
+PPO 本体 (γ・学習率・エポック数など) は v3 (= v2) のまま。変えたのは方策と、1 iteration の手数:
+
+* `num_steps_per_env` 12 -> **4** (2026-09-30)。1 iteration が約 20 分 -> 約 3 分 (ソルバ反復の
+  削減と合わせて) になり、PPO の更新が同じ時間で約 6 倍回る。`max_iterations` は総手数が
+  v3 の既定と同じになるよう 6000。理由と実測は `../env_cfg.py` の `NUM_STEPS_PER_ENV` と README。
 
 * `policy.class_name = "StageGatedActorCritic"` (`common/policies/stage_gated.py`)。
   actor・critic・std を段 0 / 1 / 2 ごとに持ち、観測の末尾の段の one-hot で振り分ける。
@@ -21,6 +25,7 @@ from isaaclab_rl.rsl_rl import RslRlPpoActorCriticCfg
 
 from ....common.policies.stage_gated import register_with_rsl_rl
 from ...v3.agents.rsl_rl_ppo_cfg import KnotTyingPPORunnerCfg as _V3MLP
+from ..env_cfg import NUM_STEPS_PER_ENV, SAVE_INTERVAL
 
 # OnPolicyRunner の eval(class_name) から引けるようにする (stage_gated.py の docstring)。
 # この設定モジュールは gym.make / Hydra の時点で読まれ、runner を作るより必ず前に import される。
@@ -45,6 +50,14 @@ class KnotTyingPPORunnerCfg(_V3MLP):
     """v4 既定: 段ごとの MLP 方策 (`Isaac-Twisted-RL-Knot-v4`)。"""
 
     experiment_name = "knot_tying_v4"
+
+    # 1 iteration = 4096 環境 x 4 手 = 16384 手 (v3 は x 12 手 = 49152 手、約 20 分)。
+    # 環境設定の `NUM_STEPS_PER_ENV` の docstring と README の「学習速度」。
+    num_steps_per_env = NUM_STEPS_PER_ENV
+    save_interval = SAVE_INTERVAL
+    # 総手数を v3 の既定 (2000 iteration x 12 手) と揃える。
+    max_iterations = 2000 * 12 // NUM_STEPS_PER_ENV
+
     policy = StageGatedActorCriticCfg(
         init_noise_std=0.5,
         actor_obs_normalization=False,

@@ -14,6 +14,8 @@ v3 の設定クラスを **継承して差分だけ** を上書きする (ロー
    最大 6 手。報酬は +1 / 0 / −1 (`rewards.transition`)。v3 の整形・段のボーナスは外す。
 3. リセットは段ごとのアーカイブから (`events.reset_to_stage`)。ゲート 1 の台本の途中状態を
    ファイルから読み、学習中のアーカイブも `{log_dir}/archive.pt` へ書く。
+4. 学習速度 (2026-09-30): PhysX のソルバの位置反復を 16 -> 8 (`solver_position_iterations`)、
+   1 iteration の手数を 12 -> 4 (`NUM_STEPS_PER_ENV`、`agents/` が読む)。README の「学習速度」。
 
 Play は評価用の chain モード: まっすぐなロープから始め、固結び・発散・18 手でだけ終わる。
 段が上がると観測の段が変わり、次の段のエージェントに切り替わる。
@@ -41,7 +43,7 @@ from ..v3.env_cfg import EventCfg as V3EventCfg
 from ..v3.env_cfg import RewardsCfg as V3RewardsCfg
 from ..v3.env_cfg import TerminationsCfg as V3TerminationsCfg
 
-__all__ = ["GAMMA", "KnotTyingV4EnvCfg", "SEED_ARCHIVE"]
+__all__ = ["GAMMA", "NUM_STEPS_PER_ENV", "SAVE_INTERVAL", "KnotTyingV4EnvCfg", "SEED_ARCHIVE"]
 
 _STAGE_TERM = "reset_to_stage"
 """段ごとのアーカイブを持つ event 項の名前。保存 (`record_stage_archive`) とログがこれを引く。"""
@@ -55,8 +57,21 @@ SEED_ARCHIVE = str(_REPO_ROOT / "outputs" / "archive_seed" / "overhand_{num_link
 リンク数 (`Knot` は 28)。無ければ警告して空のアーカイブから始める。
 """
 
-_SAVE_EVERY = 600
-"""アーカイブをファイルへ書く間隔 [手] = 50 iteration x 12 手 (チェックポイントの間隔と同じ)。"""
+NUM_STEPS_PER_ENV = 4
+"""PPO の 1 iteration で各環境が打つ手の数 (`agents/rsl_rl_ppo_cfg.py` の `num_steps_per_env`)。
+
+v3 から引き継いだ 12 だと、既定の 4096 環境で 1 iteration = 49152 手 = 約 20 分かかり、PPO の
+更新 (1 iteration に 20 回の勾配ステップ) が 1 日に 70 回ほどしか回らなかった。環境数を減らすと
+スループットが落ちる (物理ステップの固定費が大きい。`KnotTyingEnvCfg.solver_position_iterations`)
+ので、環境数は 4096 のまま手数を減らす。v4 のエピソードは段が変われば終わる (最大 6 手) ので、
+4 手で打ち切っても GAE は次の状態の価値で bootstrap する。根拠は README の「学習速度」。
+"""
+
+SAVE_INTERVAL = 50
+"""チェックポイントを保存する間隔 [iteration] (`agents/` の `save_interval`)。"""
+
+_SAVE_EVERY = SAVE_INTERVAL * NUM_STEPS_PER_ENV
+"""アーカイブをファイルへ書く間隔 [手] = チェックポイントの間隔 (50 iteration x 4 手 = 200 手)。"""
 
 _SETTLE = {"settled_height_diameters": 3.0, "rope_diameter": MISSING, "diverged_term": _DIVERGED_TERM}
 """段が変わったとみなす条件 (床に落ちていて発散していない)。報酬・終了・保存で揃える。"""
@@ -172,6 +187,26 @@ class KnotTyingV4EnvCfg(KnotTyingV3EnvCfg):
     TWISTED-RL の移植元コードは 7 手、3-Easy の成功例は 1 遷移あたり平均 2.5 手。ゲート 1 の
     台本は段 0→1 に 2 手 (slack, loop)、1→2 に 2 手 (tail, cover)、2→3 に 1 手 (tuck)。
     把持のやり直しを含めても届き、発散 (1 手あたり約 3%) に巻き込まれにくい長さにした。
+    """
+
+    solver_position_iterations: int = 8
+    """ロープとグリッパーの PhysX ソルバの位置反復 (v3 まではロープ・グリッパーとも 16)。
+
+    2026-09-30 実測 (ゲート 1 の台本を 6 次元の行動で再生、256 環境、±25%、seed 0):
+
+    | 反復 | 固結び | 発散 | ランダム方策の発散 / 手 | 4096 環境のスループット |
+    |---|---|---|---|---|
+    | 32 | 177 | 21 | — | — |
+    | 16 (v3) | 142 | 23 | 8.5% | 47 手/s |
+    | 12 | 54 | 51 | 9.2% | — |
+    | **8** | **246** | **2** | **11.3%** | **87 手/s** |
+    | 4 | 227 | 4 | 21.8% | 144 手/s |
+
+    台本 (滑らかな手) では 8 が 3 シードとも最良。ランダムな手では反復が少ないほど発散が増え、
+    6 以下で急増する。減らすとロープが自分をすり抜けるのではないかは、毎物理ステップの
+    カプセル同士のめり込み深さで確かめた (半径を超えるめり込みは 8 で 1〜3 環境、16 で 3〜4)。
+    **反復と成否の関係は単調ではない** (12 が最悪) ので、変えるときは測り直すこと。
+    詳細と学習での比較は README の「学習速度」。
     """
 
 

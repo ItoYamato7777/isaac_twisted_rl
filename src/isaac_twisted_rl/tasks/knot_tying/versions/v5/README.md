@@ -19,7 +19,9 @@ v3 の最初の学習 (`../v3/Result_report_v3.md`) では、1 手あたり 5〜
 |---|---|---|---|
 | 離すときの指先の高さ (`drop_z` チャネル) | 床上 2 mm〜62 mm | **床上 50〜100 mm** (`GraspLimits.release_tip_z`) | 低く離す手ほど発散する (下の「発散の内訳」)。床すれすれで離すと、掴んだ紐を床や下の紐へ押し込む |
 | ロープのめり込み解消速度の上限 | 0.96 m/s (`rope_cfg.py` の既定) | **0.4 m/s** (`KnotTyingEnvCfg.rope_max_depenetration_velocity`) | 指や紐どうしが食い込んだときに紐が弾き出されて暴れるのを抑える。0.3 以下は把持が崩れ始める |
-| それ以外 (尺・置き先の範囲・ソルバ・報酬・PPO) | | v3 のまま | |
+| PhysX ソルバの位置反復 | 16 | **8** (`KnotTyingEnvCfg.solver_position_iterations`) | v4 (4115db4) と同じ学習速度の改善。下の「試した対策」では乱数の手でこの変更単体は不採用だったが、速度改善 (約2倍) を優先して採用した |
+| 1 iteration の手数 (`num_steps_per_env`) | 12 | **4** (`agents/`) | 同上。`max_iterations` も総手数が揃うよう 2000 -> 6000 |
+| それ以外 (尺・置き先の範囲・報酬) | | v3 のまま | |
 
 共有層の変更はすべて **追加** (既定値なら v0〜v4 の挙動は変わらない):
 `GraspLimits.release_tip_z` / `grasp_clearance` / `grasp_obstacle_min_z`、`KnotTyingEnvCfg.rope_max_depenetration_velocity`、
@@ -154,6 +156,9 @@ v5 の設定では、台本の手が高いところで離すように変わる (
 ## 学習での確認 (2026-10-01、iteration 0〜9)
 
 v3 と v5 を同じ条件 (`Knot`、4096 環境、seed 42、cuda:0) で学習し、最初の 10 iteration を比べた。
+この比較は v4 (4115db4) の学習速度の改善 (ソルバ反復 16 -> 8、`num_steps_per_env` 12 -> 4) を
+v5 に足す**前**の run なので、`num_steps_per_env` は両方とも 12、1 iteration の時間もその設定の値。
+現在の既定 (v5 も反復 8・4 手) での学習速度の比較は未計測。
 
 * v3: `logs/rsl_rl/knot_tying_v3/2026-10-01_10-43-15_v3_newbuf_10it` (現在の HEAD = 新しい接触バッファ)
 * v5: `logs/rsl_rl/knot_tying_v5/2026-10-01_06-45-23_v5_20it` (20 iteration の予定を 14 で止めた)

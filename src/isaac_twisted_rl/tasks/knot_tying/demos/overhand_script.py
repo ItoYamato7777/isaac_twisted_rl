@@ -590,7 +590,12 @@ def plan_to_action(plan: MovePlan, runner: ScriptRunner) -> tuple[torch.Tensor, 
     a23 = need[rows, best]
     xy_clip = a23.abs().amax(dim=-1) > 1.0
 
-    a4 = 2.0 * (plan.place_z - phases.GRASP_PALM_Z) / term._drop_z_max - 1.0
+    if term._release_tip_z is None:
+        a4 = 2.0 * (plan.place_z - phases.GRASP_PALM_Z) / term._drop_z_max - 1.0
+    else:
+        # v5: ch4 は離すときの指先の高さ [下限, 上限]。台本の置く高さが下限より低ければクリップされる
+        lo, hi = term._release_tip_z
+        a4 = 2.0 * (plan.place_z - phases.FINGER_TIP_OFFSET_Z - lo) / max(hi - lo, 1e-6) - 1.0
     a5 = runner.tangent_yaw(links, g) / math.pi
     act = torch.stack([a0, a1, a23[:, 0], a23[:, 1], a4, a5], dim=-1)
     info = {

@@ -86,7 +86,7 @@ self.episode_length_s = self.actions_per_episode * self.decimation * self.sim.dt
 | 1 | `delta_link` | 置き先までのリンク差 | 離散 `{-8, ..., +8}`。`target = clip(grasp + Δ, 0, N-1)` |
 | 2 | `drop_x_rel` | 置き先の x 変位 | target リンクの**現在位置**からの相対値。±0.15 L (v3 は ±0.30 L。L = ロープ全長) |
 | 3 | `drop_y_rel` | 同 y | 同上 |
-| 4 | `drop_z_rel` | 置く高さ | 把持高さからの上乗せ、0〜3×ロープ直径 |
+| 4 | `drop_z_rel` | 置く高さ | 把持高さからの上乗せ、0〜3×ロープ直径 (指先が床上 2〜62 mm)。v5 は離すときの指先の高さ 50〜100 mm (`GraspLimits.release_tip_z`) |
 | 5 | `end_yaw` | 置き終わりの手首角度 | ±π |
 
 範囲は `GraspLimits` (`mdp/phases.py`) が持ち、バージョン側は `KnotTyingEnvCfg.grasp_limits` で変える。

@@ -68,6 +68,7 @@ from isaaclab.utils import configclass
 
 from ..rope_state import resolve_rope_bodies
 from . import phases
+from .finger_geometry import finger_footprint_top, rope_sample_points
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -85,7 +86,8 @@ class PickPlaceAction(ActionTerm):
     1    `delta_link`      `{-8, ..., +8}` の離散。target = clip(grasp+Δ)
     2    `drop_x_rel`      target リンクの現在位置からの x 変位 (±0.15 L)
     3    `drop_y_rel`      同 y
-    4    `drop_z_rel`      置く高さ (0 〜 3 ロープ直径ぶん上乗せ)
+    4    `drop_z_rel`      置く高さ (0 〜 3 ロープ直径ぶん上乗せ。v5 は指先の高さ
+                           `GraspLimits.release_tip_z` の範囲)
     5    `end_yaw`         置き終わりの手首 yaw (±π)
     ===  ================  ===============================================
 
@@ -129,6 +131,9 @@ class PickPlaceAction(ActionTerm):
         self._drop_xy_max = lim.drop_xy_rel_frac * self._rope_length
         self._drop_z_max = lim.drop_z_diameters * self._diameter
         self._clear_dist = lim.clear_diameters * self._diameter
+        self._release_tip_z = lim.release_tip_z
+        self._grasp_clearance = lim.grasp_clearance
+        self._grasp_obstacle_min_z = lim.grasp_obstacle_min_z
         self._max_delta = lim.max_delta_link
         # 端ちょうどは滑るので掴める範囲を内側に寄せる (デモと同じ理由)。
         self._grasp_lo = lim.edge_margin
@@ -158,6 +163,8 @@ class PickPlaceAction(ActionTerm):
         self._clear_pos = torch.zeros(num_envs, 3, device=dev)
         self._grasp_yaw = torch.zeros(num_envs, device=dev)
         self._end_yaw = torch.zeros(num_envs, device=dev)
+        # 掴むときの手のひらの高さ (env 原点基準)。従来は常に GRASP_PALM_Z (`_grasp_height`)。
+        self._grasp_palm_z = torch.full((num_envs,), phases.GRASP_PALM_Z, device=dev)
         # ハンドの現在指令位置。次の手の approach の始点になる。
         self._hand_pos = torch.zeros(num_envs, 3, device=dev)
         self._hand_yaw = torch.zeros(num_envs, device=dev)
@@ -177,6 +184,21 @@ class PickPlaceAction(ActionTerm):
         # 書き込み用バッファ。毎ステップ確保し直さないよう使い回す。
         self._root_pose = torch.zeros(num_envs, 7, device=dev)
         self._root_vel = torch.zeros(num_envs, 6, device=dev)
+
+        # -- 診断 (`cfg.diag`)。発散がどのフェーズで始まるかを調べる計測用 (`demos/divergence_bench.py`)。
+        self._diag = cfg.diag
+        if self._diag:
+            self._diag_vmax = torch.zeros(num_envs, phases.NUM_PHASES, device=dev)
+            self._diag_first_bad = torch.full((num_envs,), -1, dtype=torch.long, device=dev)
+            self._diag_prev_phase = torch.full((num_envs,), -1, dtype=torch.long, device=dev)
+            self._diag_held = torch.zeros(num_envs, dtype=torch.bool, device=dev)
+            self._diag_grasp_link_z = torch.zeros(num_envs, device=dev)
+            self._diag_grasp_top = torch.zeros(num_envs, device=dev)
+            self._diag_grasp_top_stacked = torch.zeros(num_envs, device=dev)
+            self._diag_place_under = torch.zeros(num_envs, device=dev)
+            self._diag_carry_dist = torch.zeros(num_envs, device=dev)
+            self._diag_yaw_turn = torch.zeros(num_envs, device=dev)
+            self._diag_release_tip_z = torch.zeros(num_envs, device=dev)
 
         self._initialised = False
 
@@ -255,6 +277,36 @@ class PickPlaceAction(ActionTerm):
         """ロープ座標が NaN で手を実行できなかった環境 `(num_envs,)`。"""
         return self._invalid
 
+    @property
+    def diagnostics(self) -> dict[str, torch.Tensor]:
+        """直前の 1 手の診断値 (`cfg.diag=True` のときだけ)。次の `process_actions` で消える。
+
+        * `phase_vmax` `(N, NUM_PHASES)`: フェーズごとのロープのリンク速度の最大値 [m/s]
+        * `first_bad_phase` `(N,)`: 速度が `diag_speed_limit` を超えた / NaN になった最初のフェーズ (無ければ −1)
+        * `held` `(N,)`: carry の終わりに掴んだリンクが床から 5 cm 以上持ち上がっていたか
+        * `grasp_link_z` / `grasp_top` / `place_under` `(N,)` [m]: 手を始めた時点の、掴むリンクの高さ・
+          指の真下の紐の最高点 (`finger_footprint_top`)・置き先の真下の紐の最高点 (掴んだ側 ±3 リンクを除く)
+        * `grasp_top_stacked` `(N,)` [m]: `grasp_top` のうち、中心が半径の 1.5 倍より高い (別の紐に乗った) 紐だけで測ったもの
+        * `carry_dist` [m] / `yaw_turn` [rad] / `release_tip_z` [m]: 運搬の水平距離・運搬中に回す手首の角度・
+          離すときの指先の高さ (env 原点基準)
+
+        `processed_actions` などと違い、発散で reset されても消えない (発散した手の値を読めるように)。
+        """
+        if not self._diag:
+            return {}
+        return {
+            "phase_vmax": self._diag_vmax,
+            "first_bad_phase": self._diag_first_bad,
+            "held": self._diag_held,
+            "grasp_link_z": self._diag_grasp_link_z,
+            "grasp_top": self._diag_grasp_top,
+            "grasp_top_stacked": self._diag_grasp_top_stacked,
+            "place_under": self._diag_place_under,
+            "carry_dist": self._diag_carry_dist,
+            "yaw_turn": self._diag_yaw_turn,
+            "release_tip_z": self._diag_release_tip_z,
+        }
+
     # ------------------------------------------------------------------ 本体
     def process_actions(self, actions: torch.Tensor):
         """1 手ぶんの指示を解釈し、フェーズ列の最初 (`approach`) を組み立てる。
@@ -282,12 +334,18 @@ class PickPlaceAction(ActionTerm):
         grasp_pos = self._gather_links(link_pos, self._grasp_id)  # (num_envs, 3)
         self._grasp_xy = grasp_pos[:, :2]
         self._grasp_yaw = self._tangent_yaw(link_pos, self._grasp_id)
+        self._grasp_palm_z = self._grasp_height(link_pos, grasp_pos)
 
         # -- 置く先 = target リンクの現在位置 + 相対変位
         target_pos = self._gather_links(link_pos, self._target_id)
         place_xy = target_pos[:, :2] + act[:, 2:4] * self._drop_xy_max
-        # ch4: [-1,1] -> [0, 3 直径]。置く高さは把持高さからの上乗せ。
-        place_z = phases.GRASP_PALM_Z + (act[:, 4] + 1.0) * 0.5 * self._drop_z_max
+        if self._release_tip_z is None:
+            # ch4: [-1,1] -> [0, 3 直径]。置く高さは把持高さからの上乗せ。
+            place_z = phases.GRASP_PALM_Z + (act[:, 4] + 1.0) * 0.5 * self._drop_z_max
+        else:
+            # ch4: [-1,1] -> 離すときの指先の高さ [下限, 上限] (v5。GraspLimits.release_tip_z)
+            lo, hi = self._release_tip_z
+            place_z = lo + (act[:, 4] + 1.0) * 0.5 * (hi - lo) + phases.FINGER_TIP_OFFSET_Z
         self._place_pos = torch.cat([place_xy, place_z.unsqueeze(-1)], dim=-1)
 
         # -- ch5: 置き終わりの手首 yaw
@@ -326,6 +384,8 @@ class PickPlaceAction(ActionTerm):
         self._reduced_batch_at_start = None
         self._class_r2_at_start = None
         self._grasp_dist = torch.zeros_like(self._grasp_dist)
+        if self._diag:
+            self._diag_begin_move(link_pos)
 
         # -- フェーズ列を先頭から始める
         self._phase[:] = phases.APPROACH
@@ -339,6 +399,8 @@ class PickPlaceAction(ActionTerm):
             # approach 始点がゼロベクトルだとハンドが原点へ飛ぶため。
             self._sync_hand_from_sim()
             self._initialised = True
+        if self._diag:
+            self._diag_step()
 
         dur = self._phase_steps[self._phase].clamp_min(1)  # (num_envs,)
         u = ((self._phase_step + 1).float() / dur.float()).clamp(0.0, 1.0)
@@ -371,6 +433,12 @@ class PickPlaceAction(ActionTerm):
             closing = done & (self._phase == phases.CLOSE)
             if closing.any():
                 self._record_grasp_distance(closing)
+            if self._diag:
+                carried = done & (self._phase == phases.CARRY)
+                if carried.any():
+                    z = self._gather_links(self._rope_link_positions(), self._grasp_id)[:, 2]
+                    z = z - self._env.scene.env_origins[:, 2]
+                    self._diag_held = torch.where(carried, torch.nan_to_num(z, nan=0.0) > 0.05, self._diag_held)
 
             # 「最終フェーズを終えた」判定は **フェーズを進める前** に取る。
             # 進めた後の `_phase >= RELAX` で判定すると、retreat から relax へ
@@ -446,7 +514,7 @@ class PickPlaceAction(ActionTerm):
         gx, gy = self._grasp_xy[idx, 0], self._grasp_xy[idx, 1]
         base_z = origins[:, 2]
         above = torch.stack([gx, gy, base_z + phases.HOME_PALM_Z], dim=-1)
-        grasp = torch.stack([gx, gy, base_z + phases.GRASP_PALM_Z], dim=-1)
+        grasp = torch.stack([gx, gy, base_z + self._grasp_palm_z[idx]], dim=-1)
         lift = torch.stack([gx, gy, base_z + phases.CARRY_PALM_Z], dim=-1)
         place = self._place_pos[idx].clone()
         place[:, 2] += base_z
@@ -549,6 +617,63 @@ class PickPlaceAction(ActionTerm):
         delta = self._gather_links(link_pos, hi) - self._gather_links(link_pos, lo)
         return torch.atan2(delta[:, 1], delta[:, 0])
 
+    def _grasp_height(self, link_pos: torch.Tensor, grasp_pos: torch.Tensor) -> torch.Tensor:
+        """掴むときの手のひらの高さ `(num_envs,)` (env 原点基準)。
+
+        既定 (`grasp_clearance=None`) は常に `GRASP_PALM_Z` (指先が床上 2 mm)。v5 の発散対策
+        (`GraspLimits.grasp_clearance` の docstring) では、開いた指の真下に浮いた紐があると、
+        その上端 + `grasp_clearance` より下へは指先を降ろさない。
+        """
+        palm = torch.full_like(grasp_pos[:, 0], phases.GRASP_PALM_Z)
+        if self._grasp_clearance is None:
+            return palm
+        origins = self._env.scene.env_origins
+        pts, _ = rope_sample_points(link_pos - origins.unsqueeze(1))
+        r = 0.5 * self._diameter
+        top = finger_footprint_top(
+            pts, grasp_pos[:, :2] - origins[:, :2], self._grasp_yaw, r, min_z=self._grasp_obstacle_min_z
+        )
+        tip = torch.where(top > 0.0, top + self._grasp_clearance, palm - phases.FINGER_TIP_OFFSET_Z)
+        palm = torch.maximum(palm, tip + phases.FINGER_TIP_OFFSET_Z)
+        return torch.nan_to_num(palm, nan=phases.GRASP_PALM_Z)
+
+    def _diag_begin_move(self, link_pos: torch.Tensor):
+        """診断: 手を始める時点の幾何 (掴む点・置き先の真下の紐) を控え、フェーズごとの記録を消す。"""
+        rel = link_pos - self._env.scene.env_origins.unsqueeze(1)
+        pts, coord = rope_sample_points(rel)
+        r = 0.5 * self._diameter
+        self._diag_grasp_link_z = self._gather_links(rel, self._grasp_id)[:, 2]
+        grasp_xy = self._grasp_xy - self._env.scene.env_origins[:, :2]
+        self._diag_grasp_top = finger_footprint_top(pts, grasp_xy, self._grasp_yaw, r)
+        self._diag_grasp_top_stacked = finger_footprint_top(pts, grasp_xy, self._grasp_yaw, r, min_z=1.5 * r)
+        # 置き先の真下: 掴んだ側 (±3 リンク) を除いた点のうち、置き先から xy で直径以内のもの
+        place_xy = self._place_pos[:, :2] - self._env.scene.env_origins[:, :2]
+        near = (pts[..., :2] - place_xy.unsqueeze(1)).norm(dim=-1) <= self._diameter
+        far_from_grasp = (coord.unsqueeze(0) - self._grasp_id.unsqueeze(1).float()).abs() > 3.0
+        under = torch.where(near & far_from_grasp, pts[..., 2] + r, torch.zeros_like(pts[..., 2]))
+        self._diag_place_under = torch.nan_to_num(under, nan=0.0).amax(dim=1)
+        self._diag_release_tip_z = self._place_pos[:, 2] - phases.FINGER_TIP_OFFSET_Z
+        # 運搬の距離と、運搬中に回す手首の角度 (最短回り)
+        self._diag_carry_dist = (self._place_pos[:, :2] - self._grasp_xy).norm(dim=-1)
+        self._diag_yaw_turn = (torch.remainder(self._end_yaw - self._grasp_yaw + math.pi, 2.0 * math.pi) - math.pi).abs()
+        self._diag_vmax.zero_()
+        self._diag_first_bad.fill_(-1)
+        self._diag_prev_phase.fill_(-1)
+        self._diag_held.zero_()
+
+    def _diag_step(self):
+        """診断: 直前の物理ステップの結果 (ロープの最大速度) を、そのステップのフェーズに付ける。"""
+        rows = (self._diag_prev_phase >= 0).nonzero(as_tuple=False).squeeze(-1)
+        if rows.numel() > 0:
+            vel = self._rope.data.body_lin_vel_w[rows][:, self._rope_body_index]
+            speed = torch.nan_to_num(vel.norm(dim=-1), nan=float("inf")).amax(dim=-1)
+            ph = self._diag_prev_phase[rows]
+            cur = self._diag_vmax[rows, ph]
+            self._diag_vmax[rows, ph] = torch.maximum(cur, speed.clamp(max=1.0e6))
+            bad = (speed > self.cfg.diag_speed_limit) & (self._diag_first_bad[rows] < 0)
+            self._diag_first_bad[rows] = torch.where(bad, ph, self._diag_first_bad[rows])
+        self._diag_prev_phase = self._phase.clone()
+
     def _record_grasp_distance(self, mask: torch.Tensor):
         """指先と狙ったリンクの距離を記録する (整形報酬用)。"""
         link_pos = self._rope_link_positions()
@@ -606,3 +731,9 @@ class PickPlaceActionCfg(ActionTermCfg):
 
     limits: phases.GraspLimits = phases.GraspLimits()
     """アクションのチャネルを物理量へ変換するときの範囲。"""
+
+    diag: bool = False
+    """診断値 (`PickPlaceAction.diagnostics`) を記録するか。計測スクリプト用で、学習では使わない。"""
+
+    diag_speed_limit: float = 20.0
+    """診断で「速度が破綻した」とみなすリンク速度 [m/s]。v2-R2 の発散判定 (`_MAX_LINK_SPEED`) と同じ値。"""

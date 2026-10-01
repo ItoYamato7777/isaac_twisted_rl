@@ -35,7 +35,8 @@ Isaac Sim を起動せずに `pytest` 単体で検証できる。Isaac Lab の
     state_2_topology.py 交差リスト -> AbstractState -> p-data (記号層)
     polyline.py         ポリラインの前処理 (節点生成・中心寄せ・細分・再標本化)
     knot_detect.py      固結びの判定と報酬ラダーの段・R2 除去 (テンソル層のみ)
-    knot_graph.py       R1/R2/cross の位相グラフと固結びまでの BFS 距離 (v3、交差 4 個まで) と段 (v4)
+    knot_graph.py       R1/R2/cross の位相グラフと固結びまでの BFS 距離 (v3、交差 4 個まで) と段 (v4)、最短の次の辺 (v6)
+    next_edge.py        次にたどる辺のリンクマスク (v6。テンソル層)
 """
 
 from .intersections import (
@@ -65,9 +66,15 @@ from .knot_detect import (
     topology_class,
 )
 from .knot_graph import (
+    MOVE_CROSS,
+    MOVE_END_CROSS,
+    MOVE_NAMES,
+    MOVE_R1,
+    MOVE_R2,
     OVERHAND_P_DATA,
     STAGE_GOAL,
     BfsPotential,
+    GraphEdge,
     batch_keys,
     distance_to_overhand,
     enumerate_graph,
@@ -75,7 +82,11 @@ from .knot_graph import (
     p_data_key,
     p_data_to_lists,
     potential_table,
+    remove_crossing,
+    shortest_edges,
 )
+from .next_edge import RULES as NEXT_EDGE_RULES
+from .next_edge import NextEdgeTable, feature_dim, get_next_edge_table, point_links
 from .polyline import (
     center_xy,
     polyline_from_link_centers,
@@ -96,6 +107,14 @@ from .state_2_topology import (
 __all__ = [
     "AbstractState",
     "BfsPotential",
+    "GraphEdge",
+    "MOVE_CROSS",
+    "MOVE_END_CROSS",
+    "MOVE_NAMES",
+    "MOVE_R1",
+    "MOVE_R2",
+    "NEXT_EDGE_RULES",
+    "NextEdgeTable",
     "OVERHAND_P_DATA",
     "STAGE_GOAL",
     "CLASS_INTERLEAVED2",
@@ -118,7 +137,9 @@ __all__ = [
     "crossing_positions",
     "distance_to_overhand",
     "enumerate_graph",
+    "feature_dim",
     "get_bfs_potential",
+    "get_next_edge_table",
     "has_duplicate_segments",
     "has_knot_subsequence",
     "intersections_to_topology",
@@ -128,14 +149,17 @@ __all__ = [
     "p_data_key",
     "p_data_to_lists",
     "partner_gaps",
+    "point_links",
     "polyline_from_link_centers",
     "polyline_to_p_data",
     "polyline_to_topology",
     "potential_table",
     "r2_removed_count",
     "reduce_r2",
+    "remove_crossing",
     "resample_polyline",
     "segment_intersections",
+    "shortest_edges",
     "sign_consistent",
     "subdivide_segments",
     "subsequence_truncated",

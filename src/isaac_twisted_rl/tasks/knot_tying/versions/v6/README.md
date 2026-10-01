@@ -1,11 +1,16 @@
-# v6: v5 + 次にたどる位相の辺のリンクマスク (観測)
+# v6: v5 (v4 ベース) + 次にたどる位相の辺のリンクマスク (観測)
 
 ```bash
-uv run train --task Isaac-Twisted-RL-Knot-v6 --headless          # MLP (学習はこれ)
-uv run play  --task Isaac-Twisted-RL-Knot-Play-v6 --num_envs 1   # まっすぐなロープから評価
+uv run train --task Isaac-Twisted-RL-Knot-v6 --headless           # 段ごとの MLP (学習はこれ)
+uv run play  --task Isaac-Twisted-RL-Knot-Play-v6 --num_envs 16   # まっすぐなロープから段をつないで評価 (chain モード)
 ```
 
-ログ: `logs/rsl_rl/knot_tying_v6{,_rnn,_lstm}/`。**学習には `Knot` プリセットを使う** (v3 / v5 と同じ)。
+ログ: `logs/rsl_rl/knot_tying_v6/`。**学習には `Knot` プリセットを使う** (v3〜v5 と同じ)。
+
+土台の v5 は、v4 (段ごとのエージェント `StageGatedActorCritic`・1 遷移 = 1 エピソード・段ごとのアーカイブ・
+観測末尾の段の one-hot) に pick&place の発散対策を足した版 (`../v5/README.md`)。v5 を v3 ベースから v4 ベースに
+作り直したのに合わせて (2026-10-01)、v6 も観測の並び・報酬・ログ・Play をそれに追従させた。GRU / LSTM 版は
+v5 と同じく無い。
 
 ## なぜ作ったか
 
@@ -13,7 +18,7 @@ TWISTED-RL は下位の方策に「次にたどる高レベルの辺」を固定
 (公開コード `exploration/preprocessing/preprocessor.py` の `preprocess_high_level_action`): under 区間と
 over 区間のリンクの 0/1 マスク、`[left, over_first, over_before_under, sign]`、移動の種類。
 
-v5 の観測 (`Knot` で 129 次元) にはリンク位置・交差特徴 (点の番号のみ)・段があるが、「区間 k がどの
+v5 の観測 (`Knot` で 133 次元) にはリンク位置・交差特徴 (点の番号のみ)・段があるが、「区間 k がどの
 リンクか」は無い。方策は、輪や先端がどのリンクかをリンク位置から自力で見つける必要があった。
 v6 はこれを観測に足す。**変えた変数はこれ 1 つだけ** (報酬・終了・アーカイブ・PPO・行動は v5 のまま)。
 
@@ -21,12 +26,16 @@ v6 はこれを観測に足す。**変えた変数はこれ 1 つだけ** (報�
 
 | 項目 | v5 | v6 | 理由 |
 |---|---|---|---|
-| 観測 `policy` (critic も同じ) | 129 次元 | **193 次元**: 末尾に `next_edge` (64) | 上の「なぜ作ったか」。末尾に置くのは既存の項の位置を変えないため |
+| 観測 `policy` (critic も同じ) | 133 次元 (末尾 4 が段の one-hot) | **197 次元**: 段の one-hot の **直前** に `next_edge` (64) | 上の「なぜ作ったか」。段の one-hot を末尾に残すのは、`StageGatedActorCritic` が末尾 4 列で段のエージェントを選ぶため (`next_edge` を最後に置くと、マスクの末尾を段と読んで振り分けが壊れる)。v2-R2 の項の位置は v5 と同じ |
 | ログ | | `next_edge_stats` (報酬項・常に 0) と `next_edge_log` (カリキュラム項) | 方策がマスクを使っているかを見るため (下の「見るべき指標」)。報酬の値は変わらない |
 | 報酬・終了・アーカイブ・PPO・行動 | | v5 のまま | 1 版 1 変数 |
 
 観測の次元が変わるので、**v5 のチェックポイントからは `--resume` で暖機開始できない**
-(`load_state_dict` は strict で、入力層の形が合わない)。`Twist` (20 リンク) では 105 + 48 = 153 次元。
+(`load_state_dict` は strict で、入力層の形が合わない)。`Twist` (20 リンク) では 105 + 48 + 4 = 157 次元。
+
+`env_cfg.py` の `ObservationsCfg` は v5 (= v4) のものではなく v2-R2 のものを継承し、`next_edge` -> `knot_stage` の
+順に宣言している。v4 の `PolicyCfg` を継承して `next_edge` を足すと、継承した `knot_stage` より後ろに並ぶため
+(dataclass のフィールドは上書きしても基底の位置に残る)。
 
 ### `next_edge` の中身 (`common/mdp/observations.py` の `NextEdgeGoal`)
 
@@ -117,7 +126,10 @@ observation.reset -> action.reset (invalidate_extractor)` の順で、観測の�
 | 6 | 本物の C2 -> 固結び | 頭の端の `cross(0, 2)`。C2 の端の区間は頭 3 本・尻尾 4 本 (中央値) と近く、頭の端のほうが長い環境がある。選んだ辺も固結び (逆の走査方向) に着く |
 | 1 | cover 後 -> 輪 | 尻尾の置き直し。cover が崩れた失敗 |
 
-## 動作確認 (2026-10-01、`Knot`、RTX 3090 1 枚)
+## 動作確認 (2026-10-01、`Knot`、RTX 3090 1 枚、**v3 ベースだったときの v6**)
+
+この節は v5 / v6 を v4 ベースに作り直す前の確認 (観測は 129 + 64 = 193 次元、報酬・終了は v3) で、
+今の v6 (197 次元、段ごとのエージェント) ではまだ回していない。
 
 | 項目 | 結果 |
 |---|---|
@@ -130,8 +142,8 @@ observation.reset -> action.reset (invalidate_extractor)` の順で、観測の�
 
 ## 見るべき指標
 
-* 主指標は v5 と同じ **`Curriculum/archive_log/scratch_success`** (まっすぐなロープから始めて固結びで
-  終わったエピソードの割合)。
+* 主指標は v5 (= v4) と同じ **`Curriculum/stage_log/success_s{k}` と `chain_est`**、Play (chain モード) では
+  `Episode_Termination/stage_up` (まっすぐなロープから固結びに達した割合)。v5 の同じ時刻の値と比べる。
 * `Curriculum/next_edge_log/*` (1 手あたり・全環境平均。`reached` 〜 `invalid` の 6 つは足すと 1):
 
 | key | 意味 |

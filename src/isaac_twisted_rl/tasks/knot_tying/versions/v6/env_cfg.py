@@ -1,15 +1,17 @@
 """v6: v5 に「次にたどる位相の辺」のリンクマスクを観測として足した版。
 
     uv run train --task Isaac-Twisted-RL-Knot-v6 --headless
-    uv run play  --task Isaac-Twisted-RL-Knot-Play-v6 --num_envs 1
+    uv run play  --task Isaac-Twisted-RL-Knot-Play-v6 --num_envs 16
 
 v5 から何を・なぜ変えたかは `README.md`。ここは「何を配線したか」だけを書く。
 
-v5 の設定クラスを **継承して、観測だけ** を変える (1 版 1 変数)。報酬・終了・アーカイブ・
-PPO・行動は v5 のまま:
+v5 (= v4 の段ごとのエージェント・1 遷移 = 1 エピソード + 発散対策) の設定クラスを **継承して、
+観測だけ** を変える (1 版 1 変数)。報酬・終了・段ごとのアーカイブ・PPO・行動・Play (chain モード)
+は v5 のまま:
 
-1. 観測 `policy` の末尾に `next_edge` (`mdp.NextEdgeGoal`、`Knot` で 64 次元) を足す。critic も
-   `policy` グループを見る (`../v2/agents/rsl_rl_ppo_cfg.py` の `_OBS_GROUPS`) ので両方に入る。
+1. 観測 `policy` の **段の one-hot の直前** に `next_edge` (`mdp.NextEdgeGoal`、`Knot` で 64 次元) を
+   足す。段の one-hot は末尾に残す (`StageGatedActorCritic` が末尾 4 列で段のエージェントを選ぶため)。
+   critic も `policy` グループを見る (`../v2/agents/rsl_rl_ppo_cfg.py` の `_OBS_GROUPS`) ので両方に入る。
 2. ログ用に、常に 0 を返す報酬項 `next_edge_stats` (`mdp.NextEdgeStats`) と、それを
    TensorBoard へ流すカリキュラム項 `next_edge_log` を足す。報酬の値は変わらない
    (`topology_stats` と同じ仕組み)。
@@ -29,10 +31,10 @@ from ...common import mdp
 from ...common.rope_task_cfg import make_preset_cfgs
 from ..v2_r2.env_cfg import _DIVERGED_TERM
 from ..v2_r2.env_cfg import ObservationsCfg as V2R2ObservationsCfg
-from ..v3.env_cfg import CurriculumCfg as V3CurriculumCfg
-from ..v3.env_cfg import RewardsCfg as V3RewardsCfg
-from ..v3.env_cfg import _play_post_init as _v3_play_post_init
+from ..v5.env_cfg import CurriculumCfg as V5CurriculumCfg
 from ..v5.env_cfg import KnotTyingV5EnvCfg
+from ..v5.env_cfg import RewardsCfg as V5RewardsCfg
+from ..v5.env_cfg import _play_post_init as _v5_play_post_init
 
 __all__ = ["NEXT_EDGE_RULE", "KnotTyingV6EnvCfg"]
 
@@ -49,27 +51,34 @@ R1 > R2 > 複合 > cross、さらに同点なら列挙順)。ゲート 1 の台�
 
 @configclass
 class ObservationsCfg(V2R2ObservationsCfg):
-    """観測。v5 (= v2-R2) の並びの **末尾** に `next_edge` を足す。"""
+    """観測。v2-R2 の並び + `next_edge` + 段の one-hot (末尾)。
+
+    v5 (= v4) の `ObservationsCfg.PolicyCfg` を継承して `next_edge` を足すと、継承した `knot_stage`
+    より **後ろ** に並んでしまう (dataclass は上書きしても基底の位置を保つ)。`StageGatedActorCritic`
+    は末尾 4 列を段として読むので、v2-R2 から継承し直して `next_edge` -> `knot_stage` の順に宣言する。
+    """
 
     @configclass
     class PolicyCfg(V2R2ObservationsCfg.PolicyCfg):
-        # 末尾に置く: 既存の項の位置を変えないため (v5 と入力層の先頭が同じ並びになる)。
+        # v2-R2 の項の後ろ、段の one-hot の前に置く: v5 と入力層の先頭が同じ並びになる。
         next_edge = ObsTerm(func=mdp.NextEdgeGoal, params={"rule": NEXT_EDGE_RULE, "seed": 0})
+        # **最後の項であること** (v4 / v5 と同じ)。StageGatedActorCritic が末尾 4 列の argmax で振り分ける。
+        knot_stage = ObsTerm(func=mdp.knot_stage_one_hot)
 
     policy: PolicyCfg = PolicyCfg()
 
 
 @configclass
-class RewardsCfg(V3RewardsCfg):
-    """報酬。v5 (= v3) と同じ値。ログ用の `next_edge_stats` (常に 0) だけを足す。"""
+class RewardsCfg(V5RewardsCfg):
+    """報酬。v5 (= v4 の +1 / 0 / −1) と同じ値。ログ用の `next_edge_stats` (常に 0) だけを足す。"""
 
     # 手の前に選んだ辺と手の後の位相を比べて積む。**重みを 0 にしないこと** (0 だと呼ばれない)。
     next_edge_stats = RewTerm(func=mdp.NextEdgeStats, weight=1.0, params={"diverged_term": _DIVERGED_TERM})
 
 
 @configclass
-class CurriculumCfg(V3CurriculumCfg):
-    """カリキュラムは使わない。`Curriculum/next_edge_log/*` を出すための項を足す。"""
+class CurriculumCfg(V5CurriculumCfg):
+    """ログ専用。v5 (= v4) の `stage_log` に、`Curriculum/next_edge_log/*` を出すための項を足す。"""
 
     next_edge_log = CurrTerm(func=mdp.log_next_edge_stats, params={"reward_term": "next_edge_stats"})
 
@@ -83,4 +92,4 @@ class KnotTyingV6EnvCfg(KnotTyingV5EnvCfg):
     curriculum: CurriculumCfg = CurriculumCfg()
 
 
-globals().update(make_preset_cfgs(KnotTyingV6EnvCfg, __name__, play_post_init=_v3_play_post_init))
+globals().update(make_preset_cfgs(KnotTyingV6EnvCfg, __name__, play_post_init=_v5_play_post_init))

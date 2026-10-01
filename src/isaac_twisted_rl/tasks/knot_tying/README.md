@@ -13,7 +13,7 @@ uv run train --task Isaac-Twisted-RL-Twist-v2 --headless   # 固結び (作り�
 uv run train --task Isaac-Twisted-RL-Twist-v2-R2 --headless   # v2 + R2 除去で段を判定
 uv run train --task Isaac-Twisted-RL-Knot-v3 --headless    # 論文の中核を取り込んだ版 (Knot で学習)
 uv run train --task Isaac-Twisted-RL-Knot-v4 --headless    # 段ごとのエージェント + 1 遷移 = 1 エピソード
-uv run train --task Isaac-Twisted-RL-Knot-v5 --headless    # v3 + pick&place の発散対策
+uv run train --task Isaac-Twisted-RL-Knot-v5 --headless    # v4 + pick&place の発散対策
 uv run train --task Isaac-Twisted-RL-Knot-v6 --headless    # v5 + 次にたどる位相の辺のリンクマスクを観測に
 ```
 
@@ -39,8 +39,8 @@ uv run train --task Isaac-Twisted-RL-Knot-v6 --headless    # v5 + 次にたど�
 | `v2-R2` | v2 の報酬ラダーを **R2 除去後の位相**で判定する | 6 手 | 本物の C2 が稀で詰まる | [versions/v2_r2/README.md](versions/v2_r2/README.md) |
 | `v3` | 論文の中核を取り込む: **到達状態アーカイブからのリセット・固結びで終了・BFS 距離のポテンシャル** (Report §7 P1)。学習は `Knot` | 12 手 (成功で終了) | smoke test のみ | [versions/v3/README.md](versions/v3/README.md) |
 | `v4` | TWISTED-RL-C: **段 (固結びへの BFS 距離) ごとに独立したエージェント**、**1 遷移 = 1 エピソード** (+1 / 0 / −1)、段ごとのアーカイブ (台本の途中状態で初期化)。学習は `Knot` | 1 遷移 6 手 (Play は 18 手) | 未学習 | [versions/v4/README.md](versions/v4/README.md) |
-| `v5` | v3 に **pick&place の発散対策**だけを足す: 離すときの指先を床から 5〜10 cm に、ロープのめり込み解消速度の上限を 0.4 m/s に。学習は `Knot` | 12 手 (成功で終了) | 学習の 1 手あたりの発散が v3 の 5.0% -> 2.0% (iteration 0〜9) | [versions/v5/README.md](versions/v5/README.md) |
-| `v6` | v5 に **次にたどる位相の辺** (TWISTED-RL の ρ(g)) を観測として足す: over / under 区間のリンクマスク・移動の種類・符号など 64 次元。報酬・終了・アーカイブ・PPO は v5 のまま。学習は `Knot` | 12 手 (成功で終了) | smoke test のみ | [versions/v6/README.md](versions/v6/README.md) |
+| `v5` | v4 (段ごとのエージェント・1 遷移 = 1 エピソード) に **pick&place の発散対策**を足す: 離すときの指先を床から 5〜10 cm に、ロープのめり込み解消速度の上限を 0.4 m/s に。学習は `Knot` | 1 遷移 6 手 (Play は 18 手) | v3 ベースの旧 v5 で、学習の 1 手あたりの発散が v3 の 5.0% -> 2.0% (iteration 0〜9)。v4 ベースでは未学習 | [versions/v5/README.md](versions/v5/README.md) |
+| `v6` | v5 に **次にたどる位相の辺** (TWISTED-RL の ρ(g)) を観測として足す: over / under 区間のリンクマスク・移動の種類・符号など 64 次元 (段の one-hot の直前)。報酬・終了・アーカイブ・PPO は v5 のまま。学習は `Knot` | 1 遷移 6 手 (Play は 18 手) | v3 ベースの旧 v6 で smoke test のみ。v4 ベースでは未確認 | [versions/v6/README.md](versions/v6/README.md) |
 
 各バージョンには 5 つのロープのプリセットがある
 (`Twist` / `Simple` / `Stiff` / `Fine` / `Knot`)。**v2-R2 までの学習は `Twist`、v3 以降は `Knot`** で、
@@ -56,21 +56,22 @@ Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2[-RNN|-LSTM]   # 30 タ
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2-R2[-RNN|-LSTM]   # 30 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v3[-RNN|-LSTM]   # 30 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v4               # 10 タスク (MLP のみ)
-Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v5[-RNN|-LSTM]   # 30 タスク
-Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v6[-RNN|-LSTM]   # 30 タスク
+Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v5               # 10 タスク (MLP のみ)
+Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v6               # 10 タスク (MLP のみ)
 ```
 
 `v2-R2` のようにハイフンを含むバージョン表記は、パッケージ名では
 `versions/v2_r2/` になる (`__init__.py` の `_version_package`)。
 
-v2 以降は **1 つの環境設定に対してエージェント設定が 3 つ**ある
+v2〜v3 は **1 つの環境設定に対してエージェント設定が 3 つ**ある
 (MLP / GRU / LSTM)。接尾辞なしが MLP、`-RNN` が GRU、`-LSTM` が LSTM。
 `OnPolicyRunner` は方策を 1 つしか作れないので、ネットワーク構造を比べるには
 同じ env に別の agent cfg を登録するしかない (`_AGENT_VARIANTS` 参照)。
+v4 以降は段ごとの方策 (`StageGatedActorCritic`) に再帰版が無いので MLP だけ。
 
-学習ログはバージョンごと、**さらに v2 以降は変種ごと**に分かれる:
+学習ログはバージョンごと、**さらに v2〜v3 は変種ごと**に分かれる:
 `logs/rsl_rl/knot_tying_v0/` / `knot_tying_v1/` / `knot_tying_v2/` /
-`knot_tying_v2_rnn/` / `knot_tying_v2_lstm/` / `knot_tying_v2_r2{,_rnn,_lstm}/` / `knot_tying_v3{,_rnn,_lstm}/` / `knot_tying_v4/` / `knot_tying_v5{,_rnn,_lstm}/` / `knot_tying_v6{,_rnn,_lstm}/`。混ざっていると `--resume` で
+`knot_tying_v2_rnn/` / `knot_tying_v2_lstm/` / `knot_tying_v2_r2{,_rnn,_lstm}/` / `knot_tying_v3{,_rnn,_lstm}/` / `knot_tying_v4/` / `knot_tying_v5/` / `knot_tying_v6/`。混ざっていると `--resume` で
 誤って別バージョン・別構造のチェックポイントを読んでしまうため
 (`load_state_dict` は `strict=True` なので、構造が違えば `RuntimeError`)。
 
@@ -111,7 +112,7 @@ knot_tying/
 │   ├── v2_r2/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v2 を継承、判定器だけ差し替え
 │   ├── v3/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v2-R2 を継承、リセット・終了・報酬を差し替え
 │   ├── v4/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v3 を継承、段ごとのエージェントと 1 遷移 = 1 エピソード
-│   ├── v5/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v3 を継承、発散対策 (離す高さ・めり込み解消速度) だけ
+│   ├── v5/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v4 を継承、発散対策 (離す高さ・めり込み解消速度) だけ
 │   └── v6/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v5 を継承、観測に次にたどる辺のリンクマスクを足すだけ
 │
 └── demos/            ← RL 環境から import されない独立スクリプト

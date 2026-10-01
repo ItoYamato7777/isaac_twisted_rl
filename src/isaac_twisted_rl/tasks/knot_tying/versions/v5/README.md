@@ -1,34 +1,75 @@
-# v5: v3 + pick&place の発散対策
+# v5: v4 (段ごとのエージェント・1 遷移 = 1 エピソード) + pick&place の発散対策
 
 ```bash
-uv run train --task Isaac-Twisted-RL-Knot-v5 --headless          # MLP (学習はこれ)
-uv run play  --task Isaac-Twisted-RL-Knot-Play-v5 --num_envs 1   # まっすぐなロープから評価
+uv run train --task Isaac-Twisted-RL-Knot-v5 --headless           # 学習 (段 0 / 1 / 2 の 3 エージェント)
+uv run play  --task Isaac-Twisted-RL-Knot-Play-v5 --num_envs 16   # まっすぐなロープから段をつないで評価 (chain モード)
 ```
 
-ログ: `logs/rsl_rl/knot_tying_v5{,_rnn,_lstm}/`。**学習には `Knot` プリセットを使う** (v3 と同じ)。
+ログ: `logs/rsl_rl/knot_tying_v5/`。**学習には `Knot` プリセットを使う** (v3 / v4 と同じ)。
+初期アーカイブ (`outputs/archive_seed/overhand_28links.pt`) は v4 と同じものを読む (作り方は `../v4/README.md`)。
 
 ## なぜ作ったか
 
 v3 の最初の学習 (`../v3/Result_report_v3.md`) では、1 手あたり 5〜6% のロープが発散し、エピソードの
-37% が発散で終わっていた。v5 は、発散の原因をフェーズ単位で突き止めて、効いた対策だけを v3 に足した版。
-報酬・終了・観測・アーカイブ・PPO は v3 のままなので、v3 の学習ログと並べて比べられる。
+37% が発散で終わっていた。v5 は、発散の原因をフェーズ単位で突き止めて、効いた対策だけを足した版。
+報酬・終了・観測・アーカイブ・PPO は v4 のまま。
+
+### v4 ベースに作り直した (2026-10-01)
+
+v5 は当初 **v3 を継承して** 作っていた (コミット db375b3 / ce4d2b2。発散対策と、v4 の学習速度の改善だけを
+v3 に足した版)。その後、v4 の学習比較 (`../v4/README.md` の「学習での比較 (A / B / C、各 4 時間)」) と
+`paper/Report.md` を見直して、v3 -> v4 の変更のうち **段ごとのエージェントと 1 遷移 = 1 エピソードという
+定式化の変更** も学習の進みに効いていると判断した。v3 ベースの v5 にはこれらが無かったので、
+`KnotTyingV4EnvCfg` を継承して発散対策だけを足す形に作り直した。同じ理由で GRU / LSTM 版は
+無くした (段ごとに振り分ける方策 `StageGatedActorCritic` には再帰版が無い)。
+
+下の「学習での確認」は **v3 ベースだったときの** run (v3 との比較) で、v4 ベースの v5 の学習はまだ無い。
+「計測の方法」〜「ゲート 1 の台本の再生」の計測は、行動と物理だけを見ているので v4 ベースでもそのまま当てはまる
+(エピソードの区切りと報酬は計測に関係しない)。
 
 ## v3 から何を・なぜ変えたか
 
-| 項目 | v3 | v5 | 理由 |
+v4 由来の変更 (定式化と学習速度。理由と実験は `../v4/README.md`):
+
+| 項目 | v3 | v5 (= v4) | 理由 |
+|---|---|---|---|
+| エージェント | 1 つ | **段 0 / 1 / 2 ごとに独立した actor・critic・std** (`StageGatedActorCritic`) | TWISTED-RL-C |
+| エピソード | まっすぐ or アーカイブから固結びまで (12 手) | **段 k から始め、段が変わったら終了** (最大 6 手) | 1 遷移 = 1 エピソード |
+| 報酬 | BFS ポテンシャル整形 + 段のボーナス | **段が上がる +1 / 下がる −1 / 発散 −1 / それ以外 0** | 論文の +1 / 0 / −1 |
+| 初期状態・アーカイブ | class (1, 2) ごとのアーカイブ | **段 (0, 1, 2) ごとのアーカイブ** (`ResetToStage`、台本の途中状態で初期化) | cover 後の状態が C1 に混ざっていた |
+| 観測 | 129 次元 (`Knot`) | + **段の one-hot (4) を末尾に** (133 次元) | 方策がこの列でエージェントを選ぶ |
+| `init_noise_std` | 1.0 | **0.5** | [−1, 1] のクリップで端に張り付いていた |
+| PhysX ソルバの位置反復 | 16 | **8** (`KnotTyingEnvCfg.solver_position_iterations`) | v4 の「学習速度」。下の「試した対策」では乱数の手でこの変更単体は不採用だったが、v4 の学習比較では反復 8 のほうが速く進み、発散も少なかった |
+| 1 iteration の手数 (`num_steps_per_env`) | 12 | **4** (`max_iterations` 2000 -> 6000) | v4 の「学習速度」 |
+| GRU / LSTM 版 | あり | **無し** (MLP のみ) | 段ごとの方策に再帰版が無い |
+| Play | 12 手 | **chain モード** (まっすぐなロープから、固結び・発散・18 手でだけ終わる) | 段をつないだ評価 |
+
+v5 で足した変更 (発散対策。このファイルの残りで説明する):
+
+| 項目 | v3 / v4 | v5 | 理由 |
 |---|---|---|---|
 | 離すときの指先の高さ (`drop_z` チャネル) | 床上 2 mm〜62 mm | **床上 50〜100 mm** (`GraspLimits.release_tip_z`) | 低く離す手ほど発散する (下の「発散の内訳」)。床すれすれで離すと、掴んだ紐を床や下の紐へ押し込む |
 | ロープのめり込み解消速度の上限 | 0.96 m/s (`rope_cfg.py` の既定) | **0.4 m/s** (`KnotTyingEnvCfg.rope_max_depenetration_velocity`) | 指や紐どうしが食い込んだときに紐が弾き出されて暴れるのを抑える。0.3 以下は把持が崩れ始める |
-| PhysX ソルバの位置反復 | 16 | **8** (`KnotTyingEnvCfg.solver_position_iterations`) | v4 (4115db4) と同じ学習速度の改善。下の「試した対策」では乱数の手でこの変更単体は不採用だったが、速度改善 (約2倍) を優先して採用した |
-| 1 iteration の手数 (`num_steps_per_env`) | 12 | **4** (`agents/`) | 同上。`max_iterations` も総手数が揃うよう 2000 -> 6000 |
-| それ以外 (尺・置き先の範囲・報酬) | | v3 のまま | |
+| それ以外 (尺・置き先の範囲) | | v3 / v4 のまま | |
+
+観測の次元は v4 と同じ (133) なので、v4 のチェックポイントから `--resume` で暖機開始できる
+(ただし `drop_z` チャネルの意味は変わっている)。
 
 共有層の変更はすべて **追加** (既定値なら v0〜v4 の挙動は変わらない):
 `GraspLimits.release_tip_z` / `grasp_clearance` / `grasp_obstacle_min_z`、`KnotTyingEnvCfg.rope_max_depenetration_velocity`、
 `PickPlaceActionCfg.diag` (診断値の記録)、`common/mdp/finger_geometry.py` (新規、純 torch)、
 `demos/divergence_bench.py` (新規)、`demos/overhand_script.py` の `--replay_actions` が `release_tip_z` を逆変換するようにした。
 
+## 見るべき指標
+
+v4 と同じ (`../v4/README.md` の「ログ」)。`Curriculum/stage_log/success_s{k}` と `chain_est`、
+`diverged_s{k}`、Play での `Episode_Termination/stage_up` (固結びに達した割合)。v4 の同じ時刻の値と比べる。
+
 ## 計測の方法 (`demos/divergence_bench.py`)
+
+**以下の計測はすべて v3 ベースだったときの `Knot-v5`** (v3 の報酬・終了・アーカイブ) で行った。今の v5 は
+v3 系の `reset_from_archive` を持たないので、下のコマンドの `--archive_prob` はそのままでは使えない
+(まっすぐなロープから始めるには `env.events.reset_to_stage` の `stage_weights=(1,0,0)`・`straight_prob=1.0` に当たる上書きが要る)。
 
 学習と同じ環境 (`gym.make`) で、1024 環境 x 24 手 = 24,576 手を打ち、1 手ごとに記録する。乱数の種を
 固定すると結果は完全に再現する (同じ設定を `--cfg` で与えた run と `Knot-v5` の run は、全指標が一致した)。
@@ -139,7 +180,7 @@ v3 の run (`2026-09-28_17-28-57`) の 1 手 6% は、この分を含む。b3450
 
 ### 4. ゲート 1 の台本の再生 (結ぶ能力が落ちていないか)
 
-`demos/overhand_script.py --replay_actions`、256 環境 x 種 2 通り、±25% 揺らし。v3 / v5 のタスクは固結びで
+`demos/overhand_script.py --replay_actions`、256 環境 x 種 2 通り、±25% 揺らし。v3 / v5 のタスクは固結び (v5 は段の変化) で
 終了して reset されるので (スクリプトは reset を「発散」と数える)、終了しない `Knot-v2-R2` に v3 の尺と
 置き先の範囲を入れて再生し、v5 の違いは `--cfg` で足した。
 
@@ -153,12 +194,15 @@ v3 の run (`2026-09-28_17-28-57`) の 1 手 6% は、この分を含む。b3450
 v5 の設定では、台本の手が高いところで離すように変わる (置く高さが 5 cm にクリップされる) が、それでも
 固結びは v3 より多くできた。
 
-## 学習での確認 (2026-10-01、iteration 0〜9)
+## 学習での確認 (2026-10-01、iteration 0〜9、**v3 ベースだったときの v5**)
+
+**この節の run は v4 ベースに作り直す前の v5** (v3 の報酬・終了・アーカイブ・単一の方策に発散対策だけを
+足したもの) で、今の `Isaac-Twisted-RL-Knot-v5` とは定式化が違う。発散対策の効果を v3 と比べた記録として残す。
 
 v3 と v5 を同じ条件 (`Knot`、4096 環境、seed 42、cuda:0) で学習し、最初の 10 iteration を比べた。
 この比較は v4 (4115db4) の学習速度の改善 (ソルバ反復 16 -> 8、`num_steps_per_env` 12 -> 4) を
 v5 に足す**前**の run なので、`num_steps_per_env` は両方とも 12、1 iteration の時間もその設定の値。
-現在の既定 (v5 も反復 8・4 手) での学習速度の比較は未計測。
+v4 ベースの v5 (反復 8・4 手) の学習は未計測。
 
 * v3: `logs/rsl_rl/knot_tying_v3/2026-10-01_10-43-15_v3_newbuf_10it` (現在の HEAD = 新しい接触バッファ)
 * v5: `logs/rsl_rl/knot_tying_v5/2026-10-01_06-45-23_v5_20it` (20 iteration の予定を 14 で止めた)
@@ -199,9 +243,10 @@ iteration ごとの 1 手あたりの発散:
 * **運搬中の発散** が残りの大半になった (乱数の手で v5 の発散の 49%)。引きずる紐の自分自身との擦れが
   原因と考えられるが、未確認。contact offset を上げると 3 割減るが、遅くなり接触バッファも増える。
 * 学習済み方策での残り (1 手 0.44%) は descend / carry / relax に分かれていて、決まった原因は見えていない。
-* 離す高さを変えたので、v3 のチェックポイントからの暖機開始は、`drop_z` チャネルの意味が変わる
-  (観測の次元は同じなので `--resume` 自体はできる)。
+* 離す高さを変えたので、v4 のチェックポイントからの暖機開始は、`drop_z` チャネルの意味が変わる
+  (観測の次元と方策の形は同じなので `--resume` 自体はできる)。v3 のチェックポイントは観測の次元
+  (129 / 133) も方策の形も違うので読めない。
 * `KnotTyingEnvCfg.__post_init__` は `episode_length_s = 手数 x decimation x dt` で、IsaacLab は
   `ceil(episode_length_s / step_dt)` で手数に戻す。浮動小数の誤差で 1 手増えることがある (尺を
-  descend 0.5 s にすると 807 ステップで 13 手になった)。v3 / v5 の 759 ステップはちょうど 12 手なので
+  descend 0.5 s にすると 807 ステップで 13 手になった)。v3 の 759 ステップはちょうど 12 手なので
   影響はないが、尺を変えるときは注意すること。

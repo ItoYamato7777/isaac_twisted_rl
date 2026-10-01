@@ -10,7 +10,7 @@ TWISTED-RL (itoyama_twisted_rl リポジトリ) の MuJoCo 実装を Isaac Lab �
     uv run train --task Isaac-Twisted-RL-Twist-v2-R2 --headless   # v2 + R2 除去で段を判定
     uv run train --task Isaac-Twisted-RL-Knot-v3 --headless    # 論文の中核を取り込んだ版 (Knot で学習)
     uv run train --task Isaac-Twisted-RL-Knot-v4 --headless    # 段ごとのエージェント + 1 遷移 = 1 エピソード
-    uv run train --task Isaac-Twisted-RL-Knot-v5 --headless    # v3 + pick&place の発散対策
+    uv run train --task Isaac-Twisted-RL-Knot-v5 --headless    # v4 + pick&place の発散対策
     uv run train --task Isaac-Twisted-RL-Knot-v6 --headless    # v5 + 次にたどる位相の辺のリンクマスクを観測に
 
 構成と設計方針、バージョンの増やし方は `README.md` を参照。
@@ -79,16 +79,6 @@ _AGENT_VARIANTS: dict[str, dict[str, str]] = {
         "-LSTM": "KnotTyingLSTMPPORunnerCfg",
     },
     "v3": {
-        "": "KnotTyingPPORunnerCfg",
-        "-RNN": "KnotTyingRNNPPORunnerCfg",
-        "-LSTM": "KnotTyingLSTMPPORunnerCfg",
-    },
-    "v5": {
-        "": "KnotTyingPPORunnerCfg",
-        "-RNN": "KnotTyingRNNPPORunnerCfg",
-        "-LSTM": "KnotTyingLSTMPPORunnerCfg",
-    },
-    "v6": {
         "": "KnotTyingPPORunnerCfg",
         "-RNN": "KnotTyingRNNPPORunnerCfg",
         "-LSTM": "KnotTyingLSTMPPORunnerCfg",

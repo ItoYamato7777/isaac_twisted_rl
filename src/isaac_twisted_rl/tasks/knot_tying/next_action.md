@@ -25,7 +25,7 @@ twisted_rl (MuJoCo 版) の紐結び強化学習を Isaac Lab へ移植し、さ
 | 論文との比較 | 「詰まりの原因は定式化」 | [`paper/Report.md`](../../../../paper/Report.md) |
 | ゲート 1: 台本で固結び | **通過** (`Knot` プリセットが必要) | 本書 §4.8.10 |
 | v3: アーカイブからのリセット + 成功で終了 + BFS 距離 | smoke test のみ | [v3 README](versions/v3/README.md) |
-| v5: v3 + pick&place の発散対策 (2026-10-01) | 学習の 1 手あたりの発散が v3 の 5.0% -> 2.0% (iteration 0〜9)。学習済み方策では 1.88% -> 0.44% | [v5 README](versions/v5/README.md) |
+| v5: v4 + pick&place の発散対策 (2026-10-01) | 学習済み方策 (v3 の `model_150.pt`) での 1 手あたりの発散が 1.88% -> 0.44% (`divergence_bench`) | [v5 README](versions/v5/README.md) |
 
 (2026-10-01 追記) v3 の本番学習の発散 (1 手 5〜6%) の約半分は PhysX の接触バッファのあふれで、b345065 で
 解消済みだった。残りは「低く離す手」と「指の下の紐を押し潰す手」が主因で、v5 で対策した。

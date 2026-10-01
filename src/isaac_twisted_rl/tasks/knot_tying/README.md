@@ -39,8 +39,8 @@ uv run train --task Isaac-Twisted-RL-Knot-v6 --headless    # v5 + 次にたど�
 | `v2-R2` | v2 の報酬ラダーを **R2 除去後の位相**で判定する | 6 手 | 本物の C2 が稀で詰まる | [versions/v2_r2/README.md](versions/v2_r2/README.md) |
 | `v3` | 論文の中核を取り込む: **到達状態アーカイブからのリセット・固結びで終了・BFS 距離のポテンシャル** (Report §7 P1)。学習は `Knot` | 12 手 (成功で終了) | smoke test のみ | [versions/v3/README.md](versions/v3/README.md) |
 | `v4` | TWISTED-RL-C: **段 (固結びへの BFS 距離) ごとに独立したエージェント**、**1 遷移 = 1 エピソード** (+1 / 0 / −1)、段ごとのアーカイブ (台本の途中状態で初期化)。学習は `Knot` | 1 遷移 6 手 (Play は 18 手) | 未学習 | [versions/v4/README.md](versions/v4/README.md) |
-| `v5` | v4 (段ごとのエージェント・1 遷移 = 1 エピソード) に **pick&place の発散対策**を足す: 離すときの指先を床から 5〜10 cm に、ロープのめり込み解消速度の上限を 0.4 m/s に。学習は `Knot` | 1 遷移 6 手 (Play は 18 手) | v3 ベースの旧 v5 で、学習の 1 手あたりの発散が v3 の 5.0% -> 2.0% (iteration 0〜9)。v4 ベースでは未学習 | [versions/v5/README.md](versions/v5/README.md) |
-| `v6` | v5 に **次にたどる位相の辺** (TWISTED-RL の ρ(g)) を観測として足す: over / under 区間のリンクマスク・移動の種類・符号など 64 次元 (段の one-hot の直前)。報酬・終了・アーカイブ・PPO は v5 のまま。学習は `Knot` | 1 遷移 6 手 (Play は 18 手) | v3 ベースの旧 v6 で smoke test のみ。v4 ベースでは未確認 | [versions/v6/README.md](versions/v6/README.md) |
+| `v5` | v4 (段ごとのエージェント・1 遷移 = 1 エピソード) に **pick&place の発散対策**を足す: 離すときの指先を床から 5〜10 cm に、ロープのめり込み解消速度の上限を 0.4 m/s に。学習は `Knot` | 1 遷移 6 手 (Play は 18 手) | 学習中 | [versions/v5/README.md](versions/v5/README.md) |
+| `v6` | v5 に **次にたどる位相の辺** (TWISTED-RL の ρ(g)) を観測として足す: over / under 区間のリンクマスク・移動の種類・符号など 64 次元 (段の one-hot の直前)。報酬・終了・アーカイブ・PPO は v5 のまま。学習は `Knot` | 1 遷移 6 手 (Play は 18 手) | 学習中 | [versions/v6/README.md](versions/v6/README.md) |
 
 各バージョンには 5 つのロープのプリセットがある
 (`Twist` / `Simple` / `Stiff` / `Fine` / `Knot`)。**v2-R2 までの学習は `Twist`、v3 以降は `Knot`** で、

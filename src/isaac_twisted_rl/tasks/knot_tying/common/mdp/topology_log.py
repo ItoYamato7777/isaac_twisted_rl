@@ -35,6 +35,9 @@ v2 の `diverged_class0..3` は重み 0 で登録してあるので、実際に�
 
 `fake_c2` が大きく `r2_c2` が小さいなら、v2 と同じく「輪に通さず上から
 掛け渡す」方策に寄っているということ。
+
+v6 で、観測「次にたどる辺」が効いているかを測る `NextEdgeStats` / `log_next_edge_stats` を
+足した (ファイル末尾)。
 """
 
 from __future__ import annotations
@@ -47,7 +50,7 @@ import torch
 from isaaclab.managers import ManagerTermBase, RewardTermCfg, SceneEntityCfg
 
 from .. import topology as tp
-from .observations import get_extractor
+from .observations import get_extractor, get_next_edge_goal
 from .terminations import diverged_now
 
 if TYPE_CHECKING:
@@ -183,4 +186,116 @@ def log_topology_stats(
     stats = env.reward_manager.get_term_cfg(reward_term).func
     if not isinstance(stats, TopologyStats):
         raise TypeError(f"reward term '{reward_term}' is not TopologyStats (got {type(stats).__name__})")
+    return stats.pop_means()
+
+
+# ---------------------------------------------------------------- 次にたどる辺 (v6)
+
+_EDGE_KEYS = (
+    "reached",
+    "other_up",
+    "same",
+    "down",
+    "diverged",
+    "invalid",
+    "kind_r1",
+    "kind_r2",
+    "kind_cross",
+    "kind_end",
+)
+"""`NextEdgeStats` の記録する量。`reached` 〜 `invalid` の 6 つは足すと 1 になる。"""
+
+
+class NextEdgeStats(ManagerTermBase):
+    """v6 の観測「次にたどる辺」(`observations.NextEdgeGoal`) が方策に効いているかを測る報酬項。
+
+    **常に 0 を返す** (学習に寄与しない)。`TopologyStats` と同じ流儀で、毎手の終わり
+    (reset の前) に呼ばれることを使って統計を積み、`log_next_edge_stats` が TensorBoard へ流す。
+    重みは 0 にしないこと (0 だと `RewardManager` が呼ばない)。
+
+    手を打つ前に観測が選んだ辺と、手を打った後の位相を比べる (1 手あたり・全環境平均):
+
+    | key | 意味 |
+    |---|---|
+    | `reached` | 選んだ辺の子 (複合なら最終の子) の p-data に着いた |
+    | `other_up` | 選んだ辺とは別の手で段 (`BfsPotential.stage`) が上がった |
+    | `same` / `down` | 段が変わらなかった / 下がった (`reached` を除く) |
+    | `diverged` | 辺はあったが、手の途中で発散した |
+    | `invalid` | 手を打つ前に有効な辺が無かった (交差 5 個以上・届かない・固結び) |
+    | `kind_r1` 〜 `kind_end` | 選んだ辺の種類の割合 (R1 / R2 / cross / 複合) |
+
+    `reached / (reached + other_up)` が学習とともに上がれば、方策はマスクを使って目標の
+    辺をたどっている。上がらなければ、マスクは見られていない (段が上がっていても、
+    観測とは無関係な手で上がっている)。
+
+    params:
+        rope_cfg: ロープ。
+        diverged_term: 発散の判定に使う終了項の名前 (`TopologyStats` と同じ)。None なら NaN だけ。
+    """
+
+    def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        self._sums = {k: 0.0 for k in _EDGE_KEYS}
+        self._samples = 0
+
+    def reset(self, env_ids: Sequence[int] | None = None) -> None:
+        pass
+
+    def __call__(
+        self,
+        env: ManagerBasedRLEnv,
+        rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+        diverged_term: str | None = None,
+    ) -> torch.Tensor:
+        goal = get_next_edge_goal(env)
+        if goal is None:
+            raise RuntimeError("NextEdgeStats は観測に NextEdgeGoal が配線されているときだけ使える")
+        extractor = get_extractor(env, rope_cfg.name)
+        if diverged_term is None:
+            diverged = ~torch.isfinite(extractor.nodes).all(dim=-1).all(dim=-1)
+        else:
+            diverged = diverged_now(env, diverged_term)
+        # goal の中身は直近の観測 (= この手を打つ前) のまま。観測はこの後 (reset の後) に更新される。
+        valid = goal.cand >= 0
+        live = valid & ~diverged
+        reached = live & (tp.batch_keys(extractor.batch) == goal.child_key)
+        stage = tp.get_bfs_potential(env.device).stage(extractor.batch, extractor.reduced_batch)
+        kind = goal.kind
+        values = {
+            "reached": reached,
+            "other_up": live & ~reached & (stage > goal.stage),
+            "same": live & ~reached & (stage == goal.stage),
+            "down": live & ~reached & (stage < goal.stage),
+            "diverged": valid & diverged,
+            "invalid": ~valid,
+            "kind_r1": kind == tp.MOVE_R1,
+            "kind_r2": kind == tp.MOVE_R2,
+            "kind_cross": kind == tp.MOVE_CROSS,
+            "kind_end": kind == tp.MOVE_END_CROSS,
+        }
+        stacked = torch.stack([values[k].float().mean() for k in _EDGE_KEYS]).tolist()
+        for k, v in zip(_EDGE_KEYS, stacked):
+            self._sums[k] += v
+        self._samples += 1
+        return torch.zeros(env.num_envs, device=env.device)
+
+    def pop_means(self) -> dict[str, float] | None:
+        """積算の平均を返してリセットする。まだ 1 手も積んでいなければ None。"""
+        if self._samples == 0:
+            return None
+        out = {k: v / self._samples for k, v in self._sums.items()}
+        self._sums = {k: 0.0 for k in _EDGE_KEYS}
+        self._samples = 0
+        return out
+
+
+def log_next_edge_stats(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    reward_term: str = "next_edge_stats",
+) -> dict[str, float] | None:
+    """カリキュラム項: `NextEdgeStats` の積算を `Curriculum/<この項の名前>/<key>` として流す。"""
+    stats = env.reward_manager.get_term_cfg(reward_term).func
+    if not isinstance(stats, NextEdgeStats):
+        raise TypeError(f"reward term '{reward_term}' is not NextEdgeStats (got {type(stats).__name__})")
     return stats.pop_means()

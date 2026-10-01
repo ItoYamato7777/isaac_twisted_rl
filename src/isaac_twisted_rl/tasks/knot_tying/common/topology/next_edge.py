@@ -27,10 +27,14 @@ int64 キーを、`p_data_key` で並べた表から `searchsorted` で引く。
 
 候補が複数あるとき (自明な状態で 8 本、輪で 4 本など) にどれを渡すか:
 
-* `short_end` (既定): 端の区間を使う候補のうち、その端の区間のリンク数が少ないものを優先し、
+* `short_end`: 端の区間を使う候補のうち、その端の区間のリンク数が少ないものを優先し、
   同点なら種類の優先順位 R1 > R2 > 複合 > cross、それでも同点なら列挙順。端を使わない候補は
-  最良の端の候補と同点として扱う。台本 (`demos/overhand_script.py`) が短い側 (尻尾) の端を
-  使い、輪からは cover (R2) を多く選ぶことに合わせた仮説。
+  最良の端の候補と同点として扱う。「台本 (`demos/overhand_script.py`) は短い側の端を使う」という
+  仮説から作ったが、実際の形状で照合すると台本と 35% しか一致しなかった (台本の輪は頭側の
+  リンク 5 付近で本体と交差し、頭の端の区間のほうが短い。v6 の README「台本との照合」)。
+* `long_end` (既定): `short_end` の逆で、端の区間のリンク数が **多い** ものを優先する (同点の崩し方は同じ)。
+  台本と 93% 一致した。長い端ほど、掴んで別の区間の上下へ運ぶだけの自由な長さがある。
+* `tail_end`: 尻尾の端 (リンク番号の大きい側。台本の「先端」) を使う候補を優先する (同点の崩し方は同じ)。
 * `first`: 列挙順の最初 (比較用)。
 * `random`: 候補から一様に選ぶ (比較用)。
 """
@@ -51,14 +55,14 @@ from .knot_graph import (
 )
 from .knot_graph import shortest_edges as _shortest_edges
 
-RULES = ("short_end", "first", "random")
+RULES = ("short_end", "long_end", "tail_end", "first", "random")
 """`NextEdgeTable.select` の選択規則。"""
 
 NUM_MOVE_KINDS = 4
 """種類の one-hot の幅 (R1 / R2 / cross / 複合)。`knot_graph.MOVE_*` の番号順。"""
 
 _KIND_PRIORITY = {MOVE_R1: 0, MOVE_R2: 1, MOVE_END_CROSS: 2, MOVE_CROSS: 3}
-"""`short_end` の同点を崩す種類の優先順位 (小さいほど優先)。"""
+"""端の区間で決まらないときに同点を崩す種類の優先順位 (小さいほど優先)。"""
 
 
 def feature_dim(num_links: int) -> int:
@@ -154,14 +158,14 @@ class NextEdgeTable:
         found: torch.Tensor,
         links: torch.Tensor,
         count: torch.Tensor,
-        rule: str = "short_end",
+        rule: str = "long_end",
         generator: torch.Generator | None = None,
     ) -> torch.Tensor:
         """候補の番号 `(num_envs,)` int64 を選ぶ。表に無い env は −1。
 
         Args:
             row / found: `lookup` の戻り値。
-            links: `point_links` (今の形状での L(p))。`short_end` が端の区間のリンク数に使う。
+            links: `point_links` (今の形状での L(p))。端の区間で選ぶ規則がリンク数に使う。
             count: 交差数 `(num_envs,)` (尻尾の端のダミー点 2n+1 の番号を決める)。
             rule: `RULES` のどれか。
         """
@@ -177,29 +181,44 @@ class NextEdgeTable:
             noise = torch.rand(kind.shape, device=kind.device, generator=generator)
             score = noise.argsort(dim=1).argsort(dim=1)  # 乱数の順位 (候補ごとに相異なる)
         else:
-            end_len = self._end_lengths(row, links, count)  # (B, C)。端を使わなければ大きな値
-            no_end = end_len >= _NO_END
-            best = torch.where(exists & ~no_end, end_len, torch.full_like(end_len, _NO_END)).min(dim=1).values
-            end_len = torch.where(no_end, best.unsqueeze(1), end_len)  # 端を使わない候補は最良と同点
+            shortest, longest, uses_tail, uses_end = self._end_info(row, links, count)
+            if rule == "short_end":
+                end_key = shortest
+            elif rule == "long_end":
+                end_key = _NO_END - longest
+            else:  # tail_end
+                end_key = (~uses_tail).long()
+            # 端を使わない候補は、端を使う最良の候補と同点にする。
+            best = torch.where(exists & uses_end, end_key, torch.full_like(end_key, _NO_END)).min(dim=1).values
+            end_key = torch.where(uses_end, end_key, best.unsqueeze(1))
             prio = self.priority[kind.clamp_min(0)]
-            score = (end_len * NUM_MOVE_KINDS + prio) * num_cands + order
+            score = (end_key * NUM_MOVE_KINDS + prio) * num_cands + order
         big = torch.iinfo(torch.int64).max
         score = torch.where(exists, score, torch.full_like(score, big))
         cand = score.argmin(dim=1)
         return torch.where(found & exists.any(dim=1), cand, torch.full_like(cand, -1))
 
-    def _end_lengths(self, row: torch.Tensor, links: torch.Tensor, count: torch.Tensor) -> torch.Tensor:
-        """候補が使う端の区間のリンク数 `(B, C)`。両端を使えば小さいほう、端を使わなければ `_NO_END`。"""
+    def _end_info(
+        self, row: torch.Tensor, links: torch.Tensor, count: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """候補が使う端の区間 `(B, C)` の `(最短のリンク数, 最長のリンク数, 尻尾の端を使うか, 端を使うか)`。
+
+        端を使わない候補の最短は `_NO_END`、最長は 0。交差 0 では区間 0 が頭と尻尾の両方の端。
+        """
         tail = (2 * count + 1).unsqueeze(1)
-        lengths = []
-        for a, b in (
-            (self.over_a[row], self.over_b[row]),
-            (self.under_a[row], self.under_b[row]),
-        ):
+        shortest = longest = uses_tail = uses_end = None
+        for a, b in ((self.over_a[row], self.over_b[row]), (self.under_a[row], self.under_b[row])):
             n = links.gather(1, b) - links.gather(1, a) + 1
-            is_end = (a == 0) | (b == tail)
-            lengths.append(torch.where(is_end, n, torch.full_like(n, _NO_END)))
-        return torch.minimum(*lengths)
+            is_tail = b == tail
+            is_end = (a == 0) | is_tail
+            lo = torch.where(is_end, n, torch.full_like(n, _NO_END))
+            hi = torch.where(is_end, n, torch.zeros_like(n))
+            if shortest is None:
+                shortest, longest, uses_tail, uses_end = lo, hi, is_tail, is_end
+            else:
+                shortest, longest = torch.minimum(shortest, lo), torch.maximum(longest, hi)
+                uses_tail, uses_end = uses_tail | is_tail, uses_end | is_end
+        return shortest, longest, uses_tail, uses_end
 
     # ------------------------------------------------------------------ 特徴
     def features(self, row: torch.Tensor, cand: torch.Tensor, links: torch.Tensor, num_links: int) -> torch.Tensor:

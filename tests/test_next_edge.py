@@ -209,6 +209,26 @@ def test_mask_cover_head_shorter_picks_head_cross():
     assert feat[0, N : 2 * N].tolist() == _mask(12, 16)
 
 
+@pytest.mark.parametrize(
+    ("p_data", "links", "rule", "expected"),
+    [
+        # 輪: 頭の端 0..4 (5 本) < 尻尾の端 12..27 (16 本)
+        (_LOOP, [4, 12], "long_end", (kg.MOVE_R2, (1, 2, -1, 1))),
+        (_LOOP, [4, 12], "tail_end", (kg.MOVE_R2, (1, 2, -1, 1))),
+        # 輪: 頭の端 0..10 (11 本) > 尻尾の端 20..27 (8 本)
+        (_LOOP, [10, 20], "long_end", (kg.MOVE_R2, (0, 1, 1, 1))),
+        (_LOOP, [10, 20], "tail_end", (kg.MOVE_R2, (1, 2, -1, 1))),
+        # cover 後: 頭の cross は 0..8 (9 本)、尻尾の置き直しは 22..27 (6 本)
+        (_COVER, [8, 12, 16, 19, 22, 25], "long_end", (kg.MOVE_CROSS, (0, 2, 1))),
+        (_COVER, [8, 12, 16, 19, 22, 25], "tail_end", (kg.MOVE_END_CROSS, (4, 2, 1))),
+    ],
+)
+def test_long_end_and_tail_end(p_data: str, links: list[int], rule: str, expected: tuple):
+    _, cand, _ = _features(_batch_from(p_data, links), rule)
+    edge = _edges(p_data)[int(cand)]
+    assert (edge.kind, edge.params) == expected
+
+
 def test_trivial_state_picks_r1_over_whole_rope():
     feat, cand, _ = _features(tp.IntersectionBatch.from_lists([([], [])]))
     edge = _edges("")[int(cand)]

@@ -18,12 +18,13 @@ p-data 文字列が要るのはログと人間のデバッグだけで、そち�
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import torch
 
 from isaaclab.assets import Articulation
-from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import ManagerTermBase, ObservationTermCfg, SceneEntityCfg
 
 from .. import topology as tp
 from ..rope_state import RopeTopologyExtractor
@@ -201,6 +202,102 @@ def knot_class_one_hot(
     (次元は 4 のまま変わらないので、v2 のチェックポイントから暖機開始できる)。
     """
     return tp.class_one_hot(get_extractor(env, rope_cfg.name).ladder_batch(reduce_r2))
+
+
+_NEXT_EDGE_ATTR = "_knot_tying_next_edge_goal"
+"""env に載せる `NextEdgeGoal` のインスタンスの属性名。ログ (`topology_log.NextEdgeStats`) が引く。"""
+
+_UNSELECTED = -2
+"""`NextEdgeGoal` の「まだ辺を選んでいない」キー (`batch_keys` は −1 以上なので必ず選び直しになる)。"""
+
+
+class NextEdgeGoal(ManagerTermBase):
+    """次にたどる高レベルの辺 `(num_envs, 2N + 8)`。v6 で追加。
+
+    TWISTED-RL が下位の方策に渡す ρ(g) (`topology/next_edge.py` の docstring) に当たる。
+    並びは `[over マスク N, under マスク N, 種類 one-hot 4 (R1/R2/cross/複合), sign, left, obu, 有効]`。
+    `Knot` (28 リンク) で 64 次元。表に無い状態 (交差 5 個以上・届かない・固結び) は全部 0。
+
+    ## 辺は環境ごとに保持し、位相が変わったときだけ選び直す
+
+    選び直すのは reset のときと、R2 除去前の p-data のキー (`batch_keys`) が変わったときだけ。
+    同じ位相のまま形を整える手のあいだに目標が揺れないようにするため (TWISTED-RL の
+    1 遷移 = 1 目標と同じ)。`long_end` は端の区間のリンク数で選ぶので、毎手選び直すと
+    形が少し動いただけで目標が入れ替わりうる。
+
+    一方 **リンクマスクは毎手、今の形状から作り直す**。区間の境界 (交差の乗ったリンク) は
+    位相が同じでも動くため。
+
+    ## reset との順序
+
+    `_reset_idx` は `event (アーカイブ復元) -> observation.reset -> action.reset
+    (invalidate_extractor) -> ...` の順で、観測の計算はその後。`reset()` では「選び直す」
+    印を付けるだけにし、形状は読まない (この時点では抽出器が古い形状のまま)。直後の
+    `__call__` で抽出し直した形状から選ぶので、アーカイブから始めた env も正しく選び直される。
+
+    params:
+        rule: 辺の選び方 (`topology.NEXT_EDGE_RULES`)。既定 `long_end`。
+        seed: `rule="random"` の乱数の種。
+        rope_cfg: ロープ。
+    """
+
+    def __init__(self, cfg: ObservationTermCfg, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        self._table = tp.get_next_edge_table(env.device)
+        num_envs = env.num_envs
+        self.key = torch.full((num_envs,), _UNSELECTED, dtype=torch.int64, device=env.device)
+        """辺を選んだときの位相のキー。"""
+        self.row = torch.zeros(num_envs, dtype=torch.int64, device=env.device)
+        """表の行 (キーが同じ間は変わらない)。"""
+        self.cand = torch.full((num_envs,), -1, dtype=torch.int64, device=env.device)
+        """選んだ候補の番号。表に無い状態は −1。"""
+        self.stage = torch.zeros(num_envs, dtype=torch.int64, device=env.device)
+        """直近の観測の時点 (= 次の手を打つ前) の段 (`BfsPotential.stage`)。ログ用。"""
+        self._generator = torch.Generator(device=env.device)
+        self._generator.manual_seed(int(cfg.params.get("seed", 0)))
+        setattr(env, _NEXT_EDGE_ATTR, self)
+
+    def reset(self, env_ids: Sequence[int] | None = None) -> None:
+        if env_ids is None:
+            self.key[:] = _UNSELECTED
+        else:
+            self.key[env_ids] = _UNSELECTED
+
+    @property
+    def child_key(self) -> torch.Tensor:
+        """選んだ辺の子 (複合なら最終の子) のキー `(num_envs,)`。辺が無ければ −1。"""
+        return self._table.chosen_child_key(self.row, self.cand)
+
+    @property
+    def kind(self) -> torch.Tensor:
+        """選んだ辺の種類 `(num_envs,)` (`topology.MOVE_*`)。辺が無ければ −1。"""
+        kind = self._table.kind[self.row].gather(1, self.cand.clamp_min(0).unsqueeze(1)).squeeze(1)
+        return torch.where(self.cand >= 0, kind, torch.full_like(kind, -1))
+
+    def __call__(
+        self,
+        env: ManagerBasedRLEnv,
+        rule: str = "long_end",
+        seed: int = 0,
+        rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+    ) -> torch.Tensor:
+        extractor = get_extractor(env, rope_cfg.name)
+        batch = extractor.batch
+        row, found, keys = self._table.lookup(batch)
+        links = tp.point_links(batch, extractor.num_links, extractor.subdivide)
+        redo = keys != self.key
+        # 全 env ぶん選んで、選び直す env だけ差し替える (分岐で GPU を同期させないため)。
+        new = self._table.select(row, found, links, batch.count, rule, generator=self._generator)
+        self.cand = torch.where(redo, new, self.cand)
+        self.key = keys
+        self.row = row
+        self.stage = tp.get_bfs_potential(env.device).stage(batch, extractor.reduced_batch)
+        return self._table.features(row, self.cand, links, extractor.num_links)
+
+
+def get_next_edge_goal(env: ManagerBasedRLEnv) -> NextEdgeGoal | None:
+    """env に載っている `NextEdgeGoal` (観測に配線されていなければ None)。"""
+    return getattr(env, _NEXT_EDGE_ATTR, None)
 
 
 def hand_position(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("gripper")) -> torch.Tensor:

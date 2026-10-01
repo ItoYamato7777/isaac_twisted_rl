@@ -14,6 +14,7 @@ uv run train --task Isaac-Twisted-RL-Twist-v2-R2 --headless   # v2 + R2 除去�
 uv run train --task Isaac-Twisted-RL-Knot-v3 --headless    # 論文の中核を取り込んだ版 (Knot で学習)
 uv run train --task Isaac-Twisted-RL-Knot-v4 --headless    # 段ごとのエージェント + 1 遷移 = 1 エピソード
 uv run train --task Isaac-Twisted-RL-Knot-v5 --headless    # v3 + pick&place の発散対策
+uv run train --task Isaac-Twisted-RL-Knot-v6 --headless    # v5 + 次にたどる位相の辺のリンクマスクを観測に
 ```
 
 | 文書 | 内容 |
@@ -39,6 +40,7 @@ uv run train --task Isaac-Twisted-RL-Knot-v5 --headless    # v3 + pick&place の
 | `v3` | 論文の中核を取り込む: **到達状態アーカイブからのリセット・固結びで終了・BFS 距離のポテンシャル** (Report §7 P1)。学習は `Knot` | 12 手 (成功で終了) | smoke test のみ | [versions/v3/README.md](versions/v3/README.md) |
 | `v4` | TWISTED-RL-C: **段 (固結びへの BFS 距離) ごとに独立したエージェント**、**1 遷移 = 1 エピソード** (+1 / 0 / −1)、段ごとのアーカイブ (台本の途中状態で初期化)。学習は `Knot` | 1 遷移 6 手 (Play は 18 手) | 未学習 | [versions/v4/README.md](versions/v4/README.md) |
 | `v5` | v3 に **pick&place の発散対策**だけを足す: 離すときの指先を床から 5〜10 cm に、ロープのめり込み解消速度の上限を 0.4 m/s に。学習は `Knot` | 12 手 (成功で終了) | 学習の 1 手あたりの発散が v3 の 5.0% -> 2.0% (iteration 0〜9) | [versions/v5/README.md](versions/v5/README.md) |
+| `v6` | v5 に **次にたどる位相の辺** (TWISTED-RL の ρ(g)) を観測として足す: over / under 区間のリンクマスク・移動の種類・符号など 64 次元。報酬・終了・アーカイブ・PPO は v5 のまま。学習は `Knot` | 12 手 (成功で終了) | smoke test のみ | [versions/v6/README.md](versions/v6/README.md) |
 
 各バージョンには 5 つのロープのプリセットがある
 (`Twist` / `Simple` / `Stiff` / `Fine` / `Knot`)。**v2-R2 までの学習は `Twist`、v3 以降は `Knot`** で、
@@ -55,6 +57,7 @@ Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2-R2[-RNN|-LSTM]   # 30 
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v3[-RNN|-LSTM]   # 30 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v4               # 10 タスク (MLP のみ)
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v5[-RNN|-LSTM]   # 30 タスク
+Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v6[-RNN|-LSTM]   # 30 タスク
 ```
 
 `v2-R2` のようにハイフンを含むバージョン表記は、パッケージ名では
@@ -67,7 +70,7 @@ v2 以降は **1 つの環境設定に対してエージェント設定が 3 つ
 
 学習ログはバージョンごと、**さらに v2 以降は変種ごと**に分かれる:
 `logs/rsl_rl/knot_tying_v0/` / `knot_tying_v1/` / `knot_tying_v2/` /
-`knot_tying_v2_rnn/` / `knot_tying_v2_lstm/` / `knot_tying_v2_r2{,_rnn,_lstm}/` / `knot_tying_v3{,_rnn,_lstm}/` / `knot_tying_v4/` / `knot_tying_v5{,_rnn,_lstm}/`。混ざっていると `--resume` で
+`knot_tying_v2_rnn/` / `knot_tying_v2_lstm/` / `knot_tying_v2_r2{,_rnn,_lstm}/` / `knot_tying_v3{,_rnn,_lstm}/` / `knot_tying_v4/` / `knot_tying_v5{,_rnn,_lstm}/` / `knot_tying_v6{,_rnn,_lstm}/`。混ざっていると `--resume` で
 誤って別バージョン・別構造のチェックポイントを読んでしまうため
 (`load_state_dict` は `strict=True` なので、構造が違えば `RuntimeError`)。
 
@@ -88,15 +91,15 @@ knot_tying/
 │   │   ├── phases.py         1 手を構成する 12 フェーズの尺と定数
 │   │   ├── actions.py        PickPlaceAction (実装の中心)
 │   │   ├── finger_geometry.py  指の真下の紐を探す幾何 (v5 の計測。純 torch)
-│   │   ├── observations.py   観測項 + RopeTopologyExtractor の共有
+│   │   ├── observations.py   観測項 + RopeTopologyExtractor の共有 (v6: 次にたどる辺 NextEdgeGoal)
 │   │   ├── rewards.py        報酬項
 │   │   ├── terminations.py   終了判定 (NaN 対策)
-│   │   ├── topology_log.py   位相ラダーの集計ログと Play 時の p-data 表示 (v2-R2)
+│   │   ├── topology_log.py   位相ラダーの集計ログと Play 時の p-data 表示 (v2-R2)、次にたどる辺のログ (v6)
 │   │   ├── archive.py        アーカイブからのリセット・保存・ログ (v3、段ごとの版は v4)
 │   │   ├── stages.py         段の観測・遷移の報酬・段が変わったら終了 (v4)
 │   │   └── events.py         起動時イベント (摩擦材 bind, body 順序検算)
 │   ├── policies/           独自の方策ネットワーク (v4: 段ごとのエージェント StageGatedActorCritic)
-│   ├── topology/           3D 点列 -> 位相 (交差・p-data・結び目判定・R2 除去・BFS 距離)。
+│   ├── topology/           3D 点列 -> 位相 (交差・p-data・結び目判定・R2 除去・BFS 距離・次にたどる辺)。
 │   │                       isaaclab を import しないので Sim 無しでテストできる
 │   ├── rope_model/         ロープの USD 生成と設定
 │   └── parallel_gripper/   グリッパーの USD 生成と設定
@@ -108,7 +111,8 @@ knot_tying/
 │   ├── v2_r2/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v2 を継承、判定器だけ差し替え
 │   ├── v3/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v2-R2 を継承、リセット・終了・報酬を差し替え
 │   ├── v4/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v3 を継承、段ごとのエージェントと 1 遷移 = 1 エピソード
-│   └── v5/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v3 を継承、発散対策 (離す高さ・めり込み解消速度) だけ
+│   ├── v5/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v3 を継承、発散対策 (離す高さ・めり込み解消速度) だけ
+│   └── v6/{env_cfg.py, agents/rsl_rl_ppo_cfg.py, README.md}  ← v5 を継承、観測に次にたどる辺のリンクマスクを足すだけ
 │
 └── demos/            ← RL 環境から import されない独立スクリプト
     ├── generate_assets.py   USD 資産の生成

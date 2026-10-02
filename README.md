@@ -59,13 +59,17 @@ rewriting the existing one, so every earlier version stays runnable and comparab
 | `v1` | tie an overhand knot | failed (sparse reward never fired) |
 | `v2` | overhand knot with a 3-step reward ladder | exploited a false intermediate state |
 | `v2-R2` | v2 with the ladder judged after Reidemeister-II reduction | stuck on the rare real intermediate state |
-| `v3` | reset from an archive of reached states, terminate on success, BFS-distance potential | smoke-tested only |
-| `v4` | one agent per stage (TWISTED-RL-C), one topological transition per episode, stage archive seeded from the scripted knot | latest; smoke-tested only |
+| `v3` | reset from an archive of reached states, terminate on success, BFS-distance potential | ties the knot from a straight rope in 25% of episodes (iteration 150) |
+| `v4` | one agent per stage (TWISTED-RL-C), one topological transition per episode, stage archive seeded from the scripted knot | chain eval 41.6% (iteration 100, seed 42); plateaus after iteration 50 |
+| `v5` | v4 + pick&place divergence fixes (release 5-10 cm above the floor, rope depenetration velocity 0.4 m/s) | chain eval 9.6%: half the divergence of v4, but the 0.4 m/s cap stops it from learning the final tuck |
+| `v6` | v5 + the next topological edge to follow (link masks) in the observation | chain eval 37.9% / 22.9% (seeds 42 / 43); 2-4x v5, within seed spread of v4 |
+| `v7` | v6 with the rope depenetration velocity back to the v4 default (0.96 m/s) | not trained yet; the same setting in a v6 ablation scored 31.2% at iteration 70 |
 
 ```bash
 uv run train --task Isaac-Twisted-RL-Twist-v0 --headless   # single crossing
 uv run train --task Isaac-Twisted-RL-Knot-v3 --headless    # archive resets (uses the 28-link Knot rope)
-uv run train --task Isaac-Twisted-RL-Knot-v4 --headless    # latest (see versions/v4/README.md for the seed archive)
+uv run train --task Isaac-Twisted-RL-Knot-v4 --headless    # one agent per stage (see versions/v4/README.md for the seed archive)
+uv run train --task Isaac-Twisted-RL-Knot-v6 --headless    # v4 + divergence fixes + next-edge observation
 ```
 
 Evaluate a trained policy.
@@ -74,6 +78,14 @@ Evaluate a trained policy.
 uv run play --task Isaac-Twisted-RL-Twist-Play-v0 --num_envs 1
 uv run play --task Isaac-Twisted-RL-Knot-Play-v3 --num_envs 1
 uv run play --task Isaac-Twisted-RL-Knot-Play-v4 --num_envs 16
+```
+
+For v4 and later, compare versions with the chain evaluation (straight rope to knot within 18 actions, counted per episode).
+Seeds of the same version differ by 15-19 points, so compare at least two seeds.
+
+```bash
+uv run python -u src/isaac_twisted_rl/scripts/rsl_rl/eval_chain.py --task Isaac-Twisted-RL-Knot-Play-v6 \
+    --num_envs 512 --headless --seed 7 --checkpoint logs/rsl_rl/knot_tying_v6/<run>/model_100.pt --out eval.json
 ```
 
 Grasp a rope with a parallel gripper:

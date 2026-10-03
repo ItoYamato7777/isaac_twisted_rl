@@ -121,6 +121,15 @@ parser.add_argument(
         "outputs/archive_seed/overhand_{num_links}links.pt ({num_links} はリンク数に置き換える)。"
     ),
 )
+parser.add_argument(
+    "--dump_knots",
+    type=str,
+    default="",
+    help=(
+        "最後の形のうち固結び (段 3) になったものを、このパスへ別のアーカイブ (段 3 だけ) として保存する。"
+        "紐モデルの比較 (rope_study/bench_physics.py の knot 試験) が、結び目に荷重を掛けたときに残るかを見るのに使う。"
+    ),
+)
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
@@ -292,6 +301,8 @@ class ScriptRunner:
         self.diverged = torch.zeros(n, dtype=torch.bool, device=self.device)
         self.div_phase: dict[str, int] = {}
         """初めて発散を検出したフェーズごとの環境数 (原因の切り分け用)。"""
+        self.div_reason: dict[str, int] = {}
+        """初めて発散を検出した基準 (NaN / 水平 3 m / 速さ 20 m/s) ごとの環境数。"""
         self._pose = torch.zeros(n, 7, device=self.device)
         self._vel = torch.zeros(n, 6, device=self.device)
 
@@ -332,17 +343,48 @@ class ScriptRunner:
             self.scene.update(self.dt)
             if self.sim.has_gui() and k % 8 == 0:
                 self.sim.render()
+            if os.environ.get("ROPE_DEBUG_DIV"):
+                # 紐が 3 m/s を初めて超えた環境と、そのフェーズ・手・指 (切り分け用、既定では何もしない)
+                v = torch.nan_to_num(self.rope.data.body_lin_vel_w.norm(dim=-1), nan=1e6)
+                vm, vk = v.max(dim=1)
+                first = (vm > 3.0) & ~getattr(self, "_kicked", torch.zeros_like(vm, dtype=torch.bool))
+                if bool(first.any()):
+                    self._kicked = getattr(self, "_kicked", torch.zeros_like(first)) | first
+                    for e in first.nonzero().flatten().tolist()[:3]:
+                        fq = self.gripper.data.joint_pos[e, self.finger_ids].tolist()
+                        lk = self.links()[e, int(vk[e])]
+                        print(f"[kick] tag={tag} step={k}/{steps} env={e} v={float(vm[e]):.2f} link={int(vk[e])} "
+                              f"link_pos={[round(float(t), 3) for t in lk]} hand={[round(float(t), 3) for t in (pos[e] - self.origins[e])]} "
+                              f"fingers={[round(t, 4) for t in fq]} ratio={float(ratio[e] if torch.is_tensor(ratio) else ratio):.2f}", flush=True)
         self.hand_pos = p1.clone()
         self.hand_yaw = yaw0 + d_yaw
         links = self.links()
+        if os.environ.get("ROPE_DEBUG_ENV"):
+            e = int(os.environ["ROPE_DEBUG_ENV"])
+            c = links[e].mean(dim=0)
+            print(f"[trace] env={e} tag={tag} rope_center={[round(float(t), 3) for t in c]} "
+                  f"rope_z=[{float(links[e, :, 2].min()):.3f},{float(links[e, :, 2].max()):.3f}] "
+                  f"hand={[round(float(t), 3) for t in self.hand_pos[e]]} "
+                  f"vmax={float(self.rope.data.body_lin_vel_w[e].norm(dim=-1).max()):.2f}", flush=True)
         speed = self.rope.data.body_lin_vel_w.norm(dim=-1).amax(dim=1)
         # 学習環境の rope_diverged (v2-R2) と同じ基準: NaN / 水平 3 m / リンク速度 20 m/s
-        bad = ~torch.isfinite(links).all(dim=-1).all(dim=-1)
-        bad |= torch.nan_to_num(links[..., :2], nan=0.0).norm(dim=-1).amax(dim=1) > 3.0
-        bad |= torch.nan_to_num(speed, nan=0.0) > 20.0
+        nonfinite = ~torch.isfinite(links).all(dim=-1).all(dim=-1)
+        far = torch.nan_to_num(links[..., :2], nan=0.0).norm(dim=-1).amax(dim=1) > 3.0
+        fast = torch.nan_to_num(speed, nan=0.0) > 20.0
+        bad = nonfinite | far | fast
         new = bad & ~self.diverged
         if tag and bool(new.any()):
             self.div_phase[tag] = self.div_phase.get(tag, 0) + int(new.sum())
+            # どの基準で発散と判定したか (紐モデルの比較で追加。XPBD の低摩擦で手が離れているときの「発散」の切り分け)
+            for key, m in (("nan", nonfinite), ("far3m", far), ("speed20", fast)):
+                self.div_reason[key] = self.div_reason.get(key, 0) + int((new & m).sum())
+            if os.environ.get("ROPE_DEBUG_DIV"):
+                e = int(new.nonzero()[0, 0])
+                xy = links[e, :, :2]
+                print(f"[div] tag={tag} env={e} far={bool(far[e])} fast={bool(fast[e])} speed={float(speed[e]):.2f} "
+                      f"xy_norm_max={float(xy.norm(dim=-1).max()):.2f} z=[{float(links[e, :, 2].min()):.3f},"
+                      f"{float(links[e, :, 2].max()):.3f}] hand={[round(float(v), 3) for v in self.hand_pos[e]]}", flush=True)
+                print("[div] links xy:", [[round(float(a), 2), round(float(b), 2)] for a, b in xy.tolist()], flush=True)
         self.diverged |= bad
 
     def hold(self, duration: float, ratio: float = phases.OPEN_RATIO, tag: str = ""):
@@ -680,6 +722,15 @@ def main():
     env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs)
     # 台本はハンドを直接動かすので env.step() を呼ばない。時間切れの reset も起きないが念のため延ばす。
     env_cfg.episode_length_s = 1.0e6
+    # ゲート 1 は必ずまっすぐな紐から始める。v4 以降の学習の設定は、初期アーカイブのファイルがあると reset で
+    # 段 0〜2 の形を引く (まっすぐは段 0 を選んだときの半分だけ) ので、Play と同じに固定する。以前は
+    # `--dump_archive` で作ったアーカイブがあると、同じタスクの 2 回目以降の台本が途中の形から始まっていた
+    # (紐モデルの比較で 2026-10-02 に発見。`rope_study/Report_rope_models.md` §7.1.2)
+    reset_term = getattr(env_cfg.events, "reset_to_stage", None)
+    if reset_term is not None and "straight_prob" in reset_term.params:
+        n_stages = len(reset_term.params.get("stage_weights", (1.0,)))
+        reset_term.params["stage_weights"] = (1.0,) + (0.0,) * (n_stages - 1)
+        reset_term.params["straight_prob"] = 1.0
     for item in filter(None, args_cli.cfg.split(";")):
         path, value = item.split("=", 1)
         *parents, leaf = path.strip().split(".")
@@ -778,7 +829,7 @@ def main():
         hist = torch.bincount(cls_r2[~runner.diverged], minlength=4).tolist()
         log(
             f"[move {k + 1} {plan.label:6s}] class_r2 hist={hist} diverged={int(runner.diverged.sum())} "
-            f"invalid={int((~plan.valid).sum())} diverged_at={runner.div_phase}"
+            f"invalid={int((~plan.valid).sum())} diverged_at={runner.div_phase} reason={runner.div_reason}"
         )
         for e in range(runner.num_envs):
             elog(
@@ -798,6 +849,15 @@ def main():
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
         dump.save(path)
         log(f"[dump] {path}: 段 -> 件数 {dump.sizes()}")
+    if args_cli.dump_knots:
+        knots = sa.StateArchive(
+            classes=(3,), capacity=runner.num_envs, num_joints=runner.rope.num_joints, device=runner.device
+        )
+        runner.dump(knots, batch, red)
+        path = args_cli.dump_knots.format(num_links=runner.num_links)
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        knots.save(path)
+        log(f"[dump_knots] {path}: 段 -> 件数 {knots.sizes()}")
     # 既定では「4 手目で C2 に達した環境」を優先して描く (5 手目の成否を見比べるため)。
     if not args_cli.plot_ids and len(snaps) >= 5:
         c2 = [e for e, c in enumerate(snaps[3][1]["cls_r2"]) if c == tp.CLASS_INTERLEAVED2]

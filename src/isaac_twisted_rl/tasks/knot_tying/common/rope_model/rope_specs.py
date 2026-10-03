@@ -235,6 +235,14 @@ class RopeSpec:
     twist_limit_deg: float | None
     """捩りの片側角度制限 [deg]。`None` なら無制限。"""
 
+    filter_neighbor_pairs: int = 1
+    """番号の差がこの値以下のリンクどうしの接触を切る (`UsdPhysics.FilteredPairsAPI`)。紐モデルの比較で追加。
+
+    既定の 1 は「関節で直結した隣だけ」(PhysX が自動で除外する) で、従来の 5 プリセットの USD は変わらない。
+    リンクを直径より短くした鎖 (`knot56`) では、1 本おきのリンクがまっすぐな状態でも接していて
+    (`HALF_LENGTH_TO_RADIUS` の docstring の問題)、関節と接触が競合するので 2 にする。
+    """
+
     # ------------------------------------------------------------ 派生量
     @property
     def link_spacing(self) -> float:
@@ -501,8 +509,75 @@ _KNOT = _make_physical_spec(
     youngs_modulus=TWIST_YOUNGS_MODULUS,
 )
 
+def _refine_chain(base: RopeSpec, factor: int, name: str, description: str, color, color_name: str) -> RopeSpec:
+    """`base` と **同じ材料・同じ太さ・同じ全長** のまま、リンクを `factor` 分の 1 の長さに刻んだ鎖。
+
+    紐モデルの比較 (`rope_study/`) で、剛体鎖の離散化の粗さ (リンク 4 cm = 直径の 2 倍) の影響を
+    切り分けるために追加した。`_make_physical_spec` は「1 本おきのリンクが接しない」幾何拘束
+    (`HALF_LENGTH_TO_RADIUS` = 2) からリンク長を決めるので、それより細かい鎖は作れない。ここでは
+    リンク長を自由に縮め、代わりに近いリンクどうしの接触を `filter_neighbor_pairs` で切る。
+
+    揃える量 (連続体として同じ紐になるように):
+        線密度          リンク質量 = base の線密度 x 新しいリンク間隔 (カプセルの重なりで質量が増えないよう体積からは出さない)
+        曲げ剛性 EI     関節のばね定数 = EI / 新しいリンク間隔 (base の値 x factor)
+        捩り剛性 GJ     同上
+        最小曲げ半径    関節の角度制限 = 2 asin(リンク間隔 / (2 R_min))
+        減衰            各関節を臨界減衰 (新しいリンクの慣性で計算し直す)
+    """
+    spacing = base.link_spacing / factor
+    half = 0.5 * spacing
+    r = base.capsule_radius
+    lin_density = base.link_mass / base.link_spacing
+    link_mass = lin_density * spacing
+    ei = base.bend_stiffness * base.link_spacing
+    bend_k = ei / spacing
+    total_len = spacing + 2.0 * r
+    inertia_t = link_mass * (3.0 * r**2 + total_len**2) / 12.0
+    inertia_a = 0.5 * link_mass * r**2
+    bend_c = 2.0 * BEND_DAMPING_RATIO * math.sqrt(bend_k * inertia_t)
+    r_min = MIN_BEND_RADIUS_IN_DIAMETERS * 2.0 * r
+    bend_limit = math.degrees(2.0 * math.asin(min(spacing / (2.0 * r_min), 1.0)))
+    twist_k = None if base.twist_stiffness is None else base.twist_stiffness * base.link_spacing / spacing
+    twist_c = 0.0 if twist_k is None else 2.0 * BEND_DAMPING_RATIO * math.sqrt(twist_k * inertia_a)
+    gap = int(math.floor(1.25 * 2.0 * r / spacing)) + 1
+    return RopeSpec(
+        name=name,
+        description=description,
+        color=color,
+        color_name=color_name,
+        num_links=base.num_links * factor,
+        capsule_radius=r,
+        capsule_half_length=half,
+        link_mass=link_mass,
+        friction=base.friction,
+        bend_stiffness=bend_k,
+        bend_damping=bend_c,
+        bend_limit_deg=bend_limit,
+        twist_stiffness=twist_k,
+        twist_damping=twist_c,
+        twist_limit_deg=base.twist_limit_deg,
+        filter_neighbor_pairs=max(1, gap),
+    )
+
+
+_KNOT56 = _refine_chain(
+    _KNOT,
+    2,
+    name="knot56",
+    description="knot と同じ材料・太さ・全長で、リンクを 2 cm (直径と同じ) に刻んだ 56 リンクの鎖 (紐モデルの比較用)",
+    color=(0.75, 0.35, 0.95),
+    color_name="薄紫",
+)
+"""`knot` を 2 倍細かく刻んだ鎖 (紐モデルの比較 `rope_study/` の `Art56`)。
+
+リンク数は 28 x 2 = 56 で、端のキャップを含む全長 (55 x 0.02 + 0.04 = 1.14 m) も、節点列
+(`polyline_from_link_centers`) の長さ (56 x 0.02 = 1.12 m) も `knot` と同じ。1 本おきのリンク
+(中心の間隔 4 cm、カプセルの全長 4 cm) は
+まっすぐな状態で接するので、`filter_neighbor_pairs=2` で接触を切る。
+"""
+
 ROPE_SPECS: dict[str, RopeSpec] = {
-    spec.name: spec for spec in (_SIMPLE, _STIFF, _TWIST, _FINE, _KNOT)
+    spec.name: spec for spec in (_SIMPLE, _STIFF, _TWIST, _FINE, _KNOT, _KNOT56)
 }
 """名前 -> `RopeSpec` のレジストリ。`--rope` の選択肢はここから引く。"""
 

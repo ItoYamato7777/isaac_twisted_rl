@@ -235,6 +235,16 @@ def build_stage(spec: RopeSpec) -> Usd.Stage:
             spec=spec,
         )
 
+    # 近いリンクどうしの接触を切る (直結した隣は PhysX が自動で除外するので 2 以上だけ)。
+    # 既定 (filter_neighbor_pairs=1) では何も足さないので、従来のプリセットの USD は変わらない。
+    for k in range(spec.num_links):
+        targets = [link_paths[j] for j in range(k + 2, min(spec.num_links, k + spec.filter_neighbor_pairs + 1))]
+        if targets:
+            filt = UsdPhysics.FilteredPairsAPI.Apply(stage.GetPrimAtPath(link_paths[k]))
+            rel = filt.CreateFilteredPairsRel()
+            for path in targets:
+                rel.AddTarget(Sdf.Path(path))
+
     return stage
 
 

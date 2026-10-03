@@ -98,6 +98,10 @@ uv run python -u src/isaac_twisted_rl/scripts/rsl_rl/eval_chain.py --task Isaac-
   版の比較は 2 シード以上で行う。
 * これまでの結果は各 run のフォルダの `eval_chain_it{N}.json`。
 
+**探索ありの成功率** (論文と同じ土俵。シミュレータで候補の手を試すビーム探索と、探索なしの best-of-N) は
+`scripts/rsl_rl/eval_search.py` で測る。使い方とアルゴリズムは [`scripts/rsl_rl/README.md`](../../scripts/rsl_rl/README.md)、
+v4〜v7 の結果は [`paper/Report_Search.md`](../../../../paper/Report_Search.md)。結果は各 run のフォルダの `eval_search_*_it{N}.json`。
+
 ## フォルダ構成
 
 ```

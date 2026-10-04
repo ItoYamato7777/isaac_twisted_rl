@@ -53,17 +53,20 @@ uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/generate_assets.py
 The task is **versioned**: improvements are added as a new version rather than by
 rewriting the existing one, so every earlier version stays runnable and comparable.
 
-| Version | Goal | Status |
-|---|---|---|
-| `v0` | make a single crossing that survives release | trained successfully |
-| `v1` | tie an overhand knot | failed (sparse reward never fired) |
-| `v2` | overhand knot with a 3-step reward ladder | exploited a false intermediate state |
-| `v2-R2` | v2 with the ladder judged after Reidemeister-II reduction | stuck on the rare real intermediate state |
-| `v3` | reset from an archive of reached states, terminate on success, BFS-distance potential | ties the knot from a straight rope in 25% of episodes (iteration 150) |
-| `v4` | one agent per stage (TWISTED-RL-C), one topological transition per episode, stage archive seeded from the scripted knot | chain eval 41.6% (iteration 100, seed 42); plateaus after iteration 50 |
-| `v5` | v4 + pick&place divergence fixes (release 5-10 cm above the floor, rope depenetration velocity 0.4 m/s) | chain eval 9.6%: half the divergence of v4, but the 0.4 m/s cap stops it from learning the final tuck |
-| `v6` | v5 + the next topological edge to follow (link masks) in the observation | chain eval 37.9% / 22.9% (seeds 42 / 43); 2-4x v5, within seed spread of v4 |
-| `v7` | v6 with the rope depenetration velocity back to the v4 default (0.96 m/s) | not trained yet; the same setting in a v6 ablation scored 31.2% at iteration 70 |
+| Version | Goal |
+|---|---|
+| `v0` | make a single crossing that survives release |
+| `v1` | tie an overhand knot |
+| `v2` | overhand knot with a 3-step reward ladder |
+| `v2-R2` | v2 with the ladder judged after Reidemeister-II reduction |
+| `v3` | reset from an archive of reached states, terminate on success, BFS-distance potential |
+| `v4` | one agent per stage (TWISTED-RL-C), one topological transition per episode, stage archive seeded from the scripted knot |
+| `v5` | v4 + pick&place divergence fixes (release 5-10 cm above the floor, rope depenetration velocity 0.4 m/s) |
+| `v6` | v5 + the next topological edge to follow (link masks) in the observation |
+| `v7` | v6 with the rope depenetration velocity back to the v4 default (0.96 m/s) |
+
+The current status of each version and the results are in [`docs/STATUS.md`](docs/STATUS.md) and
+[`docs/experiments/`](docs/experiments/README.md) (Japanese).
 
 ```bash
 uv run train --task Isaac-Twisted-RL-Twist-v0 --headless   # single crossing
@@ -80,13 +83,8 @@ uv run play --task Isaac-Twisted-RL-Knot-Play-v3 --num_envs 1
 uv run play --task Isaac-Twisted-RL-Knot-Play-v4 --num_envs 16
 ```
 
-For v4 and later, compare versions with the chain evaluation (straight rope to knot within 18 actions, counted per episode).
-Seeds of the same version differ by 15-19 points, so compare at least two seeds.
-
-```bash
-uv run python -u src/isaac_twisted_rl/scripts/rsl_rl/eval_chain.py --task Isaac-Twisted-RL-Knot-Play-v6 \
-    --num_envs 512 --headless --seed 7 --checkpoint logs/rsl_rl/knot_tying_v6/<run>/model_100.pt --out eval.json
-```
+For v4 and later, compare versions with the chain evaluation (straight rope to knot within 18 actions, counted per episode)
+on at least two seeds. The definition and the standard command are in [`docs/system/evaluation.md`](docs/system/evaluation.md).
 
 Grasp a rope with a parallel gripper:
 
@@ -104,18 +102,11 @@ uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/topology_debug.py -
 The topology layer imports no `isaaclab`/`omni`/`pxr`, so its unit tests run without Isaac Sim:
 
 ```bash
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run python -m pytest tests/
 ```
 
-Documentation (Japanese):
-
-| Document | Contents |
-|---|---|
-| [`knot_tying/README.md`](src/isaac_twisted_rl/tasks/knot_tying/README.md) | package layout, version list, rules for adding a version, development rules |
-| [`knot_tying/common/README.md`](src/isaac_twisted_rl/tasks/knot_tying/common/README.md) | mechanisms shared by all versions (one action = one RL step, phases, action space) |
-| `knot_tying/versions/vN/README.md` | per-version task, observations, rewards and results |
-| [`knot_tying/next_action.md`](src/isaac_twisted_rl/tasks/knot_tying/next_action.md) | design decisions and history, current status and next steps |
-| [`paper/Report.md`](paper/Report.md) | comparison of v2-R2 with three knot-tying papers (basis for v3) |
+Documentation (Japanese): start from the map of documents, [`docs/README.md`](docs/README.md).
+Development rules for contributors (including Claude Code) are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Sim2Real Transfer
 

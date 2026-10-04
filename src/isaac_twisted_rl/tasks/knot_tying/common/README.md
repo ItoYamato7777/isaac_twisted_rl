@@ -1,8 +1,9 @@
 # common/: 全バージョンで共有する仕組み
 
 シーン・物理・行動・終了判定・起動時イベントは全バージョンで共通で、ここに実装がある。
-バージョン (`versions/vN/`) が決めるのは **観測・報酬・エピソード長・フェーズの尺・PPO 設定**だけ
-(方針は [`../README.md`](../README.md))。
+バージョン (`versions/vN/`) が決めるのは **観測・報酬・終了・リセット・エピソード長・フェーズの尺・PPO 設定**と、
+一部の物理の値 (v4 のソルバの位置反復、v5 以降のめり込み解消速度など。`KnotTyingEnvCfg` のフィールドの上書き)。
+方針は [`../README.md`](../README.md) と [`docs/decisions/`](../../../../../docs/decisions/README.md) の「版 = 設定」。
 
 この文書は「どのバージョンでも変わらない仕組み」を 1 か所にまとめたもの。
 バージョン固有の値は各 `versions/vN/README.md` を参照。
@@ -12,7 +13,7 @@
 `lift` や `reach` のような一般的な manager-based タスクでは、1 env ステップは
 「関節を少し動かす」程度の粒度になっている。この環境では **1 env ステップ = pick&place の
 1 手 (掴む→運ぶ→置く→離す) 全部** で、Options Framework 的な粒度になっている
-([`../next_action.md`](../next_action.md) 4.0 の決定)。
+(`docs/history/next_action.md` §4.0 の決定。今も有効な判断は [`docs/decisions/`](../../../../../docs/decisions/README.md))。
 
 実現しているのは Isaac Lab の `decimation` の使い方である。
 
@@ -42,14 +43,14 @@ self.episode_length_s = self.actions_per_episode * self.decimation * self.sim.dt
 
 120 Hz にすると、把持中の接触でロープ速度が 60〜175 m/s まで跳ね上がり NaN になる。
 発散率は 120 Hz で 11.2%、240 Hz で 1.2% だった
-([`../next_action.md`](../next_action.md) 4.5)。
+(`docs/history/next_action.md` §4.5。判断は [`docs/decisions/`](../../../../../docs/decisions/README.md) の 240 Hz)。
 
 ## 2. フェーズ ([`mdp/phases.py`](mdp/phases.py))
 
 1 手は 12 個のフェーズで構成される。フェーズ列は全バージョン共通で、尺はバージョンごとに
 選べる。尺 0 のフェーズは 1 物理ステップで通過し、補間せずに目標位置へ直接書き込まれる。
 
-| フェーズ | 内容 | `DEFAULT` (v0, v1) | `SHORT` (v2, v2-R2) | `KNOT` (v3) |
+| フェーズ | 内容 | `DEFAULT` (v0, v1) | `SHORT` (v2, v2-R2) | `KNOT` (v3〜v7、rope study) |
 |---|---|---|---|---|
 | `approach` | 掴む点の真上へ移動 | 0.175 | **0** | **0** |
 | `descend` | 下降 | 0.14 | 0.14 | **0.3** |
@@ -74,7 +75,7 @@ self.episode_length_s = self.actions_per_episode * self.decimation * self.sim.dt
 * **`SHORT`**: `approach` の非物理的な速度指令が発散源だったので、補間をやめて位置の書き換えにした
   (理由と安全性は `SHORT_DURATIONS` の docstring と [v2 README](../versions/v2/README.md) §2)。
 * **`KNOT`**: 28 リンクの `Knot` を速く運ぶと発散するので、移動系を延ばした (ゲート 1、
-  [`../next_action.md`](../next_action.md) 4.8.10)。定義は `versions/v3/env_cfg.py`。
+  [`docs/experiments/2026-09-27_gate1.md`](../../../../../docs/experiments/2026-09-27_gate1.md))。定義は `versions/v3/env_cfg.py` で、v4 以降は継承して使う。
 
 ## 3. 行動空間 ([`mdp/actions.py`](mdp/actions.py) の `PickPlaceAction`)
 
@@ -94,7 +95,7 @@ self.episode_length_s = self.actions_per_episode * self.decimation * self.sim.dt
 * **絶対座標ではなくリンク相対にした理由**: pick&place 粒度では、離した瞬間にロープが物理で動く。
   そのため、次の手を決める時点で前回のリンク位置はもう当てにならない。キネマティックハンドには
   可達領域の制約も無いので、絶対座標の利点が無い。人間が書いた台本も「渡し先をリンクの現在位置から
-  実行時に決める」形でしか組めなかった ([`../next_action.md`](../next_action.md) 4.1)。
+  実行時に決める」形でしか組めなかった (`docs/history/next_action.md` §4.1。判断は [`docs/decisions/`](../../../../../docs/decisions/README.md) の行動空間)。
 * **離散チャネルを連続値で受け取る理由**: RSL-RL の PPO は連続ガウス方策しか持たない。
   `grasp_link` / `delta_link` は `PickPlaceAction` の側で丸めて離散化する。
 * **`process_actions` と `apply_actions`**:
@@ -147,7 +148,13 @@ reset された環境ではロープが初期姿勢に戻っているのに、�
 | `diverged` (`rope_diverged`) | ロープ座標が NaN、または高さが 5 m を超えた。v2-R2 以降は、env 原点からの水平距離 3.0 m とリンク速度 20 m/s も見る |
 
 発散した環境はその場で reset され、報酬の `failure` (`action_failed`) が罰を与える。
-v3 はこれに、成功 (固結び) で終了する `knot_tied` を足している。
+
+版ごとに足す・置き換える終了項:
+
+| 版 | 項 | 内容 |
+|---|---|---|
+| v3 | `knot_tied` | 成功 (固結び) で終了 (`time_out=False` なので PPO は bootstrap しない) |
+| v4〜v7、rope study | `stage_up` / `stage_down` (`mdp.stage_changed`) | `knot_tied` を外し、段が上がった・下がったら終了 (1 遷移 = 1 エピソード)。Play では chain モード (固結びでだけ `stage_up`)。`stage_up` は `time_out` より後ろに置く (`versions/v4/env_cfg.py:124-140`) |
 
 ## 7. 起動時イベント ([`mdp/events.py`](mdp/events.py))
 

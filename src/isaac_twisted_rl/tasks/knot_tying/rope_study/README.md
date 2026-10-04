@@ -1,7 +1,8 @@
 # rope_study: 紐のシミュレーションモデルの比較
 
 同じ MDP (v4) のまま、紐のシミュレーションモデルだけを差し替えて比べるためのタスク群と計測の道具。
-何を比べたか・結果・結論は [`Report_rope_models.md`](Report_rope_models.md)。
+何を比べたか・結果・結論は [`docs/experiments/2026-10-02_rope_models.md`](../../../../../docs/experiments/2026-10-02_rope_models.md) (打ち切り中)。
+rope study の run の最後のチェックポイントは `model_99.pt` (`model_100.pt` は無い)。
 
 ## モデル
 
@@ -57,17 +58,17 @@ uv run train --task Isaac-Twisted-RL-RS-XpbdC28-v4 --headless --device cuda:0 --
 bash src/isaac_twisted_rl/tasks/knot_tying/rope_study/run_train_chain.sh cuda:0 <PID or 0> XpbdC28 XpbdMS28
 
 # 評価をまとめて (ジョブ一覧 -> キュー -> 表)
-.venv/bin/python src/isaac_twisted_rl/tasks/knot_tying/rope_study/make_eval_jobs.py --policies Art28,XpbdC28 --iters 50,100 \
+.venv/bin/python src/isaac_twisted_rl/tasks/knot_tying/rope_study/make_eval_jobs.py --policies Art28,XpbdC28 --iters 50,99 \
     --out outputs/rope_study/eval/jobs.txt
 bash src/isaac_twisted_rl/tasks/knot_tying/rope_study/run_eval_queue.sh outputs/rope_study/eval/jobs.txt cuda:0
 .venv/bin/python src/isaac_twisted_rl/tasks/knot_tying/rope_study/summarize_eval.py --md outputs/rope_study/eval/summary.md
 # 学習中にチェックポイントが増えるたびに評価 (2 GPU で同時に回してよい。止めるときは outputs/rope_study/eval/STOP)
-bash src/isaac_twisted_rl/tasks/knot_tying/rope_study/run_eval_loop.sh cuda:0 600 --iters 50,100 \
+bash src/isaac_twisted_rl/tasks/knot_tying/rope_study/run_eval_loop.sh cuda:0 600 --iters 50,99 \
     --extra_policy v4Knot=logs/rsl_rl/knot_tying_v4/2026-10-01_19-22-13_overnight_s42
 
 # 評価を 1 本だけ (自分のモデル / 別のモデル / 摂動)
 .venv/bin/python -u src/isaac_twisted_rl/tasks/knot_tying/rope_study/eval_robust.py \
-    --task Isaac-Twisted-RL-RS-Art28-Play-v4 --checkpoint logs/rsl_rl/knot_tying_rs_xpbdc28/<run>/model_100.pt \
+    --task Isaac-Twisted-RL-RS-Art28-Play-v4 --checkpoint logs/rsl_rl/knot_tying_rs_xpbdc28/<run>/model_99.pt \
     --num_envs 512 --seed 7 --headless --device cuda:0 --obs_noise 0.005 \
     env.actions.pick_place.exec_noise_xy=0.005 --out outputs/rope_study/eval/XpbdC28/on_Art28_noise5mm.json
 # XPBD の物理パラメータの摂動 (曲げ剛性 x0.5 など。`XpbdRodParams` の項)
@@ -93,8 +94,8 @@ bash src/isaac_twisted_rl/tasks/knot_tying/rope_study/run_eval_loop.sh cuda:0 60
 | `summarize_eval.py` | 評価結果を表にする (自分のモデル・転移行列・摂動・選定に使う平均と最悪値。最後の iteration と自分のモデルで良い方の iteration の 2 通り) |
 | `summarize_train.py` | 学習ログを表にする (1 iteration の時間・手/s・発散・段ごとの成功率) |
 | `smoke_test.py` | 環境を立ち上げて乱数の手を数手打つ |
-| `HANDOFF.md` | 作業の引き継ぎメモ (進み具合と次にやること) |
-| `Report_rope_models.md` | 報告書 |
+| (移動) `docs/history/rope_study_HANDOFF.md` | 作業の引き継ぎメモ (経緯。凍結) |
+| (移動) [`docs/experiments/2026-10-02_rope_models.md`](../../../../../docs/experiments/2026-10-02_rope_models.md) | 報告書 |
 
 ## 注意
 

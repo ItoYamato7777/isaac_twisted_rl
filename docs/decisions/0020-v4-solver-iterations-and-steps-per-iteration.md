@@ -51,8 +51,6 @@
 | v5 は反復 8・1 iteration 4 手を v4 のまま使う | `kt/versions/v5/env_cfg.py:57-60`、`kt/versions/v5/agents/rsl_rl_ppo_cfg.py:5` | 一致 |
 | 変更前に戻す上書き (Hydra からは `solver_position_iterations` が効かないので資産の値を直接上書き) | `kt/versions/v4/README.md` の「学習速度」 | — |
 
-既知の食い違い: `kt/versions/v4/README.md` の「段ごとのアーカイブ」は保存間隔を「600 手 (= 50 iteration)」と書くが、今の実装は 200 手 (`refactor/audit/B_2.md` の B-114)。
-
 ## 出典
 
 - `kt/versions/v4/README.md:148-288` (commit 62b251b の時点の「学習速度 (2026-09-30)」。今は [`docs/experiments/2026-09-30_v4_speed.md`](../experiments/2026-09-30_v4_speed.md) に転記)

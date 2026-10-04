@@ -104,7 +104,7 @@ v3 は「まっすぐなロープから固結びまでを 1 本の方策・1 エ
   段 0 は確率 `straight_prob = 0.5` でまっすぐなロープにする。
 * 起動時に `load_paths` を読む。既定は `outputs/archive_seed/overhand_{num_links}links.pt`
   (`overhand_script.py --dump_archive` の出力。`{num_links}` はリンク数)。無ければ警告して空から始める。
-* 600 手 (= 50 iteration、チェックポイントの間隔) ごとに `{log_dir}/archive.pt` へ書く。
+* 200 手 (= 50 iteration x 4 手、チェックポイントの間隔) ごとに `{log_dir}/archive.pt` へ書く。
   `--resume` するときは `env.events.reset_to_stage.params.load_paths` にそれを足す。
 
 ## Play (chain モード)

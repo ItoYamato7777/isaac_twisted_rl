@@ -52,7 +52,7 @@ v4・v5 は物理の値 (ソルバの位置反復・めり込み解消速度) �
 | `first_crossing_feature` の `.. deprecated::` | `kt/common/mdp/observations.py:97-100` | 一致 |
 | 閉包で基底を固定した `__post_init__` | `kt/common/rope_task_cfg.py:196-207` | 一致 |
 | ログ名は `agent_cfg.experiment_name` から | `train.py:140`。`--experiment_name` は `cli_args.update_rsl_rl_cfg` が写す (`tests/test_cli_args.py`) | 一致 (ログ名の決まり方は [`docs/system/logs.md`](../system/logs.md)) |
-| 追加のみの規約 | `kt/README.md` の「構造上の制約」(静的な検査は `tests/test_invariants.py:193` の I4) | README に同じ規約がある。既存の版の挙動を変えない規則は `.claude/rules/versions.md` |
+| 追加のみの規約 | `kt/README.md` の「構造上の制約」(静的な検査は `tests/test_invariants.py:245` の I4) | README に同じ規約がある。既存の版の挙動を変えない規則は `.claude/rules/versions.md` |
 
 ## 出典
 

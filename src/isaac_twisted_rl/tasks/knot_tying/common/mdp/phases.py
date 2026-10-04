@@ -9,8 +9,9 @@
 ## なぜ尺をデモより短くしているか
 
 デモの尺 (合計 11.4 s) は **目視デバッグ用に余裕を持たせた値**で、
-`docs/history/next_action.md` §4.3 に「フェーズの尺は詰められるだけ詰めること」と
-指示がある。1 手 = 11.4 s のままだと 240 Hz で 2736 物理ステップ、
+初版の `next_action.md` §4.3 に「フェーズの尺は詰められるだけ詰めること」と指示がある
+(commit `5fd7e3c`。`git show 5fd7e3c:src/isaac_twisted_rl/tasks/knot_tying/next_action.md`。
+今の `docs/history/next_action.md` からは整理で消えた)。1 手 = 11.4 s のままだと 240 Hz で 2736 物理ステップ、
 1 エピソード 5 手で 13680 ステップになり、学習の実時間がここで決まってしまう。
 
 そこで各フェーズをおおむね半分以下に詰めて合計 5.0 s とした (その後さらに
@@ -26,7 +27,7 @@
 
 デモの `RELEASE_RATIO` の docstring は「接近時の `OPEN_RATIO` より広く開ける」と
 書いてあるが、`docs/decisions/0004-release-follow-physics.md` の対策で `OPEN_RATIO` が 1.0 に上がった結果
-両者は同値になっている (`docs/history/next_action.md` §3(c) にも記述と実態のずれとして指摘がある)。
+両者は同値になっている (初版の `next_action.md` (`5fd7e3c`) §3(c) にも記述と実態のずれとして指摘がある)。
 ここでは定数を 1 つ (`OPEN_RATIO`) に統合し、その経緯をこの docstring に残す。
 """
 

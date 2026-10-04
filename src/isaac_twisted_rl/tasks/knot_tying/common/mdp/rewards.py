@@ -1,10 +1,10 @@
-"""報酬項 (`docs/history/next_action.md` §4.2 の設計をそのまま実装。今も有効な理由は `docs/decisions/0005-measure-after-retreat.md`)。
+"""報酬項 (初版の `next_action.md` (commit `5fd7e3c`) §4.2 の設計をそのまま実装。今も有効な理由は `docs/decisions/0005-measure-after-retreat.md`)。
 
 ## 報酬関数が「1 手につき 1 回」呼ばれること
 
 `decimation` を 1 手ぶんの物理ステップ数にしてあるので、
 `ManagerBasedRLEnv.step()` の中で報酬計算は **フェーズ列を全部終えた後に
-1 回だけ** 走る。つまり `docs/history/next_action.md` §4.2 の「アクションごと」の項
+1 回だけ** 走る。つまり初版の `next_action.md` (`5fd7e3c`) §4.2 の「アクションごと」の項
 (`r_progress`) が、特別な仕掛け無しにそのまま書ける。
 
 ## 成功判定を「ハンドが退避した後」に測ること

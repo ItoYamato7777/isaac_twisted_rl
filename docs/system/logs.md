@@ -14,7 +14,7 @@ Claude は `logs/`・`outputs/` を手で編集しない (書くのは学習・�
 | 部分 | 決まり方 | 根拠 |
 |---|---|---|
 | `<ログ名>` | エージェントの設定の `experiment_name`。版ごとに `knot_tying_vN` (v2・v2-R2・v3 の変種は `_rnn`・`_lstm` が付く)。rope study は紐モデルごとに `knot_tying_rs_<紐モデルの小文字>` | `scripts/rsl_rl/train.py:140`、`versions/*/agents/rsl_rl_ppo_cfg.py` (例 `versions/v4/agents/rsl_rl_ppo_cfg.py:52`)、`rope_study/agents/rsl_rl_ppo_cfg.py:21` |
-| `<run>` | 学習を始めた時刻 `%Y-%m-%d_%H-%M-%S`。`--run_name` を付けたときだけ `_<run_name>` が続く | `scripts/rsl_rl/train.py:143-149`、`scripts/rsl_rl/cli_args.py:82-83` |
+| `<run>` | 学習を始めた時刻 `%Y-%m-%d_%H-%M-%S`。`--run_name` を付けたときだけ `_<run_name>` が続く | `scripts/rsl_rl/train.py:143-149`、`scripts/rsl_rl/cli_args.py:85-86` |
 
 注意:
 
@@ -38,7 +38,7 @@ Claude は `logs/`・`outputs/` を手で編集しない (書くのは学習・�
 ## 3. チェックポイントの番号
 
 - 最後のチェックポイントの番号は run ごとに `ls` で確かめる。
-- v4〜v6 の overnight の run は `model_100.pt` まである (例 `logs/rsl_rl/knot_tying_v6/2026-10-01_19-23-03_overnight_s42/`)。
+- v4〜v6 の overnight の run でも、最後のチェックポイントは run ごとに違う (v6 s42 は `model_100.pt`、v5 と v6 s43 は `model_110.pt`: [`docs/experiments/2026-10-01_v4-v7_readme-notes.md`](../experiments/2026-10-01_v4-v7_readme-notes.md))。記録の値 (iteration 100 の chain 評価など) を再現するときは、記録の iteration のものを使う。
 - rope study の run の最後は `model_99.pt` で、`model_100.pt` は無い (`docs/history/rope_study_HANDOFF.md:29`)。評価の道具 (`rope_study/make_eval_jobs.py`) は無いチェックポイントを黙って飛ばすので、番号を取り違えると評価が抜け落ちる (refactor の調査 D-4)。
 
 ## 4. ログのキーの意味

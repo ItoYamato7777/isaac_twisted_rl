@@ -126,9 +126,10 @@ class KnotTyingEnvCfg(ManagerBasedRLEnvCfg):
     RTX 3090 (24 GB) で実測: 4096 env のシーン構築時ピーク VRAM は約 10 GB
     (2 GPU 共有環境でも安全マージンを残せる)。ロープの物理は GPU 並列なので
     `num_envs` を増やすのが学習速度に最も効く (`docs/history/next_action.md` §4.8.9)。
-    一方で p-data 生成 (記号層、CPU) は 4096 env で 94 ms/回かかり
-    (`topology/__init__.py` の使用例)、これ以上 (8192 など) 増やすと
-    ログ・観測のたびに呼ぶ処理が逆にボトルネック化しうるため 4096 に留めた。
+    ただし 1 iteration の時間のほぼ全部は PhysX の物理ステップで (観測・報酬・p-data は誤差程度)、
+    1 物理ステップ ≈ 34 ms の固定費 + 0.019 ms x 環境数なので、環境数を増やす効果は 4096 でほぼ
+    頭打ちになる (8192 でも +20% 程度の見込み。`docs/experiments/2026-09-30_v4_speed.md`、
+    `docs/history/next_action.md` §4.8.9)。そのため 4096 に留めた。
     """
     actions: ActionsCfg = ActionsCfg()
     terminations: TerminationsCfg = TerminationsCfg()

@@ -68,7 +68,7 @@ class ObservationsCfg:
 
 @configclass
 class RewardsCfg:
-    """報酬 (`docs/history/next_action.md` §4.2。今も有効な理由は `docs/decisions/0005-measure-after-retreat.md`)。
+    """報酬 (初版の `next_action.md` (commit `5fd7e3c`) §4.2。今も有効な理由は `docs/decisions/0005-measure-after-retreat.md`)。
 
     **重みは `__post_init__` で `step_dt` で割られる**。Isaac Lab の
     `RewardManager.compute()` は各項に `dt` (= 1 env ステップの秒数) を

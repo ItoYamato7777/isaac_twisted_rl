@@ -38,7 +38,7 @@
 | 方策 | 決定論的 (`--stochastic` を付けない) |
 | Hydra の上書き | **学習と同じもの**。学習で物理を上書きした run は、評価にも同じ上書きを付ける |
 | デバイス | `--device` と `agent.device` を同じにする |
-| チェックポイント | 最後のもの。番号は run のフォルダを `ls` して確かめる (`docs/system/logs.md` §3) |
+| チェックポイント | 最後のもの。番号は run のフォルダを `ls` して確かめる (`docs/system/logs.md` §3)。過去の記録の値を再現するときは、最後のものではなく記録の iteration (`eval_chain_it{N}.json` の N) のもの |
 
 ```bash
 uv run python -u src/isaac_twisted_rl/scripts/rsl_rl/eval_chain.py --task Isaac-Twisted-RL-Knot-Play-v6 \
@@ -54,8 +54,8 @@ uv run python -u src/isaac_twisted_rl/scripts/rsl_rl/eval_chain.py --task Isaac-
 | 規則 | 理由 | 根拠 |
 |---|---|---|
 | 版どうしは chain 評価の `knot` で比べる | 学習ログの段ごとの成功率と `Curriculum/stage_log/chain_est` は、本番の成功率を表さない。学習は段ごとに最大 6 手・アーカイブから始まるのに対して、本番はまっすぐなロープから 18 手で段をつなぐ | `docs/experiments/2026-10-01_v4-v6_overnight.md` §4.5 |
-| シード 2 本以上で比べる | 512 エピソードの標準誤差は 2 ポイント前後。シード差のほうがずっと大きい: v6 の seed 42 と 43 は iteration 70 で 19 ポイント、iteration 100 で 15 ポイント離れた。**この推定は v6 の 1 組だけが出典** | `docs/experiments/2026-10-01_v4-v6_overnight.md:264`、`:277` |
-| 1 シードどうしの 10〜15 ポイントの差は結論に使わない | 上のシード差に埋もれる | 同 `:19`、`:277-278` |
+| シード 2 本以上で比べる | 512 エピソードの標準誤差は 2 ポイント前後。シード差のほうがずっと大きい: v6 の seed 42 と 43 は iteration 70 で 19 ポイント、iteration 100 で 15 ポイント離れた。**この推定は v6 の 1 組だけが出典** | `docs/experiments/2026-10-01_v4-v6_overnight.md:283-284` (v6 s43 の値は表 `:264`) |
+| 1 シードどうしの 10〜15 ポイントの差は結論に使わない | 上のシード差に埋もれる | 同 `:283-284` |
 | 学習ログや、学習済みの方策での計測 (代理の指標) だけで出した結論は「推測」と書く | 学習ログで出した結論を事実として書き、本番の指標で確かめられず撤回したことがある | `docs/experiments/2026-10-01_v4-v6_overnight.md:275-276` 付近、refactor の調査 D-7 |
 
 ## 3. Play タスクの意味 (版で違う)

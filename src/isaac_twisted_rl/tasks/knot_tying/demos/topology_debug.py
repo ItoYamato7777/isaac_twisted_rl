@@ -22,7 +22,7 @@
 同じ「指定リンクを掴んで指定位置へ運ぶ」プリミティブを組み、端を本体の上に
 渡してループを作る一連の動作を台本として与える。p-data が `''` から
 1 交差へ育ち、手を離しても残る (「離すと付いてくる」問題は
-`next_action.md` 3(c) の物理パラメータで解決済み)。
+`docs/decisions/0004-release-follow-physics.md` の物理パラメータで解決済み)。
 
 台本を作るうえで効いた 2 つの幾何 (詳細は `GraspMove.over_link_frac` と
 `RELEASE_RATIO` の docstring):
@@ -291,7 +291,7 @@ LOOP_SCRIPT: list[GraspMove] = [
 引き解かない部分」を選ぶ必要がある。人が overhand knot を結ぶときは
 ループを片手で押さえたまま端を通しており、**片手では原理的に難しい**
 可能性がある (二本目のハンドか、ループを押さえるピンが要るかもしれない)。
-Step 6 のアクション空間の設計に直結するので、`next_action.md` 参照。
+Step 6 のアクション空間の設計に直結するので、`docs/decisions/0002-action-space-rope-relative.md` 参照。
 """
 
 

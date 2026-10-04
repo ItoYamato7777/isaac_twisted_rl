@@ -49,7 +49,7 @@ def _version_package(ver: str) -> str:
     return ver.replace("-", "_").lower()
 
 
-# ロープのプリセット。学習に使うのは `Twist` (v0〜v2-R2) と `Knot` (v3) で、
+# ロープのプリセット。学習に使うのは `Twist` (v0〜v2-R2) と `Knot` (v3 以降) で、
 # `Simple` / `Stiff` / `Fine` は比較用ベースライン。
 _ROPE_PRESETS = ("Twist", "Simple", "Stiff", "Fine", "Knot")
 

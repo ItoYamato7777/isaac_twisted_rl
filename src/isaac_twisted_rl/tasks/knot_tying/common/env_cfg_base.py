@@ -18,7 +18,7 @@
 
 ## ロボットの形態
 
-`next_action.md` 4.0 の決定どおり **キネマティックハンドのまま**。アームを
+`docs/decisions/0001-kinematic-hand-and-one-move.md` の決定どおり **キネマティックハンドのまま**。アームを
 付けないので IK 失敗・可達領域外・自己衝突・特異点が無く、学習が
 「腕を動かす」ではなく「紐を操作する」ことだけに集中できる。
 ハンドは `write_root_pose_to_sim` で直接駆動する (`mdp/actions.py`)。
@@ -62,7 +62,7 @@ class KnotTyingSceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.GroundPlaneCfg(
             physics_material=sim_utils.RigidBodyMaterialCfg(
                 # ロープが床の上で滑りすぎると、掴んで運ぶ操作がロープ全体の
-                # 平行移動になってしまい交差が作れない (next_action.md 3(b))。
+                # 平行移動になってしまい交差が作れない (docs/decisions/0002-action-space-rope-relative.md)。
                 static_friction=GROUND_FRICTION,
                 dynamic_friction=GROUND_FRICTION,
                 restitution=0.0,
@@ -83,7 +83,7 @@ class KnotTyingSceneCfg(InteractiveSceneCfg):
 
 @configclass
 class ActionsCfg:
-    """行動空間。`next_action.md` 4.1 のロープ相対 + Δlink。"""
+    """行動空間。`docs/decisions/0002-action-space-rope-relative.md` のロープ相対 + Δlink。"""
 
     pick_place: mdp.PickPlaceActionCfg = MISSING
 
@@ -108,7 +108,7 @@ class TerminationsCfg:
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
 
-    # NaN / 吹き飛びはその場で reset (next_action.md 4.5)。
+    # NaN / 吹き飛びはその場で reset (docs/decisions/0003-physics-240hz.md)。
     diverged = DoneTerm(func=mdp.rope_diverged)
 
 
@@ -126,7 +126,7 @@ class KnotTyingEnvCfg(ManagerBasedRLEnvCfg):
 
     RTX 3090 (24 GB) で実測: 4096 env のシーン構築時ピーク VRAM は約 10 GB
     (2 GPU 共有環境でも安全マージンを残せる)。ロープの物理は GPU 並列なので
-    `num_envs` を増やすのが学習速度に最も効く (`next_action.md` 4.8.9)。
+    `num_envs` を増やすのが学習速度に最も効く (`docs/history/next_action.md` §4.8.9)。
     一方で p-data 生成 (記号層、CPU) は 4096 env で 94 ms/回かかり
     (`topology/__init__.py` の使用例)、これ以上 (8192 など) 増やすと
     ログ・観測のたびに呼ぶ処理が逆にボトルネック化しうるため 4096 に留めた。
@@ -191,7 +191,7 @@ class KnotTyingEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self):
         # 物理は 240 Hz (デモと同じ)。**120 Hz へ落とす案は実測で却下した**。
         #
-        # `next_action.md` 4.5 の「発散頻度を実測すること」の結果 (twist,
+        # `docs/decisions/0003-physics-240hz.md` の発散頻度の実測 (twist,
         # 16 環境 x 10 手, ランダム方策):
         #
         #     120 Hz          発散 11.2%

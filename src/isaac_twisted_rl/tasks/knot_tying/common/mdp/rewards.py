@@ -1,10 +1,10 @@
-"""報酬項 (`next_action.md` 4.2 の設計をそのまま実装)。
+"""報酬項 (`docs/history/next_action.md` §4.2 の設計をそのまま実装。今も有効な理由は `docs/decisions/0005-measure-after-retreat.md`)。
 
 ## 報酬関数が「1 手につき 1 回」呼ばれること
 
 `decimation` を 1 手ぶんの物理ステップ数にしてあるので、
 `ManagerBasedRLEnv.step()` の中で報酬計算は **フェーズ列を全部終えた後に
-1 回だけ** 走る。つまり `next_action.md` 4.2 の「アクションごと」の項
+1 回だけ** 走る。つまり `docs/history/next_action.md` §4.2 の「アクションごと」の項
 (`r_progress`) が、特別な仕掛け無しにそのまま書ける。
 
 ## 成功判定を「ハンドが退避した後」に測ること
@@ -16,7 +16,7 @@
 待機高さ 0.30 m まで上がった後、指を全開で静止) なので、報酬計算の時点で
 ハンドは既にロープから離れている。
 
-それに加えて **`rope_zmax` による保険** を入れる。`next_action.md` 3(c) の
+それに加えて **`rope_zmax` による保険** を入れる。`docs/decisions/0004-release-follow-physics.md` の
 物理パラメータ調整で「離すと付いてくる」現象は解決済みだが、4.2 は
 「報酬の測定タイミングはそれとは別に明示的に押さえる必要がある」と
 釘を刺している。ロープが床付近に落ちていることを条件に加えることで、
@@ -188,7 +188,7 @@ class LadderProgressBonus(ManagerTermBase):
 
     v2 / v2-R2 の `success_c1/c2/success` は、条件を満たしている間 **毎手** 払われた。
     6 手で割引して足すと「1 手目で C1 を作って維持するだけ」で約 2.9 になり、
-    C1 を壊す危険を冒して C2 を狙うより得になる (`paper/Report.md` §5.5)。
+    C1 を壊す危険を冒して C2 を狙うより得になる (`paper/Report_Paper.md` §5.5)。
     判定に抜け道があると、それも毎手繰り返し悪用される (v2 の偽の C2)。
 
     TWISTED-RL は「目標に達したら +1 で終了」で、居座りようがない。ここでは
@@ -266,7 +266,7 @@ def overhand_achieved(
 
     `settled_height_diameters` の条件は `crossing_achieved` と同じ意図で、
     **ハンドで吊って結び目を見せかける方策を学習させない**ための保険
-    (`next_action.md` 4.2 が最重要と指定している点)。フェーズ列の最後が
+    (`docs/decisions/0005-measure-after-retreat.md` が最重要と指定している点)。フェーズ列の最後が
     `relax` なので報酬計算時点でハンドは既に離れているが、二重にかける。
     """
     extractor = get_extractor(env, rope_cfg.name)
@@ -392,7 +392,7 @@ def action_failed(
 ) -> torch.Tensor:
     """手を実行できなかった / ロープが発散した `(num_envs,)`。罰則。
 
-    `next_action.md` 4.5 の NaN 対策の報酬側。終了判定 (`terminations.rope_diverged`)
+    `docs/decisions/0003-physics-240hz.md` の NaN 対策の報酬側。終了判定 (`terminations.rope_diverged`)
     と対になっていて、こちらは「その手は失敗だった」という信号を与える。
 
     `diverged_term` (v2-R2) を指定すると、NaN だけでなくその終了項の判定
@@ -417,7 +417,7 @@ def held_up_penalty(
     """手の終わりにロープが浮いたままか `(num_envs,)`。罰則。
 
     `crossing_achieved` の条件を裏返しただけに見えるが、こちらは交差の有無に
-    依らず効く。`next_action.md` 3(c) の「離したのに付いてくる」が再発した
+    依らず効く。`docs/decisions/0004-release-follow-physics.md` の「離したのに付いてくる」が再発した
     ことを **学習曲線ではなくログで** 気付けるようにする狙いもある
     (この項だけが立ち上がったら物理パラメータを疑う)。
     """
@@ -432,7 +432,7 @@ def diverged_by_class(
 ) -> torch.Tensor:
     """手を始めた時点の位相クラスが `knot_class` で、その手の間に発散したか。
 
-    `next_action.md` 4.8.9 の「class 別に層別した rope_diverged を見ること」
+    `docs/history/next_action.md` §4.8.9 の「class 別に層別した rope_diverged を見ること」
     への対応。自己接触は交差数に対して超線形に増えるので、
     `Episode_Termination/diverged` の集計値 (全 env 平均 1 本) だけでは
     class 3 (固結び) でだけ発散が増えていても埋もれる。

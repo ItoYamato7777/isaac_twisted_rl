@@ -1,6 +1,6 @@
 """到達状態アーカイブからのリセット (Go-Explore 型)。v3 で追加。
 
-`paper/Report.md` §7 P1-1。アーカイブ本体 (`../state_archive.py`) を Isaac Lab に
+`paper/Report_Paper.md` §7 P1-1。アーカイブ本体 (`../state_archive.py`) を Isaac Lab に
 繋ぐ 3 つの項:
 
 | 項 | 種類 | 役割 |

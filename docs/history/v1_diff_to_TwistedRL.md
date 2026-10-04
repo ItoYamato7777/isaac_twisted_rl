@@ -1,3 +1,6 @@
+> **状態: 経緯の記録 (凍結)。v1 の時点で移植元 (MuJoCo 版) のコードと比べたスナップショット。通常は読まない**
+> - 旧パス `src/isaac_twisted_rl/tasks/knot_tying/versions/v1/diff_to_TwistedRL.md`。v2 以降の実装とは食い違う記述がある (num_envs など)。論文との比較の後継は `paper/Report_Paper.md`。
+
 # `Isaac-Twisted-RL-Twist-v1` と 移植元 TWISTED-RL の差分
 
 移植元: `/home/itoyama/work/itoyama_twisted_rl`（ICRA 2026, Freund et al.,
@@ -5,9 +8,9 @@
 Demonstrations"）。
 
 > **この文書は v1 時点で移植元の「コード」と比べたスナップショット。**
-> v2-R2 時点で 3 本の「論文」と比べ直したのが [`paper/Report.md`](../../../../../../paper/Report.md)。
+> v2-R2 時点で 3 本の「論文」と比べ直したのが [`paper/Report.md`](../../paper/Report_Paper.md)。
 > その結論を受けて、v3 は論文の仕組みのうち次の 3 つを PPO のまま取り込んだ
-> ([v3 README](../v3/README.md)): 到達状態からのリセット (移植元のカリキュラム初期状態に相当)、
+> ([v3 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v3/README.md)): 到達状態からのリセット (移植元のカリキュラム初期状態に相当)、
 > 成功でのエピソード終了、p-data グラフの BFS 距離 (報酬のポテンシャルとして使う。高レベル計画は無し)。
 > 以下の「v1 には無い」という記述は v1 時点のもの。
 

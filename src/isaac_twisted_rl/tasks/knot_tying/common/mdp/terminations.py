@@ -1,6 +1,6 @@
 """終了判定。
 
-`next_action.md` 4.5 の NaN 対策がここの主目的。**エピソードが NaN で落ちるのは
+`docs/decisions/0003-physics-240hz.md` の NaN 対策がここの主目的。**エピソードが NaN で落ちるのは
 RL では致命的**なので、発散した環境はその場で終了させて reset に回す
 (報酬側では `rewards.action_failed` が罰を与える)。
 
@@ -119,7 +119,7 @@ def ladder_class_reached(
 ) -> torch.Tensor:
     """位相ラダーの段が `min_class` 以上に達し、ロープが床に落ちている `(num_envs,)`。v3 で追加。
 
-    v3 の「成功で終了」(`paper/Report.md` §7 P1-2、TWISTED-RL の 1 遷移 = 1 エピソード)。
+    v3 の「成功で終了」(`paper/Report_Paper.md` §7 P1-2、TWISTED-RL の 1 遷移 = 1 エピソード)。
     `time_out=False` の終了項として使うので、PPO はここで bootstrap しない。
 
     `topology_reached` (交差数版) と違い、段は報酬と同じ `topology_class`

@@ -1,4 +1,4 @@
-"""v3: 論文 (TWISTED / TWISTED-RL) の中核を取り込んだ版 (`paper/Report.md` §7 P1)。
+"""v3: 論文 (TWISTED / TWISTED-RL) の中核を取り込んだ版 (`paper/Report_Paper.md` §7 P1)。
 
     uv run train --task Isaac-Twisted-RL-Knot-v3 --headless          # MLP (学習はこれ)
     uv run train --task Isaac-Twisted-RL-Knot-v3-RNN --headless      # GRU

@@ -1,3 +1,8 @@
+> **状態: 凍結 (2026-09-26 時点の論文の比較。§9 は 2026-10-01 時点の実装状況で、古い)**
+> - 読むべき状況: 3 本の論文 (TWISTED-RL・TWISTED・Yan2020) と、この実装 (v2-R2 の時点) の違いを知りたいとき。v3 の設計の根拠。
+> - 古くなった記述: §0 の「現在走っている v2-R2 の run」、§9 の「v5 は未コミット」「P2-4 (推論時の探索) は未実装」。今の状態は `docs/STATUS.md`、推論時探索の結果は `docs/experiments/2026-10-03_inference_search.md`。
+> - 旧名 `paper/Report.md` (commit `dbf9a97` で改名)。
+
 # Isaac-Twisted-RL v2-R2 と紐結び 3 論文の比較レポート
 
 - 作成日: 2026-09-26
@@ -12,7 +17,7 @@
 > | 項目 | 対応 |
 > |---|---|
 > | §6.1 把持距離の非有界化 (P0-1) | 2026-09-27 に v2-R2 で修正 ([v2-R2 README](../src/isaac_twisted_rl/tasks/knot_tying/versions/v2_r2/README.md) の「発散した手の報酬」) |
-> | §5.8 / P0-2 ゲート 1 | 2026-09-27 に通過。`twist` では長さが足りず、28 リンクの `knot` プリセットと `drop_xy_rel_frac` 0.30 が必要だった ([next_action.md §4.8.10](../src/isaac_twisted_rl/tasks/knot_tying/next_action.md)) |
+> | §5.8 / P0-2 ゲート 1 | 2026-09-27 に通過。`twist` では長さが足りず、28 リンクの `knot` プリセットと `drop_xy_rel_frac` 0.30 が必要だった ([next_action.md §4.8.10](../docs/history/next_action.md)) |
 > | P1-1〜P1-3 | v3 で実装 ([v3 README](../src/isaac_twisted_rl/tasks/knot_tying/versions/v3/README.md)) |
 > | §6.3 8 スロット打ち切り | v3 で共有層を修正 (全バージョンに効く) |
 > | §6.4 C1 定義の不一致 | v3 で `topology_class` に統一 |
@@ -46,12 +51,12 @@
 | 項目 | 内容 |
 |---|---|
 | 論文 | 3 本を全文読んだ (付録を含む) |
-| コード | `versions/v2_r2/`, `versions/v2/`, `common/mdp/*`, `common/topology/{knot_detect,intersections}.py`, `common/rope_state.py`, `common/env_cfg_base.py`, `common/rope_task_cfg.py`, 既存の比較メモ [`versions/v1/diff_to_TwistedRL.md`](../src/isaac_twisted_rl/tasks/knot_tying/versions/v1/diff_to_TwistedRL.md) |
+| コード | `versions/v2_r2/`, `versions/v2/`, `common/mdp/*`, `common/topology/{knot_detect,intersections}.py`, `common/rope_state.py`, `common/env_cfg_base.py`, `common/rope_task_cfg.py`, 既存の比較メモ [`versions/v1/diff_to_TwistedRL.md`](../docs/history/v1_diff_to_TwistedRL.md) |
 | 学習ログ | `logs/rsl_rl/knot_tying_v2/2026-09-24_14-07-21` (TensorBoard には 36 iteration 分のみ)、`logs/rsl_rl/knot_tying_v2_r2/2026-09-26_15-57-53` (2 iteration) |
 | テスト | `tests/test_knot_tying_topology.py`, `test_knot_detect.py`, `test_r2_reduce.py` を実行した → **140 passed** |
 | 追加検証 | R2 除去の順序依存性、8 スロット打ち切りの影響を小さなスクリプトで確かめた (付録 A) |
 
-既存の [`diff_to_TwistedRL.md`](../src/isaac_twisted_rl/tasks/knot_tying/versions/v1/diff_to_TwistedRL.md) は v1 時点で TWISTED-RL の**コード**と比べたものなので、本レポートでは **v2-R2** と **3 本の論文** を対象に比較を広げる。
+既存の [`diff_to_TwistedRL.md`](../docs/history/v1_diff_to_TwistedRL.md) は v1 時点で TWISTED-RL の**コード**と比べたものなので、本レポートでは **v2-R2** と **3 本の論文** を対象に比較を広げる。
 
 ---
 
@@ -200,7 +205,7 @@ TWISTED-RL は「目標に到達したら +1 で**終了**」とし、そもそ�
 ### 5.6 行動空間の違い
 
 - **z_max (運搬高さ)**: TWISTED / TWISTED-RL では行動の一部。TWISTED の離散化の説明からは、振れ幅が 0.07 程度 (xy の作業域 1.0 に対して) と読み取れる。つまり**低く持ち上げる動作を精密に選べる**。v2-R2 は 0.20 m (全長 0.82 m の約 1/4) で固定なので、毎回ロープの大部分を持ち上げて引きずる。交差を狙った位置に作りにくく、発散の原因にもなりうる。
-- **置き先の指定**: 論文は作業域の絶対座標。v2-R2 は「掴んだリンク ±8 の target リンク + ±0.123 m」の相対指定。相対指定には移動に依存しないという利点がある。一方、**`drop_xy_max` = 0.123 m は最小ループ周長 0.251 m の半分**という指摘が [next_action.md §4.8.9](../src/isaac_twisted_rl/tasks/knot_tying/next_action.md) にあり、まだ検証されていない。
+- **置き先の指定**: 論文は作業域の絶対座標。v2-R2 は「掴んだリンク ±8 の target リンク + ±0.123 m」の相対指定。相対指定には移動に依存しないという利点がある。一方、**`drop_xy_max` = 0.123 m は最小ループ周長 0.251 m の半分**という指摘が [next_action.md §4.8.9](../docs/history/next_action.md) にあり、まだ検証されていない。
 - **yaw**: 論文には無い自由度。探索空間を広げるだけになっている可能性がある (§6.5)。
 
 ### 5.7 判定は論文より寛容で、その分抜け道の検証が要る

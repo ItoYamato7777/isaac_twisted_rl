@@ -1,8 +1,8 @@
 """台本で固結び (overhand knot) を結ぶ検証 (ゲート 1)。
 
-`next_action.md` §4.8.9 / `paper/Report.md` §7 P0-2 の「台本で固結びが結べるか」を
+skill `physics-check` (`.claude/skills/physics-check/SKILL.md`) / `paper/Report_Paper.md` §7 P0-2 の「台本で固結びが結べるか」を
 確かめるスクリプト。**これが通らなければ、報酬をどう設計しても PPO は学習できない。**
-結果と結論は `next_action.md` §4.8.10 にまとめてある。
+結果と結論は `docs/experiments/2026-09-27_gate1.md` にまとめてある。
 
     # 台本 (ハンドを直接動かす)。env 0 は既定値、他は ±25% 揺らす
     uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py \
@@ -61,7 +61,7 @@ edge A は輪の根元 X から紐に沿って最初に来る側、edge B は最
 3〜5 手目の置き先は **輪の座標系** (原点 X、u = X から輪の中心へ、v = edge A の
 ある側。単位はロープ全長 L) で指定し、手を打つたびに今のロープの形から作り直す。
 輪の大きさ・向き・鏡像は物理次第で毎回違うので、world 座標や「リンク番号の点を
-越える」指定より頑健だった (探索の経緯は `next_action.md` §4.8.10)。
+越える」指定より頑健だった (探索の経緯は `docs/experiments/2026-09-27_gate1.md`)。
 
 4 手目の後は多くの場合 edge A のたるみが尻尾を **2 回** またいだ状態
 (`1U4 2O5 3O6 4O1 5U2 6U3`) になる。R2 除去すると C1 と同じに見えるが、

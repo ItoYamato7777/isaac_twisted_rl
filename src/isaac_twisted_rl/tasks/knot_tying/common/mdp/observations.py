@@ -1,6 +1,6 @@
 """観測項。**テンソル層だけ**を使い、p-data 文字列は一切作らない。
 
-`next_action.md` 4.3 の指示どおり、観測には `IntersectionBatch` の数値を
+`docs/history/next_action.md` §4.3 の指示どおり、観測には `IntersectionBatch` の数値を
 そのまま流す。理由は `topology/state_2_topology.py` の docstring にある実測値で、
 **記号層 (p-data 文字列) は 4096 環境で 94 ms、テンソル層は 1.6 ms** と 60 倍
 違う。毎ステップ全環境で文字列を作ると、それだけで学習が実時間で回らなくなる。
@@ -311,7 +311,7 @@ def rope_zmax(env: ManagerBasedRLEnv, rope_cfg: SceneEntityCfg = SceneEntityCfg(
     """ロープの最高点 `(num_envs,)` (env 原点相対)。
 
     観測ではなく報酬・ログ用。「ハンドが吊っているだけ」を「交差が残った」と
-    取り違えないための判定材料 (`next_action.md` 4.2 が必ず出せと指示している)。
+    取り違えないための判定材料 (`docs/decisions/0005-measure-after-retreat.md` が必ず出せと指示している)。
     """
     extractor = get_extractor(env, rope_cfg.name)
     z = extractor.nodes[:, :, 2] - env.scene.env_origins[:, 2].unsqueeze(-1)

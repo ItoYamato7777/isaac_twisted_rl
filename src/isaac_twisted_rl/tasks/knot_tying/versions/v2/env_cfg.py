@@ -198,7 +198,7 @@ class RewardsCfg:
 
     # ログ専用 (weight=0.0): class 別に層別した rope_diverged。
     #
-    # `next_action.md` 4.8.9 / `README.md` §6-2 のゲート。自己接触は交差数に
+    # `docs/history/next_action.md` §4.8.9 / `README.md` §6-2 のゲート。自己接触は交差数に
     # 対して超線形に増えるので、`Episode_Termination/diverged` (全 env 平均
     # 1 本の集計値) だけでは class 3 (固結び) でだけ発散が増えていても埋もれる。
     # `RewardManager` は項ごとに `Episode_Reward/<name>` を自動でログするので、

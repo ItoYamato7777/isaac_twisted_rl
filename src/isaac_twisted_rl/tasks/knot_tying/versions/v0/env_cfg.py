@@ -68,7 +68,7 @@ class ObservationsCfg:
 
 @configclass
 class RewardsCfg:
-    """報酬 (`next_action.md` 4.2)。
+    """報酬 (`docs/history/next_action.md` §4.2。今も有効な理由は `docs/decisions/0005-measure-after-retreat.md`)。
 
     **重みは `__post_init__` で `step_dt` で割られる**。Isaac Lab の
     `RewardManager.compute()` は各項に `dt` (= 1 env ステップの秒数) を
@@ -114,7 +114,7 @@ class KnotTyingV0EnvCfg(KnotTyingEnvCfg):
     rewards: RewardsCfg = RewardsCfg()
 
     actions_per_episode: int = 5
-    """1 エピソードで打てる手の数 (`next_action.md` 4.0 の「3〜5 アクション」)。"""
+    """1 エピソードで打てる手の数 (`docs/decisions/0001-kinematic-hand-and-one-move.md` の「3〜5 アクション」)。"""
 
 
 # ロープのプリセット 5 種 x (通常 / Play) の設定クラスを生成する。

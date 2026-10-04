@@ -6,7 +6,7 @@
 v2-R2 から何を・なぜ変えたかは `README.md`。ここは「何を配線したか」だけを書く。
 
 v2-R2 の設定クラスを **継承して差分だけ** を上書きする (観測・発散の扱い・
-PPO は v2-R2 のまま)。`paper/Report.md` §7 P1 の 4 項目:
+PPO は v2-R2 のまま)。`paper/Report_Paper.md` §7 P1 の 4 項目:
 
 1. P1-1 到達状態アーカイブからのリセット (`events.reset_from_archive`)
 2. P1-2 成功で終了 (`terminations.knot_tied`) と、段を初めて上がった手にだけ払う
@@ -15,7 +15,7 @@ PPO は v2-R2 のまま)。`paper/Report.md` §7 P1 の 4 項目:
 4. P1-4 段の判定を R2 除去後の `topology_class` 1 本に揃える (§6.4)。
    §6.3 の 8 スロット打ち切りは共有層のバグ修正として全バージョンに入れた
 
-加えて、ゲート 1 (`next_action.md` §4.8.10) が「学習に使うなら v3 で配線すること」
+加えて、ゲート 1 (`docs/experiments/2026-09-27_gate1.md`。理由は `docs/decisions/0014-gate1-wiring-for-knot.md`) が「学習に使うなら v3 で配線すること」
 とした 3 点 (`Knot` プリセット・`drop_xy_rel_frac` 0.30・3.2 s/手の尺) を入れる。
 
 切り分けは Hydra の CLI 上書きで行う (`README.md` の「切り分け」)。
@@ -64,7 +64,7 @@ KNOT_DURATIONS = phases.PhaseDurations(
 )
 """v3 の 1 手の尺 (合計 3.1625 s = 759 物理ステップ @240 Hz)。v2 の `SHORT_DURATIONS` (2.44 s) の移動系を延ばしたもの。
 
-ゲート 1 (`next_action.md` §4.8.10) の実測: `Knot` (1.14 m) を v2 の尺 (carry 0.35 s) で
+ゲート 1 (`docs/experiments/2026-09-27_gate1.md`) の実測: `Knot` (1.14 m) を v2 の尺 (carry 0.35 s) で
 運ぶと 1 手目で 13/32 が発散した。運搬速度が原因で、carry 0.6 s で 0/32 になった。
 descend が速いと結び目の上へ指を降ろす手でも発散する。この尺 (descend / lift / lower
 0.3 s、carry 0.6 s) で、台本を 6 次元の行動に写した再生が 66% 成功した。

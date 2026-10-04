@@ -1,3 +1,36 @@
+> **状態: この文書は経緯の記録 (凍結)。今も有効な理由は [`docs/decisions/`](../decisions/README.md) にある。通常は読まない**
+> - 旧パス `src/isaac_twisted_rl/tasks/knot_tying/next_action.md` (commit 62b251b で本文を変えずに移した)。中の相対リンクは旧パスからのもの。
+> - 下の本文は 1 文字も変えていない。コードの docstring・コメントの「`next_action.md` §X」の参照は、下の表の新しい場所へ書き換えた (行き先が「この文書のまま」の節は `docs/history/next_action.md` §X で参照している)。
+>
+> 旧節 → 新しい場所 (「行」はこの頭書きを足す前の行番号。今の行番号は 33 を足す。他の文書もこの番号で引いている):
+>
+> | 旧節 | 行 | 中身 | 新しい場所 |
+> |---|---|---|---|
+> | 現在地と次の作業 | 16-52 | 2026-10-02 の現在地・chain 評価の定義・次の作業 | [`docs/STATUS.md`](../STATUS.md) (新しい内容で書き直した)。chain 評価の定義は [`docs/system/evaluation.md`](../system/evaluation.md)。2026-10-02 追記 (物性は学習で確かめる) は [0021](../decisions/0021-measure-physics-changes-by-training.md) |
+> | §0 文書の地図 | 56-70 | v3 で止まった地図 | 廃止 (docs/README.md (作成予定) が代わる) |
+> | §1 `common/topology/` | 74-134 | 位相抽出の作成の経緯と実測、移植元から変えた点 | この文書のまま (理由の多くは `common/topology/intersections.py`・`representation.py` の docstring) |
+> | §2 `common/rope_state.py` | 138-170 | body の順序の実測 | この文書のまま (理由は `common/rope_state.py` の docstring) |
+> | §3 冒頭・(a) | 174-192 | 台本デモ・位相抽出は動く物理の上でも正しい | この文書のまま |
+> | §3(b) たるみ | 194-202 | 交差を作るには「たるみ」が要る | [0002 行動空間](../decisions/0002-action-space-rope-relative.md) |
+> | §3(c) 「付いてくる」 | 204-216 | 物理パラメータで解決した | [0004](../decisions/0004-release-follow-physics.md) |
+> | §4.0 決定事項 | 222-229 | キネマティックハンド・1 手 = pick&place 全部 | [0001](../decisions/0001-kinematic-hand-and-one-move.md) |
+> | §4.1 アクション空間 | 231-287 | ロープ相対 + `Δlink`・不採用案・端リンクの除外 | [0002](../decisions/0002-action-space-rope-relative.md) |
+> | §4.2 最初の報酬 | 289-299 | 成功判定はハンド退避後・`rope_zmax` と `finger_gap` | [0005](../decisions/0005-measure-after-retreat.md) |
+> | §4.3 `common/mdp/` の実装 | 301-312 | 観測に p-data 文字列を使わない・テンソルのステートマシン | この文書のまま (理由は `common/mdp/observations.py`・`actions.py` の docstring) |
+> | §4.4 退化時の扱い | 314-317 | `ValueError` は発生しえない | この文書のまま (理由は `common/mdp/terminations.py` の docstring) |
+> | §4.5 240 Hz | 319-338 | NaN 対策・発散率の実測 | [0003](../decisions/0003-physics-240hz.md) |
+> | §4.6 実装中に判明したこと | 340-367 | 次元の数え間違い・離散の量子化・`step_dt`・抽出器のキャッシュ・摩擦材の bind・尺の短縮 | この文書のまま。(a)(b) は [0002](../decisions/0002-action-space-rope-relative.md)、(d) は [0015](../decisions/0015-shaping-verification-pitfall.md) にも引用。(c)(d)(e) の理由は `common/README.md` §4・§5・§7 と各 docstring |
+> | §4.7 高レベル状態遷移グラフ | 369-376 | 構想 (v3 で一部実現) | この文書のまま。未実装の部分は [0006](../decisions/0006-no-symbolic-planner-her.md) に引用 |
+> | §4.8 冒頭・§4.8.1 | 380-396 | 移植元の構成を使わない理由 | [0006](../decisions/0006-no-symbolic-planner-her.md)。初期状態プールは [0009](../decisions/0009-reached-state-archive.md) |
+> | §4.8.2〜§4.8.3 | 398-434 | 固結びの判定 (テンソル層・部分列) | `common/topology/knot_detect.py` の docstring (理由は全部そこにある。decisions は作らない) |
+> | §4.8.4 | 436-441 | 位相クラスのラダー + ポテンシャル整形 | [0007](../decisions/0007-topology-class-ladder-shaping.md) |
+> | §4.8.5〜§4.8.7 | 443-445 | 観測の修正・ハイパーパラメータ・動作確認 | `versions/v1/README.md` (本文のとおり) |
+> | §4.8.8 | 447-463 | 整形報酬の検証の罠 | [0015](../decisions/0015-shaping-verification-pitfall.md) と [`.claude/rules/mdp.md`](../../.claude/rules/mdp.md) |
+> | §4.8.9 | 465-482 | 学習の前の確認 (ゲート) | skill `physics-check` ([`.claude/skills/physics-check/SKILL.md`](../../.claude/skills/physics-check/SKILL.md))。1 つ目 (置き先 0.30) は [0014](../decisions/0014-gate1-wiring-for-knot.md)、2 つ目 (`num_envs` のスループット) は [0020](../decisions/0020-v4-solver-iterations-and-steps-per-iteration.md)。3 つ目 (class 別の発散率) はこの文書のまま (ログのキーは [`docs/system/logs.md`](../system/logs.md)) |
+> | §4.8.10 | 484-550 | ゲート 1 の結果と探索の経緯 | [`docs/experiments/2026-09-27_gate1.md`](../experiments/2026-09-27_gate1.md) (「分かったこと」1〜7 は同じ番号で「結論」に)。理由は [0013](../decisions/0013-rope-knot.md) (1)、[0014](../decisions/0014-gate1-wiring-for-knot.md) (2・3・4・7)、[0010](../decisions/0010-stage-granularity-bfs.md) (5)、[0009](../decisions/0009-reached-state-archive.md) (6) |
+> | §5 作業上の約束 | 553-555 | 約束 | リポジトリのルートの [`CLAUDE.md`](../../CLAUDE.md) と `tests/test_invariants.py` |
+> | §6 バージョン制への移行 | 559-583 | 「版 = 設定」の理由・実装の注意 | [0012](../decisions/0012-version-is-config.md) |
+
 # knot_tying 設計ノート: 経緯・判断の記録と次の作業
 
 twisted_rl (MuJoCo 版) の紐結び強化学習を Isaac Lab へ移植し、さらに発展させてきた
@@ -18,18 +51,18 @@ twisted_rl (MuJoCo 版) の紐結び強化学習を Isaac Lab へ移植し、さ
 | 段階 | 状態 | 詳細 |
 |---|---|---|
 | Step 1〜5: 位相抽出・物理・台本デモ | 完了 | 本書 §1〜§3 |
-| v0: 交差を 1 つ作る | **学習成功** | [v0 README](versions/v0/README.md) |
-| v1: 固結び | 学習失敗 (疎報酬が一度も発火しない) | [v1 README](versions/v1/README.md) / 本書 §4.8 |
-| v2: 3 段の疎報酬ラダー | 偽の C2 に居座った | [v2 README](versions/v2/README.md) |
-| v2-R2: R2 除去後の位相で判定 | 本物の C2 が稀で詰まる | [v2-R2 README](versions/v2_r2/README.md) |
-| 論文との比較 | 「詰まりの原因は定式化」 | [`paper/Report.md`](../../../../paper/Report.md) |
+| v0: 交差を 1 つ作る | **学習成功** | [v0 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v0/README.md) |
+| v1: 固結び | 学習失敗 (疎報酬が一度も発火しない) | [v1 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v1/README.md) / 本書 §4.8 |
+| v2: 3 段の疎報酬ラダー | 偽の C2 に居座った | [v2 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v2/README.md) |
+| v2-R2: R2 除去後の位相で判定 | 本物の C2 が稀で詰まる | [v2-R2 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v2_r2/README.md) |
+| 論文との比較 | 「詰まりの原因は定式化」 | [`paper/Report.md`](../../paper/Report_Paper.md) |
 | ゲート 1: 台本で固結び | **通過** (`Knot` プリセットが必要) | 本書 §4.8.10 |
-| v3: アーカイブからのリセット + 成功で終了 + BFS 距離 | まっすぐなロープから固結び 25% (iteration 150〜159) | [v3 結果](versions/v3/Result_report_v3.md) |
-| v4: 段ごとのエージェント + 1 遷移 = 1 エピソード | **chain 評価 41.6%** (iteration 100、seed 42)。iteration 50 で頭打ち | [v4 README](versions/v4/README.md) の「学習の結果」 |
-| v5: v4 + pick&place の発散対策 | chain 評価 9.6%。発散は半分以下だが、めり込み解消速度 0.4 m/s で段 2 -> 固結びを学べなかった | [v5 README](versions/v5/README.md) の「学習の結果」 |
-| v6: v5 + 次にたどる辺の観測 | chain 評価 37.9% / 22.9% (seed 42 / 43)。v5 の 2〜4 倍、v4 との差はシード差の範囲 | [v6 結果](versions/v6/Result_Report_v6.md) |
-| v6 の切り分け (2026-10-02) | 4 つの変更のどれも chain 評価で v6 を上回らず | [v6 結果](versions/v6/Result_Report_v6.md) の追記 |
-| v7: v6 + めり込み解消速度を v4 の既定に戻す | **未学習** (確認の学習は保留) | [v7 README](versions/v7/README.md) |
+| v3: アーカイブからのリセット + 成功で終了 + BFS 距離 | まっすぐなロープから固結び 25% (iteration 150〜159) | [v3 結果](../experiments/2026-09-28_v3_main.md) |
+| v4: 段ごとのエージェント + 1 遷移 = 1 エピソード | **chain 評価 41.6%** (iteration 100、seed 42)。iteration 50 で頭打ち | [v4 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v4/README.md) の「学習の結果」 |
+| v5: v4 + pick&place の発散対策 | chain 評価 9.6%。発散は半分以下だが、めり込み解消速度 0.4 m/s で段 2 -> 固結びを学べなかった | [v5 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v5/README.md) の「学習の結果」 |
+| v6: v5 + 次にたどる辺の観測 | chain 評価 37.9% / 22.9% (seed 42 / 43)。v5 の 2〜4 倍、v4 との差はシード差の範囲 | [v6 結果](../experiments/2026-10-01_v4-v6_overnight.md) |
+| v6 の切り分け (2026-10-02) | 4 つの変更のどれも chain 評価で v6 を上回らず | [v6 結果](../experiments/2026-10-01_v4-v6_overnight.md) の追記 |
+| v7: v6 + めり込み解消速度を v4 の既定に戻す | **未学習** (確認の学習は保留) | [v7 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v7/README.md) |
 
 chain 評価 = まっすぐなロープから 18 手以内に固結びに達した割合 (`scripts/rsl_rl/eval_chain.py`、512 エピソード、
 決定論的方策)。v4 以降の版の比較はこれで行う (学習ログの `chain_est` は本番の成功率を表さない)。
@@ -41,7 +74,7 @@ chain 評価 = まっすぐなロープから 18 手以内に固結びに達し�
 固結びを増やしたが、ゼロからの学習では段 2 -> 固結び (tuck) を学べなくした。**物性を変えるときは、計測だけでなく
 学習で確かめること。** 0.96 m/s に戻すと学べるが、18 手のあいだの発散も v4 並み (17%) に戻る。
 
-**次の作業** (詳細は [v6 結果](versions/v6/Result_Report_v6.md) の「追記の後の次の候補」):
+**次の作業** (詳細は [v6 結果](../experiments/2026-10-01_v4-v6_overnight.md) の「追記の後の次の候補」):
 
 1. **シードを増やして決着をつける。** 同じ版の 2 シードが 15〜19 ポイント離れるので、1 シードの比較では
    版の差が見えない。v7 (= v6 + めり込み解消速度 0.96 m/s) と v6 を 3 シードずつ比べる。
@@ -57,10 +90,10 @@ chain 評価 = まっすぐなロープから 18 手以内に固結びに達し�
 
 | 知りたいこと | 読むもの |
 |---|---|
-| 使い方・フォルダ構成・バージョンの規約・開発の約束 | [`README.md`](README.md) |
-| 全バージョン共通の仕組み (1 手 = 1 RL ステップ、フェーズ、行動、終了判定、Play の描画) | [`common/README.md`](common/README.md) |
+| 使い方・フォルダ構成・バージョンの規約・開発の約束 | [`README.md`](../../src/isaac_twisted_rl/tasks/knot_tying/README.md) |
+| 全バージョン共通の仕組み (1 手 = 1 RL ステップ、フェーズ、行動、終了判定、Play の描画) | [`common/README.md`](../../src/isaac_twisted_rl/tasks/knot_tying/common/README.md) |
 | 各バージョンの課題・観測・報酬・結果 | `versions/vN/README.md` |
-| 移植元・論文との違い | [`versions/v1/diff_to_TwistedRL.md`](versions/v1/diff_to_TwistedRL.md) (v1 時点、コード比較)、[`paper/Report.md`](../../../../paper/Report.md) (v2-R2 時点、論文比較) |
+| 移植元・論文との違い | [`versions/v1/diff_to_TwistedRL.md`](v1_diff_to_TwistedRL.md) (v1 時点、コード比較)、[`paper/Report.md`](../../paper/Report_Paper.md) (v2-R2 時点、論文比較) |
 | 交差検出の数式と、移植元との差 | `common/topology/intersections.py` の docstring |
 | テンソル層と記号層を分ける理由と実測値 | `common/topology/state_2_topology.py` の docstring |
 | 固結び判定・R2 除去 | `common/topology/knot_detect.py` |
@@ -289,7 +322,7 @@ Step 5 の台本 (1 手目: たるみ作り / 2 手目: 渡す) がまさにこ�
 ### 4.2 最初の報酬 (交差 1 つを作って残す)
 
 p-data は離散量なので、一致 / 不一致だけでは勾配が出ない。密報酬と併用する
-(実装した重みは [v0 README](versions/v0/README.md))。
+(実装した重みは [v0 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v0/README.md))。
 
 **最重要: 成功判定は必ずハンドを退避させた後に測ること。** そうしないと「ハンドで吊って交差を
 見せかける」方策を学習する。§3(c) で「離すと付いてくる」問題は解決したが、報酬の測定タイミングは
@@ -309,7 +342,7 @@ Isaac Lab の manager-based の作法に従う。
 RL では全環境が並列に別々のフェーズにいるので、フェーズ ID と経過時間を `(num_envs,)` のテンソルで持つ
 ステートマシンに書き換えた (`common/mdp/actions.py` + `common/mdp/phases.py`)。
 フェーズはデモの 13 個を 12 個に整理した。デモの尺 (1 手 11.4 s) は目視デバッグ用に余裕を持たせた値なので、
-学習用には詰めてある (尺の変遷は [`common/README.md`](common/README.md) §2)。
+学習用には詰めてある (尺の変遷は [`common/README.md`](../../src/isaac_twisted_rl/tasks/knot_tying/common/README.md) §2)。
 
 ### 4.4 退化時の扱い (解決済み)
 
@@ -431,18 +464,18 @@ gap がすべて k かつ同符号になる組が存在するか」を見る。
 後ろへ回してある (v3 で修正。Report §6.3)。
 
 後に、この部分列判定だけでは「輪を丸ごと跨いだだけ」の状態も C2 と判定されてしまうことが分かった。
-v2-R2 で、R2 除去を先に掛けるよう修正した ([v2-R2 README](versions/v2_r2/README.md))。
+v2-R2 で、R2 除去を先に掛けるよう修正した ([v2-R2 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v2_r2/README.md))。
 
 ### 4.8.4 報酬は位相クラスのラダー + ポテンシャル整形
 
 `crossing_progress` (Δ交差数) には「R1 を 3 回ひねれば交差数 3」という抜け道がある。そこで交差数ではなく
 **位相クラス** (0: 交差なし / 1: 交差 1 つ / 2: 絡み 2 交差 / 3: 固結び) を段にし、ポテンシャル整形
 `F = γΦ(s') − Φ(s)` で登らせる。段の表、ポテンシャル整形にした理由、γ を PPO と一致させる必要性は
-[v1 README](versions/v1/README.md) §1 にまとめてある。
+[v1 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v1/README.md) §1 にまとめてある。
 
 ### 4.8.5〜4.8.7 観測の修正・ハイパーパラメータ・動作確認
 
-[v1 README](versions/v1/README.md) に移した (§1 の変更表、`crossing_features` のバグ修正、§4 の動作確認)。
+[v1 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v1/README.md) に移した (§1 の変更表、`crossing_features` のバグ修正、§4 の動作確認)。
 
 ### 4.8.8 整形報酬を検証するときの注意 (実際に踏んだ罠)
 
@@ -474,7 +507,7 @@ v2-R2 で、R2 除去を先に掛けるよう修正した ([v2-R2 README](versio
   約 10 GB。既定値を 1024 → 4096 に上げた (`env_cfg_base.py`)。イテレーション時間そのものの
   実測はまだ (p-data 生成が 4096 env で 94 ms/回かかるので、観測・ログの呼び出し頻度次第では
   そちらがボトルネックになりうる。8192 まで上げる前に要確認)。
-  → **2026-09-30 に実測** ([v4 README](versions/v4/README.md) の「学習速度」)。時間のほぼ全部が
+  → **2026-09-30 に実測** ([v4 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v4/README.md) の「学習速度」)。時間のほぼ全部が
   PhysX で、1 物理ステップ ≈ 34 ms の固定費 + 0.019 ms x 環境数 (ソルバの位置反復 16)。観測・報酬・
   p-data は誤差程度。固定費の正体はソルバの反復で、環境数を増やす効果は 4096 でほぼ頭打ち
   (8192 でも +20% 程度の見込み)。v4 は反復 8・1 iteration 4 手にして、約 20 分 -> 約 3 分にした。
@@ -485,7 +518,7 @@ v2-R2 で、R2 除去を先に掛けるよう修正した ([v2-R2 README](versio
 
 **結論: 通った。ただし `twist` では長さが足りず、新プリセット `knot` が要る。**
 6 次元の行動空間で再生するには、`drop_xy_rel_frac` の拡大とフェーズの尺の延長も要る。
-**この 3 点は v3 で配線した** ([v3 README](versions/v3/README.md))。
+**この 3 点は v3 で配線した** ([v3 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v3/README.md))。
 
 検証スクリプトは `demos/overhand_script.py` (台本の中身と使い方は docstring)。学習環境をそのまま
 `gym.make` し、ハンドだけを台本で動かす。128 環境で台本のパラメータを ±25% 揺らし、ハンドを退避させてから
@@ -552,7 +585,7 @@ pick&place では掴んだ部分が必ず上になる。そのため固結びの
 
 ## 5. 作業上の約束
 
-[`README.md`](README.md) の「開発の約束」に移した。
+[`README.md`](../../src/isaac_twisted_rl/tasks/knot_tying/README.md) の「開発の約束」に移した。
 
 ---
 
@@ -561,7 +594,7 @@ pick&place では掴んだ部分が必ず上になる。そのため固結びの
 `main` と `feat/overhand-knot` で、同じ `Isaac-Twisted-RL-Twist-v0` が別の実装を指してしまっていた。
 これを解消するため、**タスクをバージョン制**にした (v0 = 交差 1 つ、v1 = 固結び)。
 以降の改良は既存バージョンを書き換えず、新しいバージョンを足していく。
-フォルダ構成と規約は [`README.md`](README.md)。
+フォルダ構成と規約は [`README.md`](../../src/isaac_twisted_rl/tasks/knot_tying/README.md)。
 
 ### 「バージョン = 設定」という方針にできた理由
 

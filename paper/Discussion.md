@@ -1,3 +1,7 @@
+> **状態: 2026-10-01 時点の研究方針の提案 (仮説の文書)。本文は書き換えない**
+> - 読むべき状況: 次の研究の候補 (E0〜E7・S1) を選ぶとき。主張には段落ごとに事実・解釈・仮説のラベルがある (§0)。
+> - 古くなった記述: §1.6 の「現在の実装」は v4 の時点 (観測 133 次元。v6・v7 は 197 次元)。S1 (推論時の候補評価) は `docs/experiments/2026-10-03_inference_search.md` で一部実施された。生きている候補は `docs/STATUS.md` の「次の作業」から指す。
+
 # 紐結び強化学習の研究方針に関する議論
 
 - 作成日: 2026-10-01
@@ -10,7 +14,7 @@
 
 ### 1.1 この文書の位置づけ
 
-[`Report.md`](Report.md) (2026-09-26) は「実装と 3 本の論文の差分」を調べ、定式化の変更 (到達状態からのリセット、1 遷移 = 1 エピソード、段ごとのエージェントなど) を提案した。これらはすでに実装されている。本書はその次の段階として、次の問いを扱う。
+[`Report.md`](Report_Paper.md) (2026-09-26) は「実装と 3 本の論文の差分」を調べ、定式化の変更 (到達状態からのリセット、1 遷移 = 1 エピソード、段ごとのエージェントなど) を提案した。これらはすでに実装されている。本書はその次の段階として、次の問いを扱う。
 
 > 定式化の骨格 (位相の段・到達状態アーカイブ・遷移単位の報酬) ができた後、**何を変えれば最終的な固結び成功率と学習速度が上がるか。それをどう確かめるか。**
 
@@ -35,8 +39,8 @@
 | [T] | Sudry et al., TWISTED (CoRL 2023) — [`Twisted.pdf`](Twisted.pdf)、解説 [`explainer/twisted.html`](explainer/twisted.html) | §5.1 行動の離散化、§5.2 SAC+HER ベースライン、§5.3 摩擦、§5.4 状態数 |
 | [TR] | Freund et al., TWISTED-RL (arXiv 2602.14526, 2026) — [`Twisted-RL.pdf`](Twisted-RL.pdf)、解説 [`explainer/twisted-rl.html`](explainer/twisted-rl.html) | §IV-A〜D、Table I、§VII、付録 VIII-B |
 | [Y] | Yan et al., Learning Topological Motion Primitives for Knot Planning (IROS 2020) — [`Learning_Topological_Motion_Primitives_for_Knot-Plannning.pdf`](Learning_Topological_Motion_Primitives_for_Knot-Plannning.pdf)、解説 [`explainer/yan2020.html`](explainer/yan2020.html) | §V-B(c) 多段の微調整、§VII 実験 |
-| [R] | [`paper/Report.md`](Report.md) | 論文と実装の比較、初期のログ |
-| [N] | [`next_action.md`](../src/isaac_twisted_rl/tasks/knot_tying/next_action.md) | §4.1 行動空間、§4.8.10 ゲート 1 (台本で固結び) |
+| [R] | [`paper/Report.md`](Report_Paper.md) | 論文と実装の比較、初期のログ |
+| [N] | [`next_action.md`](../docs/history/next_action.md) | §4.1 行動空間、§4.8.10 ゲート 1 (台本で固結び) |
 | [V2] [V2R2] [V3] [V4] | 各版の README ([v2](../src/isaac_twisted_rl/tasks/knot_tying/versions/v2/README.md) / [v2-R2](../src/isaac_twisted_rl/tasks/knot_tying/versions/v2_r2/README.md) / [v3](../src/isaac_twisted_rl/tasks/knot_tying/versions/v3/README.md) / [v4](../src/isaac_twisted_rl/tasks/knot_tying/versions/v4/README.md)) | 観測・報酬の仕様、smoke test、学習速度・ソルバ反復の測定 |
 | [L3] | 学習ログ `logs/rsl_rl/knot_tying_v3/2026-09-28_17-28-57` (単一方策 + 到達状態アーカイブ、4096 環境 × 12 手/iteration、160 iteration) | 本書のために TensorBoard から数値を抽出した |
 | [L4s] | 学習ログ `logs/rsl_rl/knot_tying_v4_speed/2026-09-30_22-27-57_A_it16_T12` (段ごとのエージェント、4096 環境、**7 iteration のみ**) | 学習初期の段別成功率 |

@@ -11,8 +11,10 @@
     v4/     段ごとのエージェント (TWISTED-RL-C) と 1 遷移 = 1 エピソード
     v5/     v4 + pick&place の発散対策 (高いところで離す・めり込み解消速度の上限)
     v6/     v5 + 次にたどる位相の辺のリンクマスクを観測に
+    v7/     v6 + ロープのめり込み解消速度を v4 の既定 (0.96 m/s) に戻す
 
-バージョンの増やし方は `../README.md` の「バージョンを追加するときの規約」。
+バージョンの増やし方は skill `add-version` (`.claude/skills/add-version/SKILL.md`)。この一覧は
+`tests/test_docs.py` が `versions/` のフォルダと `_VERSIONS` に照らして検査する。
 
 注意: この __init__ は Kit 起動前に実行される。docstring だけにしておくこと。
 """

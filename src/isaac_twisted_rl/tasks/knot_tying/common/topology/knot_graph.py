@@ -4,13 +4,13 @@ TWISTED / TWISTED-RL の高レベル計画は、p-data を節点、Reidemeister 
 (R1 / R2 / cross) を辺とするグラフを BFS する。ここでは同じグラフを
 **交差 4 個以下** について全列挙し、各 p-data から「R2 除去後に固結びを含む
 状態」までの最短手数 `d` を表にする。v3 の整形報酬はこれをポテンシャルに使う
-(`paper/Report.md` §7 P1-3):
+(`paper/Report_Paper.md` §7 P1-3):
 
     Φ(s) = max( 1 − d(s) / d(自明),  R2 除去後のラダーの段 / 3 )
 
 ## なぜ「交差 4 個・R2 除去前の p-data・ゴールは R2 除去後の固結び」なのか
 
-ゲート 1 (`next_action.md` §4.8.10 の 5) で、台本の cover の手の直後
+ゲート 1 (`docs/experiments/2026-09-27_gate1.md` の「結論」の 5。理由は `docs/decisions/0010-stage-granularity-bfs.md`) で、台本の cover の手の直後
 (`1U4+_2O5+_3O6-_4O1+_5U2+_6U3-`) は R2 除去すると輪 1 つ (C1) と同じになるのに、
 そこから tuck 1 手で約 7 割が固結びになることが分かった。R2 除去後のラダーでは
 「cover を打っても何も起きていない」ように見える。

@@ -1,3 +1,8 @@
+> **状態: 経緯の記録 (凍結)。2026-10-02〜03 の rope study の 4 つのセッションの引き継ぎメモ。通常は読まない**
+> - 旧パス `src/isaac_twisted_rl/tasks/knot_tying/rope_study/HANDOFF.md`。中の「最新」「ここから読む」の印は当時のもの。
+> - 結果と有効な run の一覧は `docs/experiments/2026-10-02_rope_models.md`、保留の作業は `docs/STATUS.md`、踏んだ注意の主なもの (kill の拒否・`pkill -f`・Kit の固まりと `timeout -k`・前景の `sleep`) は `CLAUDE.md` に移した。
+> - 中の相対パス `logs/…` の多くは `outputs/rope_study/logs/…` の意味 (リポジトリ直下の `logs/` ではない)。
+
 # 引き継ぎメモ: 紐モデルの調査・実装・比較 (rope study)
 
 - 1 回目のセッション: 〜2026-10-02 17:57 (コンテキストの都合で中断)。4 回目 (〜2026-10-03 13:10) で最終報告まで完了

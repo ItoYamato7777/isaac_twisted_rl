@@ -186,7 +186,7 @@ footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padd
 <marker id="arrH" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-hl"/></marker>
 <marker id="arrR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fill-rope"/></marker>
 </defs></svg>
-<header class="sitebar"><a class="brand" href="../../../../../../../paper/explainer/index.html">紐結び 3 論文の図解</a><nav aria-label="ページ"><a href="../../../../../../../paper/explainer/index.html">はじめに</a><a href="../../../../../../../paper/explainer/yan2020.html"><span class="dot yan"></span>Yan2020</a><a href="../../../../../../../paper/explainer/twisted.html"><span class="dot tw"></span>TWISTED</a><a href="../../../../../../../paper/explainer/twisted-rl.html"><span class="dot trl"></span>TWISTED-RL</a><a href="v3-implementation.html" aria-current="page"><span class="dot v3"></span>v3 の実装</a><a href="v3-vs-papers.html"><span class="dot v3"></span>v3 と論文</a></nav></header>
+<header class="sitebar"><a class="brand" href="../../../paper/explainer/index.html">紐結び 3 論文の図解</a><nav aria-label="ページ"><a href="../../../paper/explainer/index.html">はじめに</a><a href="../../../paper/explainer/yan2020.html"><span class="dot yan"></span>Yan2020</a><a href="../../../paper/explainer/twisted.html"><span class="dot tw"></span>TWISTED</a><a href="../../../paper/explainer/twisted-rl.html"><span class="dot trl"></span>TWISTED-RL</a><a href="v3-implementation.html" aria-current="page"><span class="dot v3"></span>v3 の実装</a><a href="v3-vs-papers.html"><span class="dot v3"></span>v3 と論文</a></nav></header>
 <div class="hero">
   <div class="eyebrow"><span class="dot v3"></span>このリポジトリの実装 · Isaac-Twisted-RL-Knot-v3</div>
   <h1>v3: 到達した形から始め、固結びで終わり、位相グラフの距離で導く</h1>
@@ -238,7 +238,7 @@ footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padd
 
 <section id="diff">
   <h2><span class="num">01</span>v2-R2 から何が変わったか</h2>
-  <p>v3 の <code>env_cfg.py</code> は v2-R2 の設定クラスを継承し、差分だけを上書きしています <a class="src" href="../env_cfg.py">v3/env_cfg.py</a>。タグの <span class="tag p1">P1</span> は <a href="../../../../../../../paper/Report.md">Report.md</a> §7 の論文由来の改善、<span class="tag g1">ゲート 1</span> は台本の検証 (<code>next_action.md</code> §4.8.10) から来た変更です。</p>
+  <p>v3 の <code>env_cfg.py</code> は v2-R2 の設定クラスを継承し、差分だけを上書きしています <a class="src" href="../../../src/isaac_twisted_rl/tasks/knot_tying/versions/v3/env_cfg.py">v3/env_cfg.py</a>。タグの <span class="tag p1">P1</span> は <a href="../../../paper/Report_Paper.md">Report.md</a> §7 の論文由来の改善、<span class="tag g1">ゲート 1</span> は台本の検証 (<code>next_action.md</code> §4.8.10) から来た変更です。</p>
   <div class="tbl-wrap"><table class="tbl">
     <thead><tr><th>項目</th><th>v2-R2</th><th>v3</th><th>由来</th></tr></thead>
     <tbody>
@@ -260,7 +260,7 @@ footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padd
 
 <section id="step">
   <h2><span class="num">02</span>env.step 1 回 = pick&amp;place 1 手</h2>
-  <p>この環境の要は、Isaac Lab の <code>decimation</code> (1 回の <code>env.step()</code> で回す物理ステップ数) を「1 手ぶんの物理ステップ数」にしていることです。方策は 1 手に 1 回だけ行動を出し、その 1 手を実行し切ってから、終了判定・報酬・観測が 1 回ずつ計算されます <a class="src" href="../../../common/env_cfg_base.py">env_cfg_base.py</a>。</p>
+  <p>この環境の要は、Isaac Lab の <code>decimation</code> (1 回の <code>env.step()</code> で回す物理ステップ数) を「1 手ぶんの物理ステップ数」にしていることです。方策は 1 手に 1 回だけ行動を出し、その 1 手を実行し切ってから、終了判定・報酬・観測が 1 回ずつ計算されます <a class="src" href="../../../src/isaac_twisted_rl/tasks/knot_tying/common/env_cfg_base.py">env_cfg_base.py</a>。</p>
   <figure>
     <div class="scroll" style="--minw:700px">
     <svg viewBox="0 0 820 310" role="img" aria-label="env.step 1 回の流れ。方策が行動を出し、process_actions が掴む点と置き先を確定し、759 物理ステップの状態機械で 1 手を実行する。その後、終了判定、報酬 (アーカイブへの保存を含む)、終わった環境の reset (まっすぐに戻してからアーカイブで上書き)、観測の順に計算して方策へ戻る。">
@@ -362,7 +362,7 @@ footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padd
 
 <section id="action">
   <h2><span class="num">04</span>行動: 6 次元で 1 手を決める</h2>
-  <p>行動は 6 次元の連続値で、すべて [−1, 1] にクリップされます。PPO はガウス方策 (連続) しか持たないので、離散の量 (リンク番号) も連続値で受け取り、環境の側で丸めます <a class="src" href="../../../common/mdp/actions.py">mdp/actions.py</a>。置き先は絶対座標ではなく、<strong>ロープ上の target リンクの今の位置からの相対</strong>で決めます。離した瞬間にロープが動くので、絶対座標で覚えても意味が薄いためです。</p>
+  <p>行動は 6 次元の連続値で、すべて [−1, 1] にクリップされます。PPO はガウス方策 (連続) しか持たないので、離散の量 (リンク番号) も連続値で受け取り、環境の側で丸めます <a class="src" href="../../../src/isaac_twisted_rl/tasks/knot_tying/common/mdp/actions.py">mdp/actions.py</a>。置き先は絶対座標ではなく、<strong>ロープ上の target リンクの今の位置からの相対</strong>で決めます。離した瞬間にロープが動くので、絶対座標で覚えても意味が薄いためです。</p>
   <figure>
     <div class="scroll" style="--minw:460px">
     <svg viewBox="0 0 560 350" role="img" aria-label="行動を上から見た図。まっすぐなロープの 28 リンクのうち、両端 2 本ずつは掴めない。掴むリンクから Δlink だけ離れた target リンクの周りの正方形 (±0.30 L) の中に置き先を選び、置き終わりの手首の向き end_yaw も選ぶ。">
@@ -476,7 +476,7 @@ footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padd
 
 <section id="obs">
   <h2><span class="num">06</span>観測: 129 次元</h2>
-  <p>観測は v2 から項も並びも変えていません。ロープが 28 リンクになったぶん、リンク位置が 60 次元から 84 次元に増えただけです <a class="src" href="../../../common/mdp/observations.py">mdp/observations.py</a>。critic も方策と同じ観測を見ます (特権観測はありません)。</p>
+  <p>観測は v2 から項も並びも変えていません。ロープが 28 リンクになったぶん、リンク位置が 60 次元から 84 次元に増えただけです <a class="src" href="../../../src/isaac_twisted_rl/tasks/knot_tying/common/mdp/observations.py">mdp/observations.py</a>。critic も方策と同じ観測を見ます (特権観測はありません)。</p>
   <figure>
     <div class="bar" role="img" aria-label="観測 129 次元の内訳。リンク位置 84、交差数 1、writhe 1、交差特徴 30、class one-hot 4、ハンド位置 3、前回の行動 6。">
       <span class="b1" style="flex:84 0 0">リンク位置 84</span><span class="b4" style="flex:1 0 0" title="交差数 1"></span><span class="b4" style="flex:1 0 0" title="writhe 1"></span><span class="b2" style="flex:30 0 0">交差特徴 30</span><span class="b3" style="flex:4 0 0" title="class one-hot 4"></span><span class="b4" style="flex:3 0 0" title="ハンド位置 3"></span><span class="b4" style="flex:6 0 0" title="前回の行動 6"></span>
@@ -499,7 +499,7 @@ footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padd
 
 <section id="topo">
   <h2><span class="num">07</span>位相の判定: 交差から「段」と「Φ」へ</h2>
-  <p>報酬・終了・アーカイブ・観測はどれも、毎手の終わりに測る「ロープの位相」から作られます。p-data の文字列を作ると 4096 環境で 94 ms かかるので、学習中は文字列を作らず、テンソルのまま (4096 環境で 1.6 ms) 判定します <a class="src" href="../../../common/topology/knot_detect.py">topology/knot_detect.py</a>。</p>
+  <p>報酬・終了・アーカイブ・観測はどれも、毎手の終わりに測る「ロープの位相」から作られます。p-data の文字列を作ると 4096 環境で 94 ms かかるので、学習中は文字列を作らず、テンソルのまま (4096 環境で 1.6 ms) 判定します <a class="src" href="../../../src/isaac_twisted_rl/tasks/knot_tying/common/topology/knot_detect.py">topology/knot_detect.py</a>。</p>
   <figure>
     <div class="scroll" style="--minw:700px">
     <svg viewBox="0 0 820 250" role="img" aria-label="位相判定の流れ。リンク中心の点列からポリラインを作って xy に射影し、自己交差を検出する。そこから 2 つに分かれ、一方は R2 除去をして部分列判定で段 0 から 3 を求める。もう一方は R2 除去前の交差から整数のキーを作り、BFS の表を引いて Φ_bfs を得る。Φ は Φ_bfs と段/3 の大きいほう。">
@@ -580,7 +580,7 @@ footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padd
 
 <section id="reward">
   <h2><span class="num">08</span>報酬の全体</h2>
-  <p>v3 の報酬は 7 項です <a class="src" href="../../../common/mdp/rewards.py">mdp/rewards.py</a>。値はすべて 1 手あたりです。</p>
+  <p>v3 の報酬は 7 項です <a class="src" href="../../../src/isaac_twisted_rl/tasks/knot_tying/common/mdp/rewards.py">mdp/rewards.py</a>。値はすべて 1 手あたりです。</p>
   <div class="tbl-wrap"><table class="tbl">
     <thead><tr><th>項</th><th>1 手あたりの値</th><th>いつ払うか</th><th>v2-R2 との差</th></tr></thead>
     <tbody>
@@ -598,7 +598,7 @@ footer.foot{max-width:1180px;margin:0 auto;border-top:1px solid var(--rule);padd
 
 <section id="bfs">
   <h2><span class="num">09</span>BFS 距離のポテンシャル <span class="tag p1">P1-3</span></h2>
-  <p>整形報酬 F = γΦ(s′) − Φ(s) は、Φ が「ゴールへの近さ」をよく表すほど役に立ちます。v2-R2 の Φ は 4 段のラダー (0, 0.35, 0.70, 1) でした。v3 は、TWISTED / TWISTED-RL が高レベルの計画に使う <strong>p-data のグラフ</strong>を起動時に列挙し、各状態から固結びまでの最短手数 d を表にして、Φ に使います <a class="src" href="../../../common/topology/knot_graph.py">topology/knot_graph.py</a>。</p>
+  <p>整形報酬 F = γΦ(s′) − Φ(s) は、Φ が「ゴールへの近さ」をよく表すほど役に立ちます。v2-R2 の Φ は 4 段のラダー (0, 0.35, 0.70, 1) でした。v3 は、TWISTED / TWISTED-RL が高レベルの計画に使う <strong>p-data のグラフ</strong>を起動時に列挙し、各状態から固結びまでの最短手数 d を表にして、Φ に使います <a class="src" href="../../../src/isaac_twisted_rl/tasks/knot_tying/common/topology/knot_graph.py">topology/knot_graph.py</a>。</p>
   <div class="formula">Φ(s) = max( 1 − d(s) / 3 ,  段(s) / 3 )
 
 d(s)  : p-data グラフ上で、s から「R2 除去後に固結びを含む状態」までの最短の移動回数
@@ -735,7 +735,7 @@ d(s)  : p-data グラフ上で、s から「R2 除去後に固結びを含む状
 
 <section id="archive">
   <h2><span class="num">12</span>到達状態アーカイブ <span class="tag p1">P1-1</span></h2>
-  <p>v2-R2 は毎回まっすぐなロープから始めていたので、C2 からの手を練習できるのは「偶然 C1 に着いたエピソードの残りの手」だけでした。v3 は、学習中に到達した C1 / C2 の形を保存しておき、reset の半分をそこから始めます。TWISTED の到達木や TWISTED-RL の初期状態の選び方 (Go-Explore 型) にならったものです <a class="src" href="../../../common/mdp/archive.py">mdp/archive.py</a><a class="src" href="../../../common/state_archive.py">state_archive.py</a>。</p>
+  <p>v2-R2 は毎回まっすぐなロープから始めていたので、C2 からの手を練習できるのは「偶然 C1 に着いたエピソードの残りの手」だけでした。v3 は、学習中に到達した C1 / C2 の形を保存しておき、reset の半分をそこから始めます。TWISTED の到達木や TWISTED-RL の初期状態の選び方 (Go-Explore 型) にならったものです <a class="src" href="../../../src/isaac_twisted_rl/tasks/knot_tying/common/mdp/archive.py">mdp/archive.py</a><a class="src" href="../../../src/isaac_twisted_rl/tasks/knot_tying/common/state_archive.py">state_archive.py</a>。</p>
   <figure>
     <div class="scroll" style="--minw:700px">
     <svg viewBox="0 0 800 300" role="img" aria-label="アーカイブの保存と復元。毎手の終わりに、床に落ちていて発散しておらず、R2 除去後の段が 1 か 2 の形を、段ごとのリングバッファに保存する。reset のときは、まっすぐに戻したあと確率 0.5 でアーカイブを使い、段を 1 対 2 の重みで選んで中から一様に 1 件取り出し、重心を env 原点に置いてランダムに回し、関節角を書き込み、位相を測り直して保存時と一致するか数える。">
@@ -792,7 +792,7 @@ d(s)  : p-data グラフ上で、s から「R2 除去後に固結びを含む状
 
 <section id="ppo">
   <h2><span class="num">13</span>学習器: PPO (RSL-RL)</h2>
-  <p>v3 は環境側 (リセット・報酬・終了・ロープ・行動の範囲・尺) を変えた版なので、PPO のハイパーパラメータは効果を切り分けられるよう v2-R2 (= v2) から据え置いています <a class="src" href="../../../versions/v2/agents/rsl_rl_ppo_cfg.py">v2/agents/rsl_rl_ppo_cfg.py</a>。</p>
+  <p>v3 は環境側 (リセット・報酬・終了・ロープ・行動の範囲・尺) を変えた版なので、PPO のハイパーパラメータは効果を切り分けられるよう v2-R2 (= v2) から据え置いています <a class="src" href="../../../src/isaac_twisted_rl/tasks/knot_tying/versions/v2/agents/rsl_rl_ppo_cfg.py">v2/agents/rsl_rl_ppo_cfg.py</a>。</p>
   <div class="grid-2">
     <div class="tbl-wrap" style="margin:0"><table class="tbl">
       <thead><tr><th>設定</th><th>値</th></tr></thead>
@@ -883,12 +883,12 @@ uv run train --task Isaac-Twisted-RL-Knot-v3 --headless env.rewards.shaping.para
     <div><dt>scratch_success</dt><dd>まっすぐなロープから始めたエピソードが固結びで終わった割合。v3 の主指標。</dd></div>
   </dl>
   <div class="nextprev">
-    <a href="../../../../../../../paper/explainer/twisted-rl.html"><small>前に読む</small><span class="dot trl"></span> TWISTED-RL の図解</a>
+    <a href="../../../paper/explainer/twisted-rl.html"><small>前に読む</small><span class="dot trl"></span> TWISTED-RL の図解</a>
     <a href="v3-vs-papers.html"><small>次に読む</small><span class="dot v3"></span> v3 と 3 論文の比較・考察 →</a>
   </div>
 </section>
 
   </main>
 </div>
-<footer class="foot">対象コード: <a href="../">versions/v3/</a> と <a href="../../../common/">common/</a> (コミット 3b71145)。数値は各ファイルの docstring・<code>versions/v3/README.md</code>・<code>next_action.md</code> §4.8.10 から転記しました。</footer>
+<footer class="foot">対象コード: <a href="../">versions/v3/</a> と <a href="../../../src/isaac_twisted_rl/tasks/knot_tying/common">common/</a> (コミット 3b71145)。数値は各ファイルの docstring・<code>versions/v3/README.md</code>・<code>next_action.md</code> §4.8.10 から転記しました。</footer>
 </html>

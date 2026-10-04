@@ -10,7 +10,7 @@ uv run train --task Isaac-Twisted-RL-Twist-v1 --headless
 > 固結びの疎報酬は一度も発火しなかった。原因の分析と作り直しは [v2 README](../v2/README.md) §1。
 
 シーン・物理・行動・終了判定の仕組みは [`common/README.md`](../../common/README.md) を参照。
-移植元 TWISTED-RL との設計の違いは [`diff_to_TwistedRL.md`](diff_to_TwistedRL.md) にある。
+移植元 TWISTED-RL との設計の違いは [`diff_to_TwistedRL.md`](../../../../../../docs/history/v1_diff_to_TwistedRL.md) にある。
 
 ## 1. v0 から何を・なぜ変えたか
 
@@ -47,7 +47,7 @@ v0 の目標は「交差を 1 つ作る」だった。v1 はこれを **固結�
 
 固結びは **厳密な `交差数 == 3` では判定しない**。尻尾に小さなループが 1 つ付くだけで交差数は 7 になり、
 厳密判定では本物の固結びを取りこぼす。代わりに部分列判定を使う
-(根拠と実測は [`../../next_action.md`](../../next_action.md) 4.8.2〜4.8.3)。
+(根拠と実測は [`../../next_action.md`](../../../../../../docs/history/next_action.md) 4.8.2〜4.8.3)。
 
 ### なぜ素朴なボーナスではなくポテンシャル整形なのか
 
@@ -105,7 +105,7 @@ v0 の `crossing_progress` / `crossing_achieved` は `common/mdp/rewards.py` に
 | 単体テスト | 116 件 green (`test_knot_tying_topology.py` 69 + `test_knot_detect.py` 47)。Isaac Sim 不要 |
 | 観測の配線 | 105 次元で、すべて有限。`knot_class` の各行の和が 1 |
 | 報酬の重み | `step_dt` で正しく再スケールされる (`success` 3.0 → 1.0496) |
-| 整形報酬の正確性 | `F = γΦ(s') − Φ(s)` の実測誤差は 8 手 × 16 env で **厳密に 0** (検証方法の注意は [`../../next_action.md`](../../next_action.md) 4.8.8) |
+| 整形報酬の正確性 | `F = γΦ(s') − Φ(s)` の実測誤差は 8 手 × 16 env で **厳密に 0** (検証方法の注意は [`../../next_action.md`](../../../../../../docs/history/next_action.md) 4.8.8) |
 | ランダム方策 (16 手 × 32 env) | class 1 が 32.4%、class 2 が 1.4%、**class 3 (固結び) が 1 回** |
 | 発散 / 「離すと付いてくる」 | どちらも 0 件 |
 

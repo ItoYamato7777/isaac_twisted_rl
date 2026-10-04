@@ -14,7 +14,7 @@ uv run play  --task Isaac-Twisted-RL-Knot-Play-v3 --num_envs 1   # まっすぐ�
 
 ## なぜ作り直したか
 
-[`paper/Report.md`](../../../../../../paper/Report.md) の結論は、v1〜v2-R2 が詰まっているのは
+[`paper/Report_Paper.md`](../../../../../../paper/Report_Paper.md) の結論は、v1〜v2-R2 が詰まっているのは
 報酬の細部ではなく **定式化** のせい、というもの。TWISTED の SAC+HER ベースラインと
 同じ壁 (1 交差は解けるが 2 交差でほぼ 0) に当たっている。論文 (TWISTED /
 TWISTED-RL) はこの壁を次の 3 つで越えている。v3 はこれを Report §7 P1 として取り込む:

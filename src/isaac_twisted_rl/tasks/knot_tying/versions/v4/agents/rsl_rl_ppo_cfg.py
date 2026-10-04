@@ -10,7 +10,7 @@ PPO 本体 (γ・学習率・エポック数など) は v3 (= v2) のまま。�
   actor・critic・std を段 0 / 1 / 2 ごとに持ち、観測の末尾の段の one-hot で振り分ける。
   各エージェントの MLP は v3 と同じ [512, 256, 128]。`num_stages=1` で論文の G 版になる。
 * `init_noise_std` 1.0 -> **0.5**。環境は行動を [−1, 1] でクリップするので、std 1.0 の
-  ガウス方策では 1 チャネルあたり約 32% が端に張り付く (`paper/Report.md` §6.5)。v3 の run
+  ガウス方策では 1 チャネルあたり約 32% が端に張り付く (`paper/Report_Paper.md` §6.5)。v3 の run
   でも `Policy/mean_noise_std` は 26 iteration で 0.98 のままだった。
 
 `RslRlPpoActorCriticCfg` に `num_stages` / `stage_obs_dims` を足した cfg クラスを使う

@@ -56,7 +56,7 @@ v1 は 157/4000 iteration で打ち切られ、`Train/mean_reward` が
   4000 iteration = 約 14 日という見積りだった。`SHORT_DURATIONS` (−14.7%)
   と 8 -> 6 手 (−25%) で 1 iteration あたり約 36% 減るが、それでも
   2000 iteration で約 4.5 日。実時間を本当に縮めるのは `num_envs` の
-  スループット測定 (`../../next_action.md` 4.8.9 の 2 番目)。
+  スループット測定 (`docs/history/next_action.md` §4.8.9 の 2 番目)。
 * `obs_groups` を **明示**。`RslRlBaseRunnerCfg.obs_groups` は `MISSING` で、
   v0/v1 は未設定のまま `resolve_obs_groups` の deprecated な
   フォールバックに頼っていた。

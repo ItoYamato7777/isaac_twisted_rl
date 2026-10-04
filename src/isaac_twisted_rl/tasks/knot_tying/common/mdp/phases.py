@@ -9,7 +9,7 @@
 ## なぜ尺をデモより短くしているか
 
 デモの尺 (合計 11.4 s) は **目視デバッグ用に余裕を持たせた値**で、
-`next_action.md` 4.3 に「フェーズの尺は詰められるだけ詰めること」と
+`docs/history/next_action.md` §4.3 に「フェーズの尺は詰められるだけ詰めること」と
 指示がある。1 手 = 11.4 s のままだと 240 Hz で 2736 物理ステップ、
 1 エピソード 5 手で 13680 ステップになり、学習の実時間がここで決まってしまう。
 
@@ -18,15 +18,15 @@
 判断基準は「その尺が物理の落ち着きを待つためのものか、単に見やすさのためか」:
 
 * `settle_out` (離した後ロープが落ち切るのを待つ) は **物理の待ち**なので
-  比率を保って残す。ここを削ると `next_action.md` 3(c) の
+  比率を保って残す。ここを削ると `docs/decisions/0004-release-follow-physics.md` の
   「離したのに付いてくる」が再発する。
 * `approach` / `retreat` (何も掴んでいない移動) は見やすさのためなので大きく削る。
 
 ## `RELEASE_RATIO` について
 
 デモの `RELEASE_RATIO` の docstring は「接近時の `OPEN_RATIO` より広く開ける」と
-書いてあるが、`next_action.md` 3(c) で `OPEN_RATIO` が 1.0 に上がった結果
-両者は同値になっている (`next_action.md` にも記述と実態のずれとして指摘がある)。
+書いてあるが、`docs/decisions/0004-release-follow-physics.md` の対策で `OPEN_RATIO` が 1.0 に上がった結果
+両者は同値になっている (`docs/history/next_action.md` §3(c) にも記述と実態のずれとして指摘がある)。
 ここでは定数を 1 つ (`OPEN_RATIO`) に統合し、その経緯をこの docstring に残す。
 """
 
@@ -50,7 +50,7 @@ OPEN_RATIO = 1.0
 """指の開度: 全開 (0=全閉, 1=全開)。
 
 デモでは接近時 `OPEN_RATIO` と解放時 `RELEASE_RATIO` を分けていたが、
-`next_action.md` 3(c) の対策で両方 1.0 になったので統合した。
+`docs/decisions/0004-release-follow-physics.md` の対策で両方 1.0 になったので統合した。
 全開にするのは、離した後ハンドを引き上げるときにロープが指に残って
 一緒に持ち上がるのを防ぐため (実測でこれが交差を壊していた)。
 """
@@ -117,7 +117,7 @@ class PhaseDurations:
 
     デモ (`demos/topology_debug.py`) の値を括弧内に併記する。`carry` は
     デモでは経由点で等分される合計時間だったが、本実装は経由点を持たない
-    (`next_action.md` 4.1 で `via_*` を入れないと決めた) ので 1 区間ぶん。
+    (`docs/decisions/0002-action-space-rope-relative.md` で `via_*` を入れないと決めた) ので 1 区間ぶん。
 
     ## 移動系フェーズをさらに詰めた (2026-09-12 実測)
 
@@ -143,7 +143,7 @@ class PhaseDurations:
     自然な結果。これで **1 手が 5.0 s -> 2.86 s (約 43% 短縮)** になった。
 
     物理待ち系 (close/hold/release/settle_out/relax) は今回検証していない
-    ため据え置き。ここは `next_action.md` 3(c) の「離すと付いてくる」問題
+    ため据え置き。ここは `docs/decisions/0004-release-follow-physics.md` の「離すと付いてくる」問題
     (`OPEN_RATIO` / `RELEASE_RATIO` の docstring 参照) に直結する箇所なので、
     削るなら同様の実測をしてから行うこと。
     """
@@ -205,7 +205,7 @@ DEFAULT_DURATIONS = PhaseDurations()
 class GraspLimits:
     """アクションの各チャネルを物理量へ変換するときの範囲。
 
-    値の根拠は `next_action.md` 4.1。ロープ全長 `L` と直径に対する比で
+    値の根拠は `docs/decisions/0002-action-space-rope-relative.md`。ロープ全長 `L` と直径に対する比で
     持つのは、プリセットによって寸法が違う (simple/stiff/twist は
     L=0.82 m / dia=20 mm、fine は L=0.78 m / dia=8 mm、knot は L=1.14 m / dia=20 mm) ため。
     """
@@ -277,7 +277,7 @@ SHORT_DURATIONS = PhaseDurations(
 1 手が短くなるぶん、同じ実時間でより多くのサンプルが取れる。
 v1 の学習が 1 イテレーション 185〜200 秒 x 4000 = 9 日超という
 実時間の壁に当たっていたので、ここを削るのが最も効く
-(`next_action.md` 4.8.9 の「他のどの最適化よりも効く」)。
+(`docs/history/next_action.md` §4.8.9 の「他のどの最適化よりも効く」)。
 
 ## 何を 0 にしたか、なぜ安全か
 

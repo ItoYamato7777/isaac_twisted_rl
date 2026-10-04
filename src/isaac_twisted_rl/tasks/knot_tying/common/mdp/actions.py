@@ -2,7 +2,7 @@
 
 ## この設計の核心: なぜ `decimation` が巨大なのか
 
-`next_action.md` 4.0 で「1 アクション = 掴む→運ぶ→離す 全部」(Options
+`docs/decisions/0001-kinematic-hand-and-one-move.md` で「1 アクション = 掴む→運ぶ→離す 全部」(Options
 Framework 的な粒度) と決めた。これを manager-based Isaac Lab に落とすとき、
 `ManagerBasedRLEnv.step()` の構造がそのまま答えになる::
 
@@ -20,7 +20,7 @@ Framework 的な粒度) と決めた。これを manager-based Isaac Lab に落�
 * `apply_actions()` が **1 物理ステップぶんだけ** ステートマシンを進める
 * 報酬・観測・終了判定は **手が終わった時点で 1 回だけ** 評価される
 
-これが `next_action.md` の想定 (1 エピソード 3〜5 アクション、報酬は
+これが `docs/decisions/0001-kinematic-hand-and-one-move.md` の想定 (1 エピソード 3〜5 アクション、報酬は
 「アクションごと」) とそのまま一致する。しかも `apply_actions()` の各呼び出しの
 直前に `scene.update()` が回っているので、**ロープの最新姿勢を読みながら
 ハンドを動かせる**。デモの `over_link_frac` (渡し先をリンクの現在位置から
@@ -31,12 +31,12 @@ Framework 的な粒度) と決めた。これを manager-based Isaac Lab に落�
 `demos/topology_debug.py` の `grasp_move()` は 13 個のフェーズを Python の
 for ループで順に実行していた。RL では全環境が同時に別々のフェーズにいるので、
 **フェーズ ID と経過ステップ数を `(num_envs,)` のテンソルで持つ**必要がある
-(`next_action.md` 4.3)。補間そのもの (smoothstep) や掴む点の決め方といった
+(`docs/history/next_action.md` §4.3)。補間そのもの (smoothstep) や掴む点の決め方といった
 ロジックはデモからそのまま持ってきている。
 
 ## 離散アクションを連続チャネルで表す理由
 
-`next_action.md` 4.1 は `grasp_link_id` と `delta_link` を離散と決めているが、
+`docs/decisions/0002-action-space-rope-relative.md` (旧 §4.1) は `grasp_link_id` と `delta_link` を離散と決めているが、
 このリポジトリの学習器 **RSL-RL の PPO は連続ガウス方策しか持たない**
 (離散ヘッドの実装が無い)。そこで 6 チャネルすべてを連続 `[-1, 1]` で受け取り、
 離散 2 つは **この ActionTerm 側で量子化する**。方策から見れば連続、
@@ -91,7 +91,7 @@ class PickPlaceAction(ActionTerm):
     5    `end_yaw`         置き終わりの手首 yaw (±π)
     ===  ================  ===============================================
 
-    `next_action.md` 4.1 の当初の設計書は「計 7 次元」と書いていたが、数え間違いで、
+    `docs/history/next_action.md` §4.1 の当初の設計書は「計 7 次元」と書いていたが、数え間違いで、
     列挙されているチャネルは 6 つ (grasp / delta / x / y / z / yaw)。
     実際のチャネル数どおり 6 次元とした (設計書側も修正済み)。
     """
@@ -312,7 +312,7 @@ class PickPlaceAction(ActionTerm):
         """1 手ぶんの指示を解釈し、フェーズ列の最初 (`approach`) を組み立てる。
 
         ここで掴む点と置く先を **今のロープ姿勢から** 確定させる。
-        `next_action.md` 4.1 が「置く先を絶対座標にせずリンク相対にする」と
+        `docs/decisions/0002-action-space-rope-relative.md` が「置く先を絶対座標にせずリンク相対にする」と
         決めた理由がこれで、pick&place 粒度では離した瞬間にロープが物理で
         動くため、絶対座標で持つ意味がほとんど無い。
         """

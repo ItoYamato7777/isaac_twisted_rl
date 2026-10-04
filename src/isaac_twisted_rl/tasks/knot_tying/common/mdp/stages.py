@@ -1,4 +1,4 @@
-"""段 (固結びへの BFS 距離) を単位にした「1 遷移 = 1 エピソード」の項。v4 で追加。
+"""段 (`BfsPotential.stage` = round(3Φ)。0 = 自明・3 = 固結び) を単位にした「1 遷移 = 1 エピソード」の項。v4 で追加。
 
 TWISTED-RL の多段エピソード (explainer `twisted-rl.html` §06) を移植する:
 

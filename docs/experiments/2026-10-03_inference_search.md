@@ -10,7 +10,7 @@
 - 作成日: 2026-10-03
 - 対象: v4〜v7 の overnight run のチェックポイント (下の表)。`Isaac-Twisted-RL-Knot-Play-v*`
 - 道具: `src/isaac_twisted_rl/scripts/rsl_rl/eval_search.py` (今回追加。使い方とアルゴリズムは
-  [`scripts/rsl_rl/README.md`](../src/isaac_twisted_rl/scripts/rsl_rl/README.md))
+  [`scripts/rsl_rl/README.md`](../../src/isaac_twisted_rl/scripts/rsl_rl/README.md))
 - 結果のファイル: 各 run のフォルダの `eval_search_*_it{N}.json`。途中で止めた探索は `eval_search_search_it{N}_partial.log`
 - **評価は途中で止めた。** 予定した 10 本 (5 チェックポイント x 2 モード) のうち、最後まで終わったのは 4 本、
   途中まで進んだのが 3 本、始めていないのが 3 本 (§2.3)。**V8 の土台を v6 と v7 のどちらにするかの判断に要る

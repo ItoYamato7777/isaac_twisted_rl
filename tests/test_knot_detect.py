@@ -590,7 +590,7 @@ def test_potential_table_matches_class_count():
 def _trefoil_with_r1_loops(num_loops: int, at_head: bool):
     """三葉結び (上下交互・同符号) に、独立した R1 ループを `num_loops` 個足した交差リスト。
 
-    `paper/Report.md` 付録 A-2 の再現。セグメント番号は点番号をそのまま使うので、
+    `paper/Report_Paper.md` 付録 A-2 の再現。セグメント番号は点番号をそのまま使うので、
     スロットの辞書順 = 紐の始点側からの順になる (実機の `segment_intersections` と同じ)。
     """
     items, orders = [], []

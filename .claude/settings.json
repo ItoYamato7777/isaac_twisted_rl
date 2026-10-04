@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "ask": ["Bash(kill *)", "Bash(pkill *)", "Bash(killall *)"],
+    "deny": [
+      "Bash(pkill -f *)",
+      "Edit(/logs/**)",
+      "Edit(/outputs/**)",
+      "Edit(/.venv/**)",
+      "Edit(**/*.usd)",
+      "Edit(/paper/*.pdf)",
+      "Read(//home/itoyama/work/IsaacLab/**/knot_tying/**)"
+    ]
+  },
+  "env": { "PYTHONUNBUFFERED": "1" },
+  "hooks": {
+    "SessionStart": [
+      { "matcher": "startup|resume|clear|compact",
+        "hooks": [{ "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session_start.sh\"", "timeout": 30 }] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_bash.py\"", "timeout": 15 }] }
+    ]
+  }
+}

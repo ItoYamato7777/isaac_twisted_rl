@@ -16,27 +16,10 @@ uv run train --task Isaac-Twisted-RL-Twist-v2-LSTM --headless   # LSTM
 
 ## 1. v1 はなぜ失敗したのか (TensorBoard の実測)
 
-v1 の学習 (`logs/rsl_rl/knot_tying_v1/2026-09-15_21-49-25`) は
-**4000 iteration の設定に対して 157 で打ち切られ、報酬は増えるどころか
-下降を続けていた**。v0 (`knot_tying_v0/2026-09-12_13-51-53`、970 iteration)
-と並べると違いは明確。
-
-| 指標 | v0 (成功) | v1 (失敗) |
-|---|---|---|
-| `Train/mean_reward` | 1.73 → **5.45** | −0.009 → **−0.058 (下降中)** |
-| `Episode_Reward/success` | 0.090 → 0.345 (1 手あたり 98.5% 発火) | 0.0001 → **厳密に 0.0** |
-| `Episode_Termination/diverged` | 0.139 → **0.0006** | 0.250 → **0.480** |
-| `action_failed` 率 | 3.3% → **0.05%** | 3.6% → **5.8%** |
-| `Policy/mean_noise_std` | 0.998 → **0.610 (収束)** | 1.003 → **1.628 (拡大)** |
-| `Loss/entropy` | 8.51 → **2.08** | 8.52 → **11.39 (上昇)** |
-| 適応学習率 | 下限 1e-5 に張り付き | 5.1e-4 → **1.32e-3 (上昇)** |
-| `Loss/value_function` | 0.17〜2.6 | **~1099 までスパイク** |
-
-終端の報酬構成 (1 エピソードあたりの寄与):
-
-* v1: `failure` **−0.0924** が最大絶対値の項で、`shaping` (+0.0496) を
-  **1.86 倍上回る**。`success` は +0.0013。
-* v0: `success` **+4.92 (91%)**、`progress` +0.49 (9%)、罰則は合計 0.05% 未満。
+v1 の学習は 4000 iteration の設定に対して 157 で打ち切られ、報酬は下降を続けていた。成功した v0 の学習と
+TensorBoard の値を並べた比較 (run のフォルダ・iteration・指標の表・終端の報酬構成) は実験記録
+[`docs/experiments/2026-09-15_v0-v1.md`](../../../../../../docs/experiments/2026-09-15_v0-v1.md) にある。
+下の診断はその比較から読んだもので、§2 の変更の理由になっている。
 
 ### 診断
 
@@ -198,7 +181,7 @@ import 済みの `ActorCritic` / `ActorCriticRecurrent` **のみ**。
 変わるとパディング部分の意味が曖昧になるので、再帰的な critic がそれを
 平滑化する可能性はある。ただし薄い。
 
-**MLP と同等以下になる想定**で回す。結果 (とくに負の結果) はこの節に追記する。
+**MLP と同等以下になる想定**で回す。(その後: GRU / LSTM の学習の記録は無い。`logs/rsl_rl/` に `knot_tying_v2_rnn`・`knot_tying_v2_lstm` は無い。)
 
 ### rsl-rl 3.0.1 固有の注意点
 
@@ -224,7 +207,7 @@ checkout は **rsl-rl 5.0.1 前提の別物**なので、そこの例をその�
 ## 5. 移植元 TWISTED-RL の「交差数ごとにモデルを変える」について
 
 移植元は交差数 x 移動種別ごとに最大 12 個の SAC を切り替える
-([`diff_to_TwistedRL.md`](../v1/diff_to_TwistedRL.md) §2)。**v2 ではこれを
+([`docs/history/v1_diff_to_TwistedRL.md`](../../../../../../docs/history/v1_diff_to_TwistedRL.md) §2)。**v2 ではこれを
 実装していない。** 理由は 2 つ:
 
 1. **rsl_rl では表現できない** (§4 の `eval()` の制約)。
@@ -241,7 +224,7 @@ v1 から変えていない (`OnPolicyRunner.load` は `load_state_dict` を str
 
 **実際の v3 はこの構想を採らなかった。** 代わりに、論文の「到達状態からのリセット」を 1 つの
 方策のまま取り込んでいる ([v3 README](../v3/README.md))。段ごとの分解 (TWISTED-RL-C 相当) は
-[`paper/Report.md`](../../../../../../paper/Report.md) §7 P3-4 に残っている。
+[`paper/Report_Paper.md`](../../../../../../paper/Report_Paper.md) §7 P3-4 に残っている。
 
 ## 6. 実装時点で未検証だった項目 (その後の結果)
 
@@ -251,7 +234,7 @@ v1 から変えていない (`OnPolicyRunner.load` は `load_state_dict` を str
    把持中の指令速度が上がる (発散の機構そのもの) ので、発散対策と同時に変えると原因を切り分けられない。
 
    → **2026-09-27 に実施した。** `Twist` では長さが足りず、28 リンクの `Knot` と
-   `drop_xy_rel_frac` 0.30 が必要だった ([`next_action.md`](../../next_action.md) §4.8.10)。
+   `drop_xy_rel_frac` 0.30 が必要だった ([`docs/experiments/2026-09-27_gate1.md`](../../../../../../docs/experiments/2026-09-27_gate1.md)。元は `next_action.md` §4.8.10)。
    どちらも v3 で配線した。
 
 2. **クラス別の `rope_diverged` の監視。** 自己接触は交差数に対して超線形に増えるので、集計値では

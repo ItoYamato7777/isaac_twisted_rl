@@ -1,3 +1,26 @@
+> **状態: 打ち切り中 (2026-10-03)** (ユーザーの指示で評価と実装を打ち切った。経緯は [`docs/history/rope_study_HANDOFF.md`](../history/rope_study_HANDOFF.md))。移動前のパス: `src/isaac_twisted_rl/tasks/knot_tying/rope_study/Report_rope_models.md` (commit 62b251b で移動。本文は変えていない)。
+> 読むべき状況: 紐モデル (剛体鎖・XPBD・FEM) の比較を再開するとき、今のロープ `Knot` (= `Art28`) の物理の弱点を確かめるとき。
+> **§7.1.2 は無効な経過の記録** (XPBD の行は直す前の版、学習の尺の列は途中の形から始まっていた)。最終の値は §7.1.3・§7.1.7。
+> **発散の数値は `src/isaac_twisted_rl/tasks/knot_tying/rope_study/bench_physics.py:378` の数え方** (`tm.get_term("diverged")` を reset のマスクを掛けずに読む) **により過大の可能性がある (未確認**。`refactor/audit/D.md` の D-3。v2-R2 で同じ読み方が本当の発散 3.4% に対して 17.5% を返した: [`2026-09-27_v2r2_fix.md`](2026-09-27_v2r2_fix.md))。
+> 次の作業 (§12) は `docs/STATUS.md` (作成予定) の保留へ。
+>
+> **再現の補足: 有効な run のフォルダ** (`docs/history/rope_study_HANDOFF.md` の「0000.1b」の節 (頭書きが付く前の行番号で `:57-58`) と `ls logs/rsl_rl/knot_tying_rs_*/` で確認。4096 環境、100 iteration。**最後のチェックポイントは `model_99.pt`** (`model_100.pt` は無い))
+>
+> | モデル | seed | run のフォルダ | 状態 |
+> |---|---|---|---|
+> | `Art28` | 42 | `logs/rsl_rl/knot_tying_rs_art28/2026-10-02_21-39-29_rs_Art28_s42` | 有効 |
+> | `Art28LowMu` | 42 | `logs/rsl_rl/knot_tying_rs_art28lowmu/2026-10-02_21-39-30_rs_Art28LowMu_s42` | 有効 |
+> | `XpbdC28` | 42 | `logs/rsl_rl/knot_tying_rs_xpbdc28/2026-10-03_00-08-33_rs_XpbdC28_s42` | 有効 |
+> | `XpbdC56` | 42 | `logs/rsl_rl/knot_tying_rs_xpbdc56/2026-10-03_00-05-33_rs_XpbdC56_s42` | 有効 |
+> | `XpbdMS28` | 42 | `logs/rsl_rl/knot_tying_rs_xpbdms28/2026-10-03_03-44-59_rs_XpbdMS28_s42` | 有効 |
+> | `XpbdC28LowMu` | 42 | `logs/rsl_rl/knot_tying_rs_xpbdc28lowmu/2026-10-03_05-38-39_rs_XpbdC28LowMu_s42` | 有効 |
+> | `XpbdC28` | 43 | `logs/rsl_rl/knot_tying_rs_xpbdc28/2026-10-03_10-35-27_rs_XpbdC28_s43` | 学習は済み・評価は未実施 (HANDOFF の「次にやること」2) |
+> | `XpbdC56` | 43 | `logs/rsl_rl/knot_tying_rs_xpbdc56/2026-10-03_10-35-27_rs_XpbdC56_s43` | 同上 |
+> | `XpbdC28` | 42 | `logs/rsl_rl/knot_tying_rs_xpbdc28/2026-10-02_22-05-59_rs_XpbdC28_s42` | **無効** (`INVALID.txt`。world 座標の XPBD: §6.3・§7.1.6) |
+> | `XpbdC56` | 42 | `logs/rsl_rl/knot_tying_rs_xpbdc56/2026-10-02_23-42-07_rs_XpbdC56_s42` | **無効** (同上) |
+>
+> 同じ run 名で有効と無効の 2 フォルダがあるので、日時で区別する。評価の一覧を作るときは `make_eval_jobs.py --iters 50,99` (`INVALID.txt` のある run は飛ばす)。
+
 # 紐のシミュレーションモデルの調査・実装・比較 (rope study)
 
 - 作成: 2026-10-02〜10-03 (最終版)

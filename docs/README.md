@@ -32,6 +32,7 @@
 |---|---|
 | [`STATUS.md`](STATUS.md) | セッションの始め |
 | [`glossary.md`](glossary.md) | 用語の意味、過去の名前 (タスク ID・ログ名・旧 v7・移動したファイル)、命名規則 |
+| [`workflow.md`](workflow.md) | 研究の 1 サイクル (段階・終了の条件・残す記録・飛ばしてよい段階)、セッションと長時間ジョブの規約。コマンドは skill にある |
 | [`system/evaluation.md`](system/evaluation.md) | 版を比べるとき。chain 評価のコマンドを組むとき |
 | [`system/logs.md`](system/logs.md) | run を探す・チェックポイントを選ぶ・ログのキーを読むとき |
 | [`decisions/README.md`](decisions/README.md) | 設計の理由を知りたいとき (行動空間・240 Hz・報酬・「版 = 設定」など) |

@@ -44,12 +44,18 @@ def segments(cmd: str):
 
 
 def strip_prefix(words):
-    """先頭の環境変数の代入と、timeout などの包みを外す。"""
+    """先頭の環境変数の代入と、timeout などの包みと、run_job.sh (オプションを `--` まで) を外す。"""
     i = 0
     while i < len(words):
         w = words[i]
         if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w):
             i += 1
+        elif w in ("bash", "sh"):
+            i += 1
+            while i < len(words) and words[i].startswith("-"):
+                i += 1
+        elif os.path.basename(w) == "run_job.sh":
+            i = words.index("--", i) + 1 if "--" in words[i:] else len(words)
         elif w in WRAPPERS:
             i += 1
             while i < len(words) and (words[i].startswith("-") or re.match(r"^\d+(\.\d+)?[smhd]?$", words[i])):
@@ -131,7 +137,7 @@ def main():
         ).stdout
     except Exception:
         return
-    dirty = [l[3:] for l in out.splitlines() if re.search(r"\.(py|sh|ya?ml|toml)$", l)]
+    dirty = [line[3:] for line in out.splitlines() if re.search(r"\.(py|sh|ya?ml|toml)$", line)]
     if dirty:
         decide(
             "ask",

@@ -18,11 +18,15 @@
   パッケージを新しく作ると、黙って登録から外れる。
 - I4 `common/mdp/` の項 (最上位の def / class) は追加だけ。削除・改名しない。
   過去の版の設定が名前で参照しているため。役目を終えた項は `.. deprecated::` で残す。
+- I5 追跡しているシェルスクリプトの `timeout` は `-k` (`--kill-after`) を付ける。Kit・FEM は固まると
+  SIGTERM で止まらないことがあり、`-k` が無いと timeout の後もプロセスが GPU を握ったまま残る。
 """
 
 from __future__ import annotations
 
 import ast
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -243,6 +247,51 @@ def test_i4_mdp_terms_are_additive():
     assert not missing, (
         "common/mdp/ の項が消えた (削除・改名は禁止。役目を終えた項は .. deprecated:: で残す): " + ", ".join(missing)
     )
+
+
+def _timeouts_without_kill(text: str) -> list[str]:
+    """`timeout` の呼び出しのうち、時間の引数より前に `-k` / `--kill-after` が無い行を返す。"""
+    bad = []
+    for line in text.splitlines():
+        if line.lstrip().startswith("#"):
+            continue
+        code = re.sub(r"\s#.*$", "", line)
+        for m in re.finditer(r"(?:^|[\s;&|(`$])timeout\s+(.*)", code):
+            for tok in m.group(1).split():
+                if tok in ("-k", "--kill-after") or tok.startswith(("--kill-after=", "-k")):
+                    break
+                if tok.startswith("-"):
+                    continue
+                # 時間の引数 (数字か変数) が先に来たら -k が無い。それ以外 (文中の「timeout の」など) は呼び出しではない
+                if re.match(r"""^["']?(\d|\$)""", tok):
+                    bad.append(line.strip())
+                break
+    return bad
+
+
+def test_i5_shell_timeouts_have_kill_after():
+    out = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "--", "*.sh"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    bad = {
+        p: b for p in out.splitlines() if (REPO / p).exists() and (b := _timeouts_without_kill((REPO / p).read_text()))
+    }
+    assert not bad, f"timeout に -k が無い (固まった Kit が残る): {bad}"
+
+
+def test_i5_detector():
+    assert _timeouts_without_kill("timeout 7200 $PY x.py") == ["timeout 7200 $PY x.py"]
+    assert _timeouts_without_kill("  out=$(timeout 10 nvidia-smi)") == ["out=$(timeout 10 nvidia-smi)"]
+    assert not _timeouts_without_kill("timeout -k 60 7200 $PY x.py")
+    assert not _timeouts_without_kill('timeout -k "$k" "$d" "$@"')
+    assert not _timeouts_without_kill("timeout --kill-after=5 10 cmd")
+    assert not _timeouts_without_kill("run_job.sh --timeout 10h -- cmd   # timeout 1")
+    assert not _timeouts_without_kill('echo "timeout: ${d} で止めた"')
+    assert not _timeouts_without_kill('echo "SIGKILL で止まった (timeout の kill-after か)"')
 
 
 if __name__ == "__main__":

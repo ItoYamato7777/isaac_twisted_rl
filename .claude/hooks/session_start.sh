@@ -18,7 +18,7 @@ fi
 echo
 echo "## GPU のジョブ (自分が起動していないものは触らない。止める必要があれば PID をユーザーに伝える)"
 if command -v nvidia-smi >/dev/null 2>&1; then
-  out=$(timeout 10 nvidia-smi --query-compute-apps=pid,used_memory,process_name --format=csv,noheader 2>/dev/null)
+  out=$(timeout -k 5 10 nvidia-smi --query-compute-apps=pid,used_memory,process_name --format=csv,noheader 2>/dev/null)
   [ -n "$out" ] && echo "$out" | head -10 || echo "(なし)"
 fi
 ps -eo pid,etime,args 2>/dev/null \

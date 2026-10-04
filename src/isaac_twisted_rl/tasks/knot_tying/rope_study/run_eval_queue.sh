@@ -19,7 +19,7 @@ while read -r tag task ckpt nenv extra; do
   # 別の GPU のキューが先に取ったジョブは飛ばす (noclobber で .log を排他的に作る)
   ( set -o noclobber; : > $OUT/$tag.log ) 2>/dev/null || continue
   echo "$(date +%T) start $tag on $DEV"
-  timeout 5400 .venv/bin/python -u src/isaac_twisted_rl/tasks/knot_tying/rope_study/eval_robust.py --task $task \
+  timeout -k 60 5400 .venv/bin/python -u src/isaac_twisted_rl/tasks/knot_tying/rope_study/eval_robust.py --task $task \
     --checkpoint $ckpt --num_envs $nenv --seed 7 --headless --device $DEV --out $OUT/$tag.json \
     agent.device=$DEV $extra >> $OUT/$tag.log 2>&1
   if [ -f $OUT/$tag.json ]; then

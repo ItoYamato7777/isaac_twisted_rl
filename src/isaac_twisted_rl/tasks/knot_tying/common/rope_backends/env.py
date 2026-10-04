@@ -60,7 +60,9 @@ class RopeStudyEnv(ManagerBasedRLEnv):
         origins = scene.env_origins
         n = scene.num_envs
         if bcfg.kind == "articulation_resampled":
-            adapter = ResampledArticulationRope(scene[bcfg.native_name], n, cfg.sim.device, bcfg.num_virtual_links, bcfg.radius, origins)
+            adapter = ResampledArticulationRope(
+                scene[bcfg.native_name], n, cfg.sim.device, bcfg.num_virtual_links, bcfg.radius, origins
+            )
         elif bcfg.kind == "xpbd":
             from .xpbd_rod import XpbdRodParams
 

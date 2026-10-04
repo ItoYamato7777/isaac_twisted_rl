@@ -56,20 +56,22 @@ import os
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics
 
 # ---------------------------------------------------------------- モデル定数
-BASE_SIZE = (0.08, 0.10, 0.03)     # 手のひら直方体の全長 (x, y, z) [m]
-BASE_MASS = 0.3                    # [kg]
+BASE_SIZE = (0.08, 0.10, 0.03)  # 手のひら直方体の全長 (x, y, z) [m]
+BASE_MASS = 0.3  # [kg]
 
 FINGER_SIZE = (0.02, 0.012, 0.06)  # フィンガー直方体の全長 (x, y, z) [m]
-FINGER_MASS = 0.05                 # [kg]
+FINGER_MASS = 0.05  # [kg]
 
 FINGER_Y_OFFSET = FINGER_SIZE[1] / 2.0  # 閉じ姿勢での中心オフセット (指先が触れる位置) [m]
-STROKE = 0.03                            # 片指の可動域 (開方向) [m]
+STROKE = 0.03  # 片指の可動域 (開方向) [m]
 FRICTION = 1.0
 
 OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "gripper_simple.usd")
 
 
-def add_box_link(stage: Usd.Stage, path: str, size: tuple[float, float, float], mass: float, material_path: str) -> Usd.Prim:
+def add_box_link(
+    stage: Usd.Stage, path: str, size: tuple[float, float, float], mass: float, material_path: str
+) -> Usd.Prim:
     """直方体形状の剛体リンクを作成する (`UsdGeom.Cube` + 非一様スケール)。"""
     xform = UsdGeom.Xform.Define(stage, path)
     prim = xform.GetPrim()

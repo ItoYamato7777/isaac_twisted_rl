@@ -163,7 +163,9 @@ def _env_ids(env_ids, n: int, device) -> torch.Tensor:
 class ResampledArticulationRope(RopeAdapter):
     """本物の Articulation (例: 56 リンク) を、仮想リンク (28 本) で見せる。書き込みは素通し。"""
 
-    def __init__(self, articulation, num_envs: int, device: str, num_virtual_links: int, radius: float, env_origins: torch.Tensor):
+    def __init__(
+        self, articulation, num_envs: int, device: str, num_virtual_links: int, radius: float, env_origins: torch.Tensor
+    ):
         super().__init__(num_envs, num_virtual_links, device, radius, env_origins)
         self.native = articulation
         self._ids = None
@@ -374,7 +376,16 @@ class FemRope(_NodalRope):
     メッシュの端面を含むので、節点を区画の中心ではなく端面まで外挿する。
     """
 
-    def __init__(self, deformable, num_envs: int, device: str, num_virtual_links: int, radius: float, env_origins: torch.Tensor, num_bins: int = 0):
+    def __init__(
+        self,
+        deformable,
+        num_envs: int,
+        device: str,
+        num_virtual_links: int,
+        radius: float,
+        env_origins: torch.Tensor,
+        num_bins: int = 0,
+    ):
         super().__init__(num_envs, num_virtual_links, device, radius, env_origins)
         self.native = deformable
         self._num_bins_req = num_bins

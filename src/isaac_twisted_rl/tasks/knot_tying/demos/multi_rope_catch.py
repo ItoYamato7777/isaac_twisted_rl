@@ -60,9 +60,7 @@ parser.add_argument(
     default="",
     help="比較するプリセットをカンマ区切りで指定 (既定: data/ にある全て)。",
 )
-parser.add_argument(
-    "--max_steps", type=int, default=0, help="実行する物理ステップ数の上限 (0 なら無制限)。"
-)
+parser.add_argument("--max_steps", type=int, default=0, help="実行する物理ステップ数の上限 (0 なら無制限)。")
 parser.add_argument(
     "--rope_physx",
     action="store_true",
@@ -93,24 +91,24 @@ from isaac_twisted_rl.tasks.knot_tying.common.rope_model.rope_cfg import (  # no
 # ---------------------------------------------------------------- 配置・動作パラメータ
 SIM_DT = 1.0 / 240.0  # 摩擦把持の安定性のため 240 Hz
 
-LANE_WIDTH = 0.7      # レーン (ロープ 1 本ぶん) の Y 方向の間隔 [m]
-ROPE_INIT_Z = 0.06    # ロープの初期高さ。落下して地面に落ち着く。
-SETTLE_TIME = 1.5     # 開始時にロープを地面へ落ち着かせる時間 [s]
+LANE_WIDTH = 0.7  # レーン (ロープ 1 本ぶん) の Y 方向の間隔 [m]
+ROPE_INIT_Z = 0.06  # ロープの初期高さ。落下して地面に落ち着く。
+SETTLE_TIME = 1.5  # 開始時にロープを地面へ落ち着かせる時間 [s]
 
 # グリッパー手のひら (base_link) の高さ [m]。指先は base_link 中心から 0.075 m 下。
 GRASP_PALM_Z = 0.077  # 指先が床上 0.002 m に来る把持高さ
-HOME_PALM_Z = 0.30    # 接近開始 / 退避の高さ
-CARRY_PALM_Z = 0.15   # 持ち上げ・搬送の高さ
+HOME_PALM_Z = 0.30  # 接近開始 / 退避の高さ
+CARRY_PALM_Z = 0.15  # 持ち上げ・搬送の高さ
 
-OPEN_RATIO = 0.8      # 接近時の指の開き (0=全閉, 1=全開)
-CLOSE_RATIO = 0.0     # 把持時の指令 (全閉を指令し続けて押し付け力を出す)
+OPEN_RATIO = 0.8  # 接近時の指の開き (0=全閉, 1=全開)
+CLOSE_RATIO = 0.0  # 把持時の指令 (全閉を指令し続けて押し付け力を出す)
 RELEASE_RATIO = 1.0
 """離すときの指の開度 (0=全閉, 1=全開)。`demos/rope_catch.py` の同名定数と同じ理由
 (`OPEN_RATIO` までしか開かずに退避すると、指に残ったロープが持ち上がってくる)。
 """
 
-GRASP_FRICTION = 4.0          # 指の当たり面の摩擦係数
-FINGER_DAMPING_RATIO = 0.04   # 指の damping / stiffness の比 (単体デモの 60/1500)
+GRASP_FRICTION = 4.0  # 指の当たり面の摩擦係数
+FINGER_DAMPING_RATIO = 0.04  # 指の damping / stiffness の比 (単体デモの 60/1500)
 FINGER_EFFORT_LIMIT = 100.0
 
 # 運び先のランダム範囲。
@@ -120,17 +118,17 @@ TARGET_Y_JITTER = 0.12
 
 # (フェーズ名, 所要時間 [s]) — 全レーン共通の尺
 PHASES = [
-    ("approach", 1.2),   # 掴む点の真上へ接近
-    ("descend", 0.8),    # 下降
-    ("close", 0.6),      # 握り込む
-    ("settle", 0.4),     # 接触の安定待ち
-    ("lift", 1.2),       # 持ち上げ
-    ("carry", 2.0),      # 搬送
-    ("release", 0.5),    # 解放 (全開にする。RELEASE_RATIO の docstring 参照)
+    ("approach", 1.2),  # 掴む点の真上へ接近
+    ("descend", 0.8),  # 下降
+    ("close", 0.6),  # 握り込む
+    ("settle", 0.4),  # 接触の安定待ち
+    ("lift", 1.2),  # 持ち上げ
+    ("carry", 2.0),  # 搬送
+    ("release", 0.5),  # 解放 (全開にする。RELEASE_RATIO の docstring 参照)
     ("settle_out", 0.6),  # 全開のままその場で待つ
-    ("clear", 0.6),       # 横へ抜ける (真上へ上げる前にロープを指から外す)
-    ("retreat", 0.8),    # 退避
-    ("wait", 1.0),       # 落としたロープが落ち着くのを待つ
+    ("clear", 0.6),  # 横へ抜ける (真上へ上げる前にロープを指から外す)
+    ("retreat", 0.8),  # 退避
+    ("wait", 1.0),  # 落としたロープが落ち着くのを待つ
 ]
 
 CLOSED_PHASES = {"close", "settle", "lift", "carry"}
@@ -186,9 +184,7 @@ class RopeLane:
     # -------------------------------------------------------- 初期化
     def on_reset(self):
         """`sim.reset()` の後に呼ぶ。関節インデックスと全開値を確定させる。"""
-        self.finger_ids, _ = self.gripper.find_joints(
-            ["left_finger_joint", "right_finger_joint"], preserve_order=True
-        )
+        self.finger_ids, _ = self.gripper.find_joints(["left_finger_joint", "right_finger_joint"], preserve_order=True)
         limits = self.gripper.data.joint_pos_limits[:, self.finger_ids, :]
         lower, upper = limits[..., 0], limits[..., 1]
         self.open_value = torch.where(lower.abs() > upper.abs(), lower, upper)
@@ -215,9 +211,7 @@ class RopeLane:
         self.gripper.write_root_velocity_to_sim(self.root_vel)
 
     def set_fingers(self, open_ratio: float):
-        self.gripper.set_joint_position_target(
-            open_ratio * self.open_value, joint_ids=self.finger_ids
-        )
+        self.gripper.set_joint_position_target(open_ratio * self.open_value, joint_ids=self.finger_ids)
         self.gripper.write_data_to_sim()
 
     # -------------------------------------------------------- 計画
@@ -345,10 +339,7 @@ def resolve_presets() -> list:
     for name in names:
         spec = get_spec(name)
         if not os.path.exists(spec.usd_path):
-            print(
-                f"[skip] {name}: USD が無い ({spec.usd_path})。"
-                " rope_model/generate_rope_usd.py を先に実行すること。"
-            )
+            print(f"[skip] {name}: USD が無い ({spec.usd_path})。 rope_model/generate_rope_usd.py を先に実行すること。")
             continue
         specs.append(spec)
     if not specs:
@@ -386,7 +377,8 @@ def main():
         physics_material=sim_utils.RigidBodyMaterialCfg(
             # 床の摩擦。ロープ側 (ROPE_FRICTION) と average で合成され、
             # ロープ <-> 床 の実効摩擦になる (rope_specs.py 参照)。
-            static_friction=GROUND_FRICTION, dynamic_friction=GROUND_FRICTION,
+            static_friction=GROUND_FRICTION,
+            dynamic_friction=GROUND_FRICTION,
             restitution=0.0,
         ),
     )
@@ -395,10 +387,7 @@ def main():
     light_cfg.func("/World/Light", light_cfg)
 
     # -- レーンを生成 (ロープ + グリッパー)
-    lanes = [
-        RopeLane(spec, (i - (n - 1) / 2.0) * LANE_WIDTH, sim.device)
-        for i, spec in enumerate(specs)
-    ]
+    lanes = [RopeLane(spec, (i - (n - 1) / 2.0) * LANE_WIDTH, sim.device) for i, spec in enumerate(specs)]
 
     # -- 指の当たり面を高摩擦マテリアルに差し替える。
     #    combine mode を max にしてあるので、ロープ側が 1.0 のままでも
@@ -414,9 +403,7 @@ def main():
     grasp_material_cfg.func(material_path, grasp_material_cfg)
     for lane in lanes:
         for finger in ("left_finger", "right_finger"):
-            sim_utils.bind_physics_material(
-                f"/World/Gripper_{lane.spec.name}/{finger}", material_path
-            )
+            sim_utils.bind_physics_material(f"/World/Gripper_{lane.spec.name}/{finger}", material_path)
 
     sim.reset()
     for lane in lanes:

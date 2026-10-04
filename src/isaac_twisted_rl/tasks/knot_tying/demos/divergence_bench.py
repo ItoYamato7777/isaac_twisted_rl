@@ -53,7 +53,9 @@ parser.add_argument("--steps", type=int, default=24, help="env.step() の回数 
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--policy", choices=("random", "ckpt"), default="random")
 parser.add_argument("--checkpoint", type=str, default="", help="`--policy ckpt` の rsl_rl チェックポイント。")
-parser.add_argument("--deterministic", action="store_true", help="ckpt の平均の行動を使う (既定は学習と同じくサンプル)。")
+parser.add_argument(
+    "--deterministic", action="store_true", help="ckpt の平均の行動を使う (既定は学習と同じくサンプル)。"
+)
 parser.add_argument(
     "--archive_prob",
     type=float,
@@ -62,9 +64,7 @@ parser.add_argument(
 )
 parser.add_argument("--seed_archive", type=str, default="", help="reset のたびに、このアーカイブの形から始める。")
 parser.add_argument("--seed_frac", type=float, default=1.0, help="`--seed_archive` から始める reset の割合。")
-parser.add_argument(
-    "--seed_stage_weights", type=str, default="0,1,1", help="`--seed_archive` の段 0,1,2 を選ぶ重み。"
-)
+parser.add_argument("--seed_stage_weights", type=str, default="0,1,1", help="`--seed_archive` の段 0,1,2 を選ぶ重み。")
 parser.add_argument("--cfg", type=str, default="", help="環境設定の上書き。'a.b.c=value;a.b.d=value'。")
 parser.add_argument("--label", type=str, default="", help="出力フォルダ名 (既定はタスクと方策から作る)。")
 parser.add_argument("--out", type=str, default="")
@@ -108,7 +108,7 @@ def _segment_distances(nodes: torch.Tensor, min_gap: int = 2) -> torch.Tensor:
     c, bb = (d1 * r).sum(-1), (d1 * d2).sum(-1)
     denom = (aa * ee - bb * bb).clamp_min(1e-12)
     s = ((bb * f - c * ee) / denom).clamp(0.0, 1.0)
-    t = ((bb * s + f) / ee.clamp_min(1e-12))
+    t = (bb * s + f) / ee.clamp_min(1e-12)
     s = torch.where(t < 0.0, (-c / aa.clamp_min(1e-12)).clamp(0.0, 1.0), s)
     s = torch.where(t > 1.0, ((bb - c) / aa.clamp_min(1e-12)).clamp(0.0, 1.0), s)
     t = t.clamp(0.0, 1.0)
@@ -192,7 +192,9 @@ class SeedStarts:
     def __init__(self, uenv, path: str, frac: float, stage_weights: tuple[float, ...]):
         self.uenv = uenv
         self.rope = uenv.scene["rope"]
-        self.archive = sa.StateArchive(classes=(0, 1, 2), capacity=100000, num_joints=self.rope.num_joints, device=uenv.device)
+        self.archive = sa.StateArchive(
+            classes=(0, 1, 2), capacity=100000, num_joints=self.rope.num_joints, device=uenv.device
+        )
         loaded = self.archive.load(path)
         print(f"[INFO] seed archive {path}: {loaded}")
         self.frac = frac
@@ -257,7 +259,9 @@ def summarize(rec: dict[str, torch.Tensor], log: Log) -> dict[str, float]:
             log(f"    {name:10s} {_pct(k, div.sum())}")
     log(f"    (途中は 20 m/s 以下) {_pct((div & (fb < 0)).sum(), div.sum())}")
     spike = valid & ~div & (fb >= 0)
-    log(f"[途中の暴れ] 手の途中で 20 m/s を超えたが、手の終わりには発散と判定されなかった: {_pct(spike.sum(), valid.sum())}")
+    log(
+        f"[途中の暴れ] 手の途中で 20 m/s を超えたが、手の終わりには発散と判定されなかった: {_pct(spike.sum(), valid.sum())}"
+    )
 
     ok = valid & ~div
     vmax = rec["vmax"][ok]
@@ -295,7 +299,11 @@ def summarize(rec: dict[str, torch.Tensor], log: Log) -> dict[str, float]:
     held = rec["held"][ok]
     out["held"] = float(held.float().mean())
     log(f"    把持 (carry の終わりに掴んだリンクが 5 cm 以上上がっている): {_pct(held.sum(), held.numel())}")
-    for name, m in (("指の下に紐なし", rec["grasp_top"] <= 0.0), ("床の上の紐だけ", (rec["grasp_top"] > 0.0) & (rec["grasp_top_stacked"] <= 0.0)), ("浮いた紐あり", rec["grasp_top_stacked"] > 0.0)):
+    for name, m in (
+        ("指の下に紐なし", rec["grasp_top"] <= 0.0),
+        ("床の上の紐だけ", (rec["grasp_top"] > 0.0) & (rec["grasp_top_stacked"] <= 0.0)),
+        ("浮いた紐あり", rec["grasp_top_stacked"] > 0.0),
+    ):
         h = rec["held"][ok & m]
         log(f"      {name}: {_pct(h.sum(), h.numel())}")
     pen = rec["penetration"][ok]
@@ -313,11 +321,15 @@ def summarize(rec: dict[str, torch.Tensor], log: Log) -> dict[str, float]:
         m = s0 == a
         row = [int(((s1 == b) & m).sum()) for b in range(4)]
         tot = max(int(m.sum()), 1)
-        log(f"      段 {a} (n={int(m.sum()):6d}): " + "  ".join(f"->{b} {100.0 * row[b] / tot:5.1f}%" for b in range(4)))
+        log(
+            f"      段 {a} (n={int(m.sum()):6d}): " + "  ".join(f"->{b} {100.0 * row[b] / tot:5.1f}%" for b in range(4))
+        )
         for b in range(4):
             out[f"t{a}{b}"] = row[b] / tot
     up = (s1 > s0).float().mean()
-    log(f"    段が上がった手: {100.0 * float(up):.2f}%  固結びに達した手: {100.0 * float((s1 == 3).float().mean()):.2f}%")
+    log(
+        f"    段が上がった手: {100.0 * float(up):.2f}%  固結びに達した手: {100.0 * float((s1 == 3).float().mean()):.2f}%"
+    )
     c0, c1 = rec["count0"][ok], rec["count1"][ok]
     log(f"    交差が増えた手: {100.0 * float((c1 > c0).float().mean()):.2f}%")
     out["up"] = float(up)
@@ -360,7 +372,9 @@ def _run(env, log: Log, out_dir: str) -> None:
         f"=== divergence_bench task={args_cli.task} num_envs={uenv.num_envs} steps={args_cli.steps} "
         f"policy={args_cli.policy}{' (mean)' if args_cli.deterministic else ''} seed={args_cli.seed}"
     )
-    log(f"    cfg='{args_cli.cfg}' archive_prob={args_cli.archive_prob} seed_archive='{args_cli.seed_archive}' frac={args_cli.seed_frac}")
+    log(
+        f"    cfg='{args_cli.cfg}' archive_prob={args_cli.archive_prob} seed_archive='{args_cli.seed_archive}' frac={args_cli.seed_frac}"
+    )
     log(f"    durations={uenv.cfg.durations} ({uenv.cfg.durations.total:.3f} s/手)")
     log(f"    limits={term.cfg.limits}")
     rope_spawn = uenv.cfg.scene.rope.spawn
@@ -440,7 +454,9 @@ def _run(env, log: Log, out_dir: str) -> None:
     elapsed = time.time() - t0
     rec = {k: torch.cat(v) for k, v in cols.items()}
     torch.save({"args": vars(args_cli), "rec": rec}, os.path.join(out_dir, "moves.pt"))
-    log(f"elapsed {elapsed:.0f} s ({elapsed / args_cli.steps:.1f} s/step, {args_cli.steps * uenv.num_envs / elapsed:.1f} 手/s)")
+    log(
+        f"elapsed {elapsed:.0f} s ({elapsed / args_cli.steps:.1f} s/step, {args_cli.steps * uenv.num_envs / elapsed:.1f} 手/s)"
+    )
     total_end = sum(ep_end.values())
     log("[エピソードの終わり方] " + "  ".join(f"{k} {_pct(v, total_end)}" for k, v in ep_end.items()))
     summarize(rec, log)

@@ -509,6 +509,7 @@ _KNOT = _make_physical_spec(
     youngs_modulus=TWIST_YOUNGS_MODULUS,
 )
 
+
 def _refine_chain(base: RopeSpec, factor: int, name: str, description: str, color, color_name: str) -> RopeSpec:
     """`base` と **同じ材料・同じ太さ・同じ全長** のまま、リンクを `factor` 分の 1 の長さに刻んだ鎖。
 
@@ -576,9 +577,7 @@ _KNOT56 = _refine_chain(
 まっすぐな状態で接するので、`filter_neighbor_pairs=2` で接触を切る。
 """
 
-ROPE_SPECS: dict[str, RopeSpec] = {
-    spec.name: spec for spec in (_SIMPLE, _STIFF, _TWIST, _FINE, _KNOT, _KNOT56)
-}
+ROPE_SPECS: dict[str, RopeSpec] = {spec.name: spec for spec in (_SIMPLE, _STIFF, _TWIST, _FINE, _KNOT, _KNOT56)}
 """名前 -> `RopeSpec` のレジストリ。`--rope` の選択肢はここから引く。"""
 
 DEFAULT_ROPE = "simple"
@@ -590,9 +589,7 @@ def get_spec(name: str) -> RopeSpec:
     try:
         return ROPE_SPECS[name]
     except KeyError:
-        raise KeyError(
-            f"unknown rope preset '{name}'. available: {', '.join(ROPE_SPECS)}"
-        ) from None
+        raise KeyError(f"unknown rope preset '{name}'. available: {', '.join(ROPE_SPECS)}") from None
 
 
 def add_rope_arg(parser, default: str = DEFAULT_ROPE) -> None:

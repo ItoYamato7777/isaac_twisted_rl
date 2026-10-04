@@ -158,7 +158,9 @@ def test_rest_on_ground_is_still_and_inextensible(xr, model):
     assert cl.strain(x, rod.p.segment_length).max().item() < 1e-4
 
 
-RIGID_FINGER = dict(finger_rigid_outside=True, finger_x_faces=True, finger_x_face_margin=0.001, hand_teleport_distance=0.02)
+RIGID_FINGER = dict(
+    finger_rigid_outside=True, finger_x_faces=True, finger_x_face_margin=0.001, hand_teleport_distance=0.02
+)
 """2026-10-02 に足した指の接触 (`XpbdRodParams.finger_rigid_outside` ほか)。"""
 
 
@@ -298,7 +300,9 @@ def test_xpbd_adapter_solves_in_env_local_coordinates(xr):
     sys.modules.setdefault("rs_common", parent)
     sys.modules.setdefault("rs_common.rope_backends", sub)
     sys.modules.setdefault("rs_common.rope_backends.xpbd_rod", xr)  # Warp のカーネルを作り直さない
-    spec = importlib.util.spec_from_file_location("rs_common.rope_backends.adapters", _COMMON / "rope_backends" / "adapters.py")
+    spec = importlib.util.spec_from_file_location(
+        "rs_common.rope_backends.adapters", _COMMON / "rope_backends" / "adapters.py"
+    )
     ad = importlib.util.module_from_spec(spec)
     sys.modules["rs_common.rope_backends.adapters"] = ad
     spec.loader.exec_module(ad)
@@ -330,9 +334,7 @@ def test_heavy_elastica_large_deflection_is_monotonic():
     以前は射撃法が θ'(1) の符号だけで判定していて、大たわみで偽の根に落ち、`effective_ei` が異なる下がりに
     同じ値を返した (2026-10-02)。
     """
-    spec = importlib.util.spec_from_file_location(
-        "rope_study_elastica", _COMMON.parent / "rope_study" / "elastica.py"
-    )
+    spec = importlib.util.spec_from_file_location("rope_study_elastica", _COMMON.parent / "rope_study" / "elastica.py")
     el = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(el)
     ei, w, length = 7.854e-4, 0.2513 * 9.81, 0.16

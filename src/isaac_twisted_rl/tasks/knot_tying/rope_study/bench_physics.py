@@ -215,7 +215,10 @@ def seg_len(nodes):
 def q(x: torch.Tensor, ps=(0.5, 0.9, 0.99)) -> dict:
     x = torch.nan_to_num(x.float().flatten(), nan=float("inf"))
     finite = x[torch.isfinite(x)]
-    out = {"mean": float(finite.mean()) if finite.numel() else None, "max": float(finite.max()) if finite.numel() else None}
+    out = {
+        "mean": float(finite.mean()) if finite.numel() else None,
+        "max": float(finite.max()) if finite.numel() else None,
+    }
     for p in ps:
         out[f"p{int(p * 100)}"] = float(finite.quantile(p)) if finite.numel() else None
     out["nonfinite"] = int((~torch.isfinite(x)).sum())
@@ -430,7 +433,10 @@ def main():
             elif t == "random":
                 t_random(D, res, args_cli.random_moves, args_cli.seed)
             res.setdefault("wall_sec", {})[t] = time.time() - t0
-            print(f"[bench] {t} done in {time.time() - t0:.0f}s: {json.dumps(res.get(t), ensure_ascii=False)[:600]}", flush=True)
+            print(
+                f"[bench] {t} done in {time.time() - t0:.0f}s: {json.dumps(res.get(t), ensure_ascii=False)[:600]}",
+                flush=True,
+            )
             with open(os.path.join(out, "summary.json"), "w") as f:
                 json.dump(res, f, indent=2, ensure_ascii=False)
     torch.save(shapes, os.path.join(out, "shapes.pt"))

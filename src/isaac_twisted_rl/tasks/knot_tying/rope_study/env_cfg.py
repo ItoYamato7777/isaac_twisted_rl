@@ -212,7 +212,11 @@ def _make_cfgs() -> dict[str, type]:
             _apply_model(self, _model)
 
         env_cls = configclass(
-            type(f"{name}EnvCfg", (RopeStudyEnvCfg,), {"__doc__": model.description, "__module__": __name__, "__post_init__": _post_init})
+            type(
+                f"{name}EnvCfg",
+                (RopeStudyEnvCfg,),
+                {"__doc__": model.description, "__module__": __name__, "__post_init__": _post_init},
+            )
         )
 
         def _play_init(self, _base=env_cls):
@@ -222,7 +226,11 @@ def _make_cfgs() -> dict[str, type]:
             _play_post_init(self)
 
         play_cls = configclass(
-            type(f"{name}PlayEnvCfg", (env_cls,), {"__doc__": f"{name} の chain 評価用", "__module__": __name__, "__post_init__": _play_init})
+            type(
+                f"{name}PlayEnvCfg",
+                (env_cls,),
+                {"__doc__": f"{name} の chain 評価用", "__module__": __name__, "__post_init__": _play_init},
+            )
         )
         out[f"{name}EnvCfg"] = env_cls
         out[f"{name}PlayEnvCfg"] = play_cls

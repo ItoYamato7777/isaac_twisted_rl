@@ -27,7 +27,10 @@ KT = REPO / "src" / "isaac_twisted_rl" / "tasks" / "knot_tying"
 def _tracked(*patterns: str) -> list[Path]:
     out = subprocess.run(
         ["git", "ls-files", "--cached", "--others", "--exclude-standard", "--", *patterns],
-        cwd=REPO, capture_output=True, text=True, check=True,
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout
     return [REPO / p for p in out.splitlines() if (REPO / p).exists()]
 
@@ -47,7 +50,9 @@ def test_version_lists_agree():
     listed = set(re.findall(r"^\s+(v\w+)/", doc, flags=re.M))
 
     assert registered == folders, f"_VERSIONS {sorted(registered)} と versions/ のフォルダ {sorted(folders)} が違う"
-    assert listed == folders, f"versions/__init__.py の一覧 {sorted(listed)} と versions/ のフォルダ {sorted(folders)} が違う"
+    assert listed == folders, (
+        f"versions/__init__.py の一覧 {sorted(listed)} と versions/ のフォルダ {sorted(folders)} が違う"
+    )
 
 
 _LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
@@ -77,7 +82,11 @@ def test_no_scratchpad_references():
     hits = []
     for f in _tracked():
         rel = f.relative_to(REPO).as_posix()
-        if rel.startswith(("docs/history/", "refactor/")) or rel == "tests/test_docs.py" or f.suffix in {".usd", ".png", ".pdf", ".pt"}:
+        if (
+            rel.startswith(("docs/history/", "refactor/"))
+            or rel == "tests/test_docs.py"
+            or f.suffix in {".usd", ".png", ".pdf", ".pt"}
+        ):
             continue
         try:
             text = f.read_text()

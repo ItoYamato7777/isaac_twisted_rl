@@ -11,6 +11,7 @@ H4 共有の資産 (git の管理外で戻せない) を上書きするコマン
 
 照合は「コマンドの先頭の語」で行う。grep・cat などの引数としてファイル名が出るだけのものは対象にしない。
 """
+
 import json
 import os
 import re
@@ -73,8 +74,18 @@ def program(words):
 
 
 def decide(kind: str, reason: str):
-    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": kind,
-                                             "permissionDecisionReason": reason}}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": kind,
+                    "permissionDecisionReason": reason,
+                }
+            },
+            ensure_ascii=False,
+        )
+    )
     sys.exit(0)
 
 
@@ -91,29 +102,43 @@ def main():
         prog, args = program(words)
         name = os.path.basename(prog)
         if name == "generate_assets.py" and not any(a == "--rope" or a.startswith("--rope=") for a in args):
-            decide("deny", "generate_assets.py を --rope なしで呼ぶと、全プリセットのロープの USD (git の管理外の共有資産) を"
-                           "作り直す。--rope <名前> で対象を絞る。")
+            decide(
+                "deny",
+                "generate_assets.py を --rope なしで呼ぶと、全プリセットのロープの USD (git の管理外の共有資産) を"
+                "作り直す。--rope <名前> で対象を絞る。",
+            )
         if name == "overhand_script.py":
             for i, a in enumerate(args):
                 bare = a == "--dump_archive" and (i + 1 == len(args) or args[i + 1].startswith("-"))
                 if bare or a in ("--dump_archive=",):
-                    decide("deny", "overhand_script.py の --dump_archive をパスなしで使うと、v4〜v7 が読む共有の初期アーカイブ "
-                                   "outputs/archive_seed/overhand_{num_links}links.pt を上書きする。新しいパスを明示する。")
+                    decide(
+                        "deny",
+                        "overhand_script.py の --dump_archive をパスなしで使うと、v4〜v7 が読む共有の初期アーカイブ "
+                        "outputs/archive_seed/overhand_{num_links}links.pt を上書きする。新しいパスを明示する。",
+                    )
         if name == "train" or LAUNCH_SCRIPTS.search(prog):
             launch = True
     if not launch:
         return
     cwd = data.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or "."
     try:
-        out = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=cwd,
-                             capture_output=True, text=True, timeout=10).stdout
+        out = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=all"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        ).stdout
     except Exception:
         return
     dirty = [l[3:] for l in out.splitlines() if re.search(r"\.(py|sh|ya?ml|toml)$", l)]
     if dirty:
-        decide("ask", f"未コミットのコード・設定が {len(dirty)} 件ある ({', '.join(dirty[:5])}{' …' if len(dirty) > 5 else ''})。"
-                      "未追跡のファイルは run の git/*.diff に残らず、この run を再現できなくなる。"
-                      "先に commit するか、このまま起動するかを確かめる。")
+        decide(
+            "ask",
+            f"未コミットのコード・設定が {len(dirty)} 件ある ({', '.join(dirty[:5])}{' …' if len(dirty) > 5 else ''})。"
+            "未追跡のファイルは run の git/*.diff に残らず、この run を再現できなくなる。"
+            "先に commit するか、このまま起動するかを確かめる。",
+        )
 
 
 if __name__ == "__main__":

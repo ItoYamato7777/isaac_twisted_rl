@@ -185,15 +185,11 @@ def add_d6_joint(
     if spec.twist_stiffness is None:
         _lock_axis(prim, "rotX")
     else:
-        _add_driven_axis(
-            prim, "rotX", spec.twist_stiffness, spec.twist_damping, spec.twist_limit_deg
-        )
+        _add_driven_axis(prim, "rotX", spec.twist_stiffness, spec.twist_damping, spec.twist_limit_deg)
 
     # 曲げ (rotY/rotZ)
     for axis in ("rotY", "rotZ"):
-        _add_driven_axis(
-            prim, axis, spec.bend_stiffness, spec.bend_damping, spec.bend_limit_deg
-        )
+        _add_driven_axis(prim, axis, spec.bend_stiffness, spec.bend_damping, spec.bend_limit_deg)
     return joint
 
 
@@ -273,9 +269,7 @@ def generate(spec: RopeSpec) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
         "--rope",
         type=str,

@@ -98,11 +98,13 @@ def _quat_from_two_vectors(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     w = 1.0 + dot
     q = torch.cat([w, cross], dim=-1)
     # a と b が逆向きのときは a に垂直な任意の軸まわりに 180 度
-    anti = (w.squeeze(-1) < 1e-6)
+    anti = w.squeeze(-1) < 1e-6
     if bool(anti.any()):
         axis = torch.cross(a, torch.tensor([1.0, 0.0, 0.0], device=a.device).expand_as(a), dim=-1)
         small = axis.norm(dim=-1, keepdim=True) < 1e-6
-        axis = torch.where(small, torch.cross(a, torch.tensor([0.0, 1.0, 0.0], device=a.device).expand_as(a), dim=-1), axis)
+        axis = torch.where(
+            small, torch.cross(a, torch.tensor([0.0, 1.0, 0.0], device=a.device).expand_as(a), dim=-1), axis
+        )
         q_anti = torch.cat([torch.zeros_like(w), axis], dim=-1)
         q = torch.where(anti.unsqueeze(-1), q_anti, q)
     return q / q.norm(dim=-1, keepdim=True).clamp_min(_EPS)

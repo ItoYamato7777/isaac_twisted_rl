@@ -353,19 +353,25 @@ class ScriptRunner:
                     for e in first.nonzero().flatten().tolist()[:3]:
                         fq = self.gripper.data.joint_pos[e, self.finger_ids].tolist()
                         lk = self.links()[e, int(vk[e])]
-                        print(f"[kick] tag={tag} step={k}/{steps} env={e} v={float(vm[e]):.2f} link={int(vk[e])} "
-                              f"link_pos={[round(float(t), 3) for t in lk]} hand={[round(float(t), 3) for t in (pos[e] - self.origins[e])]} "
-                              f"fingers={[round(t, 4) for t in fq]} ratio={float(ratio[e] if torch.is_tensor(ratio) else ratio):.2f}", flush=True)
+                        print(
+                            f"[kick] tag={tag} step={k}/{steps} env={e} v={float(vm[e]):.2f} link={int(vk[e])} "
+                            f"link_pos={[round(float(t), 3) for t in lk]} hand={[round(float(t), 3) for t in (pos[e] - self.origins[e])]} "
+                            f"fingers={[round(t, 4) for t in fq]} ratio={float(ratio[e] if torch.is_tensor(ratio) else ratio):.2f}",
+                            flush=True,
+                        )
         self.hand_pos = p1.clone()
         self.hand_yaw = yaw0 + d_yaw
         links = self.links()
         if os.environ.get("ROPE_DEBUG_ENV"):
             e = int(os.environ["ROPE_DEBUG_ENV"])
             c = links[e].mean(dim=0)
-            print(f"[trace] env={e} tag={tag} rope_center={[round(float(t), 3) for t in c]} "
-                  f"rope_z=[{float(links[e, :, 2].min()):.3f},{float(links[e, :, 2].max()):.3f}] "
-                  f"hand={[round(float(t), 3) for t in self.hand_pos[e]]} "
-                  f"vmax={float(self.rope.data.body_lin_vel_w[e].norm(dim=-1).max()):.2f}", flush=True)
+            print(
+                f"[trace] env={e} tag={tag} rope_center={[round(float(t), 3) for t in c]} "
+                f"rope_z=[{float(links[e, :, 2].min()):.3f},{float(links[e, :, 2].max()):.3f}] "
+                f"hand={[round(float(t), 3) for t in self.hand_pos[e]]} "
+                f"vmax={float(self.rope.data.body_lin_vel_w[e].norm(dim=-1).max()):.2f}",
+                flush=True,
+            )
         speed = self.rope.data.body_lin_vel_w.norm(dim=-1).amax(dim=1)
         # 学習環境の rope_diverged (v2-R2) と同じ基準: NaN / 水平 3 m / リンク速度 20 m/s
         nonfinite = ~torch.isfinite(links).all(dim=-1).all(dim=-1)
@@ -381,9 +387,12 @@ class ScriptRunner:
             if os.environ.get("ROPE_DEBUG_DIV"):
                 e = int(new.nonzero()[0, 0])
                 xy = links[e, :, :2]
-                print(f"[div] tag={tag} env={e} far={bool(far[e])} fast={bool(fast[e])} speed={float(speed[e]):.2f} "
-                      f"xy_norm_max={float(xy.norm(dim=-1).max()):.2f} z=[{float(links[e, :, 2].min()):.3f},"
-                      f"{float(links[e, :, 2].max()):.3f}] hand={[round(float(v), 3) for v in self.hand_pos[e]]}", flush=True)
+                print(
+                    f"[div] tag={tag} env={e} far={bool(far[e])} fast={bool(fast[e])} speed={float(speed[e]):.2f} "
+                    f"xy_norm_max={float(xy.norm(dim=-1).max()):.2f} z=[{float(links[e, :, 2].min()):.3f},"
+                    f"{float(links[e, :, 2].max()):.3f}] hand={[round(float(v), 3) for v in self.hand_pos[e]]}",
+                    flush=True,
+                )
                 print("[div] links xy:", [[round(float(a), 2), round(float(b), 2)] for a, b in xy.tolist()], flush=True)
         self.diverged |= bad
 

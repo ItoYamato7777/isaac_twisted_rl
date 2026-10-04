@@ -112,9 +112,13 @@ def main():
             allc += [r[t] for t in r if t.startswith(("obs", "exec")) and it_of(t) == it]
             s_ = r.get(f"self_it{it}")
             se = f" ± {100 * s_['knot_se']:.1f}" if s_ and s_.get("knot_se") is not None else ""
-            sel_rows.append(f"| {pol} | {it} | {pct(s_)}{se} | {agg(others)} | {worst(others)} | {agg(allc)} | {worst(allc)} |")
+            sel_rows.append(
+                f"| {pol} | {it} | {pct(s_)}{se} | {agg(others)} | {worst(others)} | {agg(allc)} | {worst(allc)} |"
+            )
         lines.append(f"\n### 選定に使う量 ({title}。固結び率。平均 ± 標準誤差 (評価の数))\n")
-        lines.append("| 方策 | it | 自分のモデル | 他のモデル: 平均 | 他のモデル: 最悪 | 学習と違う全条件: 平均 | 全条件: 最悪 |")
+        lines.append(
+            "| 方策 | it | 自分のモデル | 他のモデル: 平均 | 他のモデル: 最悪 | 学習と違う全条件: 平均 | 全条件: 最悪 |"
+        )
         lines.append("|---|---|---|---|---|---|---|")
         lines.extend(sel_rows)
 

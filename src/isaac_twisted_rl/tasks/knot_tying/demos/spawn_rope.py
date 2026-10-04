@@ -30,9 +30,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 from rope_specs import GROUND_FRICTION, add_rope_arg, get_spec  # noqa: E402
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument(
-    "--num_ropes", type=int, default=1, help="並べて出現させるロープの本数。"
-)
+parser.add_argument("--num_ropes", type=int, default=1, help="並べて出現させるロープの本数。")
 add_rope_arg(parser)
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -62,7 +60,8 @@ def main():
         physics_material=sim_utils.RigidBodyMaterialCfg(
             # 床の摩擦。ロープ側 (ROPE_FRICTION) と average で合成され、
             # ロープ <-> 床 の実効摩擦になる (rope_specs.py 参照)。
-            static_friction=GROUND_FRICTION, dynamic_friction=GROUND_FRICTION,
+            static_friction=GROUND_FRICTION,
+            dynamic_friction=GROUND_FRICTION,
             restitution=0.0,
         ),
     )

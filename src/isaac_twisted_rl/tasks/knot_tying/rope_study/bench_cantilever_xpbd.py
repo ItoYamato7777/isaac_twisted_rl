@@ -41,8 +41,15 @@ def run(model: str, seg_len: float, free_len: float, device: str, seconds: float
     n_free = int(round(free_len / seg_len))
     n_seg = n_free + 1
     p = xr.XpbdRodParams(
-        model=model, num_segments=n_seg, length=n_seg * seg_len, radius=0.01, linear_density=RHO,
-        bend_stiffness=EI, twist_stiffness=0.5 * EI, substeps=substeps, **kw,
+        model=model,
+        num_segments=n_seg,
+        length=n_seg * seg_len,
+        radius=0.01,
+        linear_density=RHO,
+        bend_stiffness=EI,
+        twist_stiffness=0.5 * EI,
+        substeps=substeps,
+        **kw,
     )
     rod = xr.XpbdRod(1, p, device=device)
     nodes = torch.zeros(1, p.num_nodes, 3, device=device)
@@ -61,8 +68,13 @@ def run(model: str, seg_len: float, free_len: float, device: str, seconds: float
     drop = float(1.0 - x[-1, 2])
     ref = heavy_cantilever(free_len, EI, RHO * 9.81)
     return {
-        "model": model, "seg_len": seg_len, "free_len": free_len, "tip_drop": drop, "ref_tip_drop": ref["tip_drop"],
-        "rel_err": drop / ref["tip_drop"] - 1.0, "effective_EI_ratio": effective_ei(free_len, RHO * 9.81, drop) / EI,
+        "model": model,
+        "seg_len": seg_len,
+        "free_len": free_len,
+        "tip_drop": drop,
+        "ref_tip_drop": ref["tip_drop"],
+        "rel_err": drop / ref["tip_drop"] - 1.0,
+        "effective_EI_ratio": effective_ei(free_len, RHO * 9.81, drop) / EI,
         "discrete_small_deflection": discrete_chain_drop(free_len, seg_len, EI, RHO * 9.81),
         "continuum_small_deflection": ref["small_deflection_drop"],
         "tip_speed": float(rod.node_vel()[0, -1].norm()),

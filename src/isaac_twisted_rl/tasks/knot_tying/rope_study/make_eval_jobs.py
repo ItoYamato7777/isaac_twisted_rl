@@ -40,7 +40,9 @@ PERTURB_TARGETS = {
 
 
 def find_run(model: str, seed: int) -> str | None:
-    runs = sorted(glob.glob(os.path.join(REPO, "logs", "rsl_rl", f"knot_tying_rs_{model.lower()}", f"*_rs_{model}_s{seed}")))
+    runs = sorted(
+        glob.glob(os.path.join(REPO, "logs", "rsl_rl", f"knot_tying_rs_{model.lower()}", f"*_rs_{model}_s{seed}"))
+    )
     runs = [r for r in runs if not os.path.exists(os.path.join(r, "INVALID.txt"))]
     return runs[-1] if runs else None
 
@@ -55,7 +57,9 @@ def main():
     ap.add_argument("--extra_policy", action="append", default=[], help="name=チェックポイントの run のフォルダ")
     ap.add_argument("--extra_home", default="Art28")
     ap.add_argument("--no_perturb", action="store_true")
-    ap.add_argument("--perturb_iters", default="", help="観測ノイズ・実行誤差を回す iteration (空なら --iters の最大)。")
+    ap.add_argument(
+        "--perturb_iters", default="", help="観測ノイズ・実行誤差を回す iteration (空なら --iters の最大)。"
+    )
     ap.add_argument("--noise_mm", default="10", help="観測ノイズ・実行誤差の大きさ [mm] (カンマ区切り)。")
     ap.add_argument("--perturb_targets", default=",".join(PERTURB_TARGETS), help="物理の摂動先 (空なら回さない)。")
     ap.add_argument("--out", default=os.path.join(REPO, "outputs", "rope_study", "eval", "jobs.txt"))
@@ -82,7 +86,9 @@ def main():
             if a.no_perturb or it not in p_iters:
                 continue
             for mm in noise_mm:
-                lines.append(f"{name}/obs{mm}mm_it{it} Isaac-Twisted-RL-RS-{home}-Play-v4 {ckpt} 256 --obs_noise {mm / 1000}")
+                lines.append(
+                    f"{name}/obs{mm}mm_it{it} Isaac-Twisted-RL-RS-{home}-Play-v4 {ckpt} 256 --obs_noise {mm / 1000}"
+                )
                 lines.append(
                     f"{name}/exec{mm}mm_it{it} Isaac-Twisted-RL-RS-{home}-Play-v4 {ckpt} 256 "
                     f"env.actions.pick_place.exec_noise_xy={mm / 1000}"

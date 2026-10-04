@@ -76,9 +76,7 @@ from rope_specs import GROUND_FRICTION, add_rope_arg, get_spec  # noqa: E402
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--seed", type=int, default=0, help="把持点と移動先を決める乱数シード。")
 add_rope_arg(parser)
-parser.add_argument(
-    "--grasp_link", type=int, default=-1, help="掴むリンク番号を固定する (-1 なら毎回ランダム)。"
-)
+parser.add_argument("--grasp_link", type=int, default=-1, help="掴むリンク番号を固定する (-1 なら毎回ランダム)。")
 parser.add_argument(
     "--max_steps", type=int, default=0, help="実行する物理ステップ数の上限 (0 なら無制限)。動作確認用。"
 )
@@ -119,17 +117,17 @@ GRASP_MATERIAL_PATH = "/World/PhysicsMaterials/GraspMaterial"
 SIM_DT = 1.0 / 240.0
 
 ROPE_INIT_POS = (0.0, 0.0, 0.06)  # ロープの初期位置。落下して地面に落ち着く。
-SETTLE_TIME = 1.5                 # 開始時にロープを地面へ落ち着かせる時間 [s]。
+SETTLE_TIME = 1.5  # 開始時にロープを地面へ落ち着かせる時間 [s]。
 
 # グリッパー手のひら (base_link) の各高さ [m] (world Z)。
 # 指先は base_link 中心から 0.075 m 下 (= BASE_SIZE_Z/2 + FINGER_SIZE_Z)。
-GRASP_PALM_Z = 0.077   # 把持高さ。指先が床上 0.002 m に来て、半径 0.01 m の
-                       # ロープを縦方向に完全に覆う (かつ床とは擦らない)。
-HOME_PALM_Z = 0.30     # 接近開始/退避の手のひら高さ。
-CARRY_PALM_Z = 0.20    # 持ち上げ・搬送時の手のひら高さ。
+GRASP_PALM_Z = 0.077  # 把持高さ。指先が床上 0.002 m に来て、半径 0.01 m の
+# ロープを縦方向に完全に覆う (かつ床とは擦らない)。
+HOME_PALM_Z = 0.30  # 接近開始/退避の手のひら高さ。
+CARRY_PALM_Z = 0.20  # 持ち上げ・搬送時の手のひら高さ。
 
-OPEN_RATIO = 0.8    # 接近時の指の開き (0=全閉, 1=全開)。1.0 で 0.06 m 開く。
-CLOSE_RATIO = 0.0   # 把持時の指令。全閉を指令し続けて押し付け力を出す (docstring 参照)。
+OPEN_RATIO = 0.8  # 接近時の指の開き (0=全閉, 1=全開)。1.0 で 0.06 m 開く。
+CLOSE_RATIO = 0.0  # 把持時の指令。全閉を指令し続けて押し付け力を出す (docstring 参照)。
 RELEASE_RATIO = 1.0
 """離すときの指の開度 (0=全閉, 1=全開)。接近時の `OPEN_RATIO` より広く開ける。
 
@@ -141,7 +139,7 @@ RELEASE_RATIO = 1.0
 """
 
 # 摩擦把持のためのパラメータ (モジュール docstring の「把持方法」参照)。
-GRASP_FRICTION = 4.0        # 指の当たり面の摩擦係数 (static / dynamic とも)。
+GRASP_FRICTION = 4.0  # 指の当たり面の摩擦係数 (static / dynamic とも)。
 # 指の PD ゲインはロープごとに変える (`RopeSpec.grasp_finger_stiffness`)。
 # 全プリセット共通の固定値にすると、細くて軽い `fine` では質量あたりの
 # 押し付け力が `simple` の 8 倍になり、指がロープ半径より深く閉じ込んで
@@ -173,7 +171,8 @@ def main():
         physics_material=sim_utils.RigidBodyMaterialCfg(
             # 床の摩擦。ロープ側 (ROPE_FRICTION) と average で合成され、
             # ロープ <-> 床 の実効摩擦になる (rope_specs.py 参照)。
-            static_friction=GROUND_FRICTION, dynamic_friction=GROUND_FRICTION,
+            static_friction=GROUND_FRICTION,
+            dynamic_friction=GROUND_FRICTION,
             restitution=0.0,
         ),
     )
@@ -192,7 +191,7 @@ def main():
     gripper_cfg.prim_path = GRIPPER_PRIM_PATH
     gripper_cfg.init_state.pos = (0.0, 0.0, HOME_PALM_Z)
     gripper_cfg.spawn.articulation_props.fix_root_link = False  # アームが無いので固定しない
-    gripper_cfg.spawn.rigid_props.disable_gravity = True        # 毎フレーム位置指定で動かす
+    gripper_cfg.spawn.rigid_props.disable_gravity = True  # 毎フレーム位置指定で動かす
     # 強い押し付け力でも指がロープにめり込まないようソルバの反復回数を増やす。
     gripper_cfg.spawn.articulation_props.solver_position_iteration_count = 16
     gripper_cfg.spawn.articulation_props.solver_velocity_iteration_count = 1
@@ -234,9 +233,7 @@ def main():
     )
 
     # -- 指関節のインデックスと「全開」目標値 (demos/parallel_gripper.py と同方式)
-    finger_ids, _ = gripper.find_joints(
-        ["left_finger_joint", "right_finger_joint"], preserve_order=True
-    )
+    finger_ids, _ = gripper.find_joints(["left_finger_joint", "right_finger_joint"], preserve_order=True)
     joint_limits = gripper.data.joint_pos_limits[:, finger_ids, :]  # (1, 2, 2)
     lower, upper = joint_limits[..., 0], joint_limits[..., 1]
     open_value = torch.where(lower.abs() > upper.abs(), lower, upper)  # (1, 2)
@@ -295,7 +292,7 @@ def main():
         d_yaw = (end_yaw - start_yaw + math.pi) % (2.0 * math.pi) - math.pi
         for k in range(steps):
             u = (k + 1) / steps
-            s = u * u * (3.0 - 2.0 * u)          # smoothstep
+            s = u * u * (3.0 - 2.0 * u)  # smoothstep
             ds = 6.0 * u * (1.0 - u) / duration  # その時間微分
             pos = [start_pos[i] + (end_pos[i] - start_pos[i]) * s for i in range(3)]
             vel = [(end_pos[i] - start_pos[i]) * ds for i in range(3)]
@@ -363,7 +360,7 @@ def main():
 
         for seg in (
             # (始点, 終点, 始点ヨー, 終点ヨー, 開始の指開度, 終了の指開度, 所要時間 [s])
-            (cur_pos, above_pos, cur_yaw, grasp_yaw, OPEN_RATIO, OPEN_RATIO, 1.2),   # 接近 (真上へ)
+            (cur_pos, above_pos, cur_yaw, grasp_yaw, OPEN_RATIO, OPEN_RATIO, 1.2),  # 接近 (真上へ)
             (above_pos, grasp_pos, grasp_yaw, grasp_yaw, OPEN_RATIO, OPEN_RATIO, 0.8),  # 下降
             (grasp_pos, grasp_pos, grasp_yaw, grasp_yaw, OPEN_RATIO, CLOSE_RATIO, 0.6),  # 握り込む
             (grasp_pos, grasp_pos, grasp_yaw, grasp_yaw, CLOSE_RATIO, CLOSE_RATIO, 0.4),  # 接触の安定待ち

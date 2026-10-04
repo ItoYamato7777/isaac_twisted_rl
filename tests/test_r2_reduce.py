@@ -22,7 +22,9 @@ import sys
 import pytest
 import torch
 
-_KNOT_TYING_DIR = pathlib.Path(__file__).resolve().parents[1] / "src" / "isaac_twisted_rl" / "tasks" / "knot_tying" / "common"
+_KNOT_TYING_DIR = (
+    pathlib.Path(__file__).resolve().parents[1] / "src" / "isaac_twisted_rl" / "tasks" / "knot_tying" / "common"
+)
 sys.path.insert(0, str(_KNOT_TYING_DIR))
 
 import topology as tp  # noqa: E402
@@ -36,7 +38,10 @@ from test_knot_detect import _random_ropes, _trefoil, _trefoil_with_tail_loop  #
 
 def _circle(cx: float, cy: float, r: float, a0: float, a1: float, n: int = 40) -> list[tuple[float, float]]:
     return [
-        (cx + r * math.cos(math.radians(a0 + (a1 - a0) * k / n)), cy + r * math.sin(math.radians(a0 + (a1 - a0) * k / n)))
+        (
+            cx + r * math.cos(math.radians(a0 + (a1 - a0) * k / n)),
+            cy + r * math.sin(math.radians(a0 + (a1 - a0) * k / n)),
+        )
         for k in range(n + 1)
     ]
 

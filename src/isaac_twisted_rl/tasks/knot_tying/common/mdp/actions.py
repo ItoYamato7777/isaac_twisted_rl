@@ -655,7 +655,9 @@ class PickPlaceAction(ActionTerm):
         self._diag_release_tip_z = self._place_pos[:, 2] - phases.FINGER_TIP_OFFSET_Z
         # 運搬の距離と、運搬中に回す手首の角度 (最短回り)
         self._diag_carry_dist = (self._place_pos[:, :2] - self._grasp_xy).norm(dim=-1)
-        self._diag_yaw_turn = (torch.remainder(self._end_yaw - self._grasp_yaw + math.pi, 2.0 * math.pi) - math.pi).abs()
+        self._diag_yaw_turn = (
+            torch.remainder(self._end_yaw - self._grasp_yaw + math.pi, 2.0 * math.pi) - math.pi
+        ).abs()
         self._diag_vmax.zero_()
         self._diag_first_bad.fill_(-1)
         self._diag_prev_phase.fill_(-1)

@@ -18,7 +18,11 @@ def _make() -> dict[str, type]:
             type(
                 f"{name}PPORunnerCfg",
                 (_V4,),
-                {"__module__": __name__, "__doc__": f"{name} の PPO 設定 (v4 と同一)", "experiment_name": f"knot_tying_rs_{name.lower()}"},
+                {
+                    "__module__": __name__,
+                    "__doc__": f"{name} の PPO 設定 (v4 と同一)",
+                    "experiment_name": f"knot_tying_rs_{name.lower()}",
+                },
             )
         )
         out[f"{name}PPORunnerCfg"] = cls

@@ -694,8 +694,12 @@ def _k_interp_hand(
         if wp.length(wp.vec3(hn[0] - hp[0], hn[1] - hp[1], hn[2] - hp[2])) > teleport:
             b0 = 1.0
             b1 = 1.0
-    hand0[e] = wp.vec4(hp[0] + b0 * (hn[0] - hp[0]), hp[1] + b0 * (hn[1] - hp[1]), hp[2] + b0 * (hn[2] - hp[2]), hp[3] + b0 * dyaw)
-    hand1[e] = wp.vec4(hp[0] + b1 * (hn[0] - hp[0]), hp[1] + b1 * (hn[1] - hp[1]), hp[2] + b1 * (hn[2] - hp[2]), hp[3] + b1 * dyaw)
+    hand0[e] = wp.vec4(
+        hp[0] + b0 * (hn[0] - hp[0]), hp[1] + b0 * (hn[1] - hp[1]), hp[2] + b0 * (hn[2] - hp[2]), hp[3] + b0 * dyaw
+    )
+    hand1[e] = wp.vec4(
+        hp[0] + b1 * (hn[0] - hp[0]), hp[1] + b1 * (hn[1] - hp[1]), hp[2] + b1 * (hn[2] - hp[2]), hp[3] + b1 * dyaw
+    )
     fing0[e] = fing_prev[e] + a0 * (fing_now[e] - fing_prev[e])
     fing1[e] = fing_prev[e] + a1 * (fing_now[e] - fing_prev[e])
 
@@ -713,13 +717,17 @@ def _k_copy_hand(
 
 
 @wp.kernel
-def _k_update_vel(x: wp.array(dtype=wp.vec3), x_prev: wp.array(dtype=wp.vec3), v: wp.array(dtype=wp.vec3), inv_h: float):
+def _k_update_vel(
+    x: wp.array(dtype=wp.vec3), x_prev: wp.array(dtype=wp.vec3), v: wp.array(dtype=wp.vec3), inv_h: float
+):
     i = wp.tid()
     v[i] = (x[i] - x_prev[i]) * inv_h
 
 
 @wp.kernel
-def _k_update_omega(q: wp.array(dtype=wp.quat), q_prev: wp.array(dtype=wp.quat), omega: wp.array(dtype=wp.vec3), inv_h: float):
+def _k_update_omega(
+    q: wp.array(dtype=wp.quat), q_prev: wp.array(dtype=wp.quat), omega: wp.array(dtype=wp.vec3), inv_h: float
+):
     i = wp.tid()
     dq = q[i] * wp.quat_inverse(q_prev[i])
     w = wp.vec3(dq[0], dq[1], dq[2])
@@ -915,16 +923,34 @@ class XpbdRod:
         wp.launch(
             _k_interp_hand,
             E,
-            [W["hand_prev"], W["hand_now"], W["fing_prev"], W["fing_now"], sub / n_sub, (sub + 1) / n_sub,
-             p.hand_teleport_distance, W["hand0"], W["hand1"], W["fing0"], W["fing1"]],
+            [
+                W["hand_prev"],
+                W["hand_now"],
+                W["fing_prev"],
+                W["fing_now"],
+                sub / n_sub,
+                (sub + 1) / n_sub,
+                p.hand_teleport_distance,
+                W["hand0"],
+                W["hand1"],
+                W["fing0"],
+                W["fing1"],
+            ],
             device=dev,
         )
         l0 = p.segment_length
         damp = math.exp(-p.linear_damping * h)
         mu_k = lambda mu: mu * p.dynamic_friction_ratio  # noqa: E731
-        wp.launch(_k_predict, E * P, [W["x"], W["x_prev"], W["v"], W["inv_m"], p.gravity, h, damp, p.max_speed], device=dev)
+        wp.launch(
+            _k_predict, E * P, [W["x"], W["x_prev"], W["v"], W["inv_m"], p.gravity, h, damp, p.max_speed], device=dev
+        )
         if p.model == "cosserat":
-            wp.launch(_k_predict_rot, E * N, [W["q"], W["q_prev"], W["omega"], h, math.exp(-p.angular_damping * h)], device=dev)
+            wp.launch(
+                _k_predict_rot,
+                E * N,
+                [W["q"], W["q_prev"], W["omega"], h, math.exp(-p.angular_damping * h)],
+                device=dev,
+            )
             wp.launch(_k_zero_vec3, self.lam_bend.shape[0], [W["lam_bend"]], device=dev)
             n_half = (N + 1) // 2
             a_bend = 1.0 / (p.bend_stiffness * l0) / h**2
@@ -934,11 +960,27 @@ class XpbdRod:
                     wp.launch(
                         _k_stretch_shear,
                         E * n_half,
-                        [W["x"], W["q"], W["inv_m"], self.inv_i, l0, p.stretch_compliance / h**2, p.shear_compliance / h**2, par, N, n_half],
+                        [
+                            W["x"],
+                            W["q"],
+                            W["inv_m"],
+                            self.inv_i,
+                            l0,
+                            p.stretch_compliance / h**2,
+                            p.shear_compliance / h**2,
+                            par,
+                            N,
+                            n_half,
+                        ],
                         device=dev,
                     )
                 for par in (0, 1):
-                    wp.launch(_k_bend_twist, E * n_half, [W["q"], W["lam_bend"], self.inv_i, l0, a_bend, a_twist, par, N, n_half], device=dev)
+                    wp.launch(
+                        _k_bend_twist,
+                        E * n_half,
+                        [W["q"], W["lam_bend"], self.inv_i, l0, a_bend, a_twist, par, N, n_half],
+                        device=dev,
+                    )
         else:
             a_spring = 1.0 / p.spring_bend_stiffness / h**2
             wp.launch(_k_zero_float, E * P, [W["lam_stretch"]], device=dev)
@@ -946,17 +988,37 @@ class XpbdRod:
             for _ in range(p.iterations):
                 for color in (0, 1):
                     wp.launch(
-                        _k_distance, E * P, [W["x"], W["inv_m"], W["lam_stretch"], l0, p.stretch_compliance / h**2, 1, color, P, P], device=dev
+                        _k_distance,
+                        E * P,
+                        [W["x"], W["inv_m"], W["lam_stretch"], l0, p.stretch_compliance / h**2, 1, color, P, P],
+                        device=dev,
                     )
                 for color in (0, 1):
-                    wp.launch(_k_distance, E * P, [W["x"], W["inv_m"], W["lam_spring"], 2.0 * l0, a_spring, 2, color, P, P], device=dev)
+                    wp.launch(
+                        _k_distance,
+                        E * P,
+                        [W["x"], W["inv_m"], W["lam_spring"], 2.0 * l0, a_spring, 2, color, P, P],
+                        device=dev,
+                    )
         # 自己接触 (剛、平均)
         if self.n_pairs > 0:
             wp.launch(
                 _k_self,
                 E * self.n_pairs,
-                [W["x"], W["x_prev"], W["inv_m"], W["pa"], W["pb"], self.n_pairs, N, p.radius,
-                 p.friction_self, mu_k(p.friction_self), W["dx_acc"], W["cnt"]],
+                [
+                    W["x"],
+                    W["x_prev"],
+                    W["inv_m"],
+                    W["pa"],
+                    W["pb"],
+                    self.n_pairs,
+                    N,
+                    p.radius,
+                    p.friction_self,
+                    mu_k(p.friction_self),
+                    W["dx_acc"],
+                    W["cnt"],
+                ],
                 device=dev,
             )
             wp.launch(_k_apply, E * P, [W["x"], W["dx_acc"], W["cnt"]], device=dev)
@@ -969,17 +1031,37 @@ class XpbdRod:
             _k_finger,
             E * N * self.n_samp,
             [
-                W["x"], W["x_prev"], W["inv_m"], W["hand0"], W["hand1"], W["fing0"], W["fing1"], he,
-                p.finger_center_y0, p.finger_center_z, p.radius, a_f, p.friction_finger, mu_k(p.friction_finger),
-                N, self.n_samp, int(p.finger_x_faces), p.finger_x_face_margin, int(p.finger_rigid_outside),
+                W["x"],
+                W["x_prev"],
+                W["inv_m"],
+                W["hand0"],
+                W["hand1"],
+                W["fing0"],
+                W["fing1"],
+                he,
+                p.finger_center_y0,
+                p.finger_center_z,
+                p.radius,
+                a_f,
+                p.friction_finger,
+                mu_k(p.friction_finger),
+                N,
+                self.n_samp,
+                int(p.finger_x_faces),
+                p.finger_x_face_margin,
+                int(p.finger_rigid_outside),
                 p.finger_max_depenetration_velocity * h,
-                W["dx_fn"], W["dx_ft"], W["cnt_ft"],
+                W["dx_fn"],
+                W["dx_ft"],
+                W["cnt_ft"],
             ],
             device=dev,
         )
         wp.launch(_k_apply_finger, E * P, [W["x"], W["dx_fn"], W["dx_ft"], W["cnt_ft"]], device=dev)
         # 床 (最後に解いて床下へ抜けないようにする)
-        wp.launch(_k_ground, E * P, [W["x"], W["x_prev"], p.radius, p.friction_ground, mu_k(p.friction_ground)], device=dev)
+        wp.launch(
+            _k_ground, E * P, [W["x"], W["x_prev"], p.radius, p.friction_ground, mu_k(p.friction_ground)], device=dev
+        )
         wp.launch(_k_update_vel, E * P, [W["x"], W["x_prev"], W["v"], 1.0 / h], device=dev)
         c = 1.0 - math.exp(-p.bend_damping * h)
         for color in (0, 1, 2):
@@ -994,7 +1076,9 @@ class XpbdRod:
         for sub in range(n_sub):
             self._launch_substep(h, sub, n_sub)
         W = self._views()
-        wp.launch(_k_copy_hand, self.E, [W["hand_prev"], W["hand_now"], W["fing_prev"], W["fing_now"]], device=self.device)
+        wp.launch(
+            _k_copy_hand, self.E, [W["hand_prev"], W["hand_now"], W["fing_prev"], W["fing_now"]], device=self.device
+        )
 
     def step(self, dt: float):
         """1 物理ステップ進める。手と指は `set_hand` で渡した始め -> 終わりを小ステップごとに線形補間する。

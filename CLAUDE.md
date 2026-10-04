@@ -1,0 +1,54 @@
+# isaac_twisted_rl
+
+Isaac Lab 上で、ロボットハンドがロープを固結び (overhand knot) にする強化学習の研究コード。
+現在地は `docs/STATUS.md`、文書の地図は `docs/README.md`、用語は `docs/glossary.md`。
+
+## セッションの始めと終わり
+
+- 始め: git status・`docs/STATUS.md` の要点・走っているジョブ (`nvidia-smi`) を確かめる (SessionStart hook が冒頭に出す)。次の作業は STATUS の「次の作業」の 1 番目から。
+- 終わり・区切り: skill `handoff` で `docs/STATUS.md` を上書きする。追記で伸ばさない。結果は skill `experiment-record` で `docs/experiments/` へ。
+
+## 検証のコマンド
+
+- テスト (約 50 s、Isaac Sim 不要): `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run python -m pytest tests/ -q`
+  - 環境変数は、`/opt/ros/jazzy` の `launch_testing` が pytest のプラグインの自動読み込みに引っかかり `ModuleNotFoundError: lark` で落ちるのを避けるため。
+  - `uv run pytest` は使わない (`.venv/bin/pytest` の shebang が別のリポジトリの python を指す)。
+- lint: ruff の設定はまだリポジトリに無い (`.pre-commit-config.yaml` も無い)。ファイル全体に `ruff format` や `ruff check --fix` をかけない (触っていない行が変わり、起動スクリプトの import の順序や Warp のカーネルを壊すものがある)。
+
+## 壊してはいけない制約 (`tests/test_invariants.py` が検査する)
+
+- `tasks/` の下の `__init__.py` で isaaclab.sim などを import しない。`import_packages` が Kit の起動前に全部実行する。
+- フォルダ名 `mdp` を変えない。タスクの登録から外す除外の一覧が、この名前の部分一致で決まる。
+- `common/topology/` と `common/state_archive.py` は isaaclab・omni・pxr を import しない。Isaac Sim なしで単体テストを回すため。
+- `common/mdp/` の項は追加だけ。削除・改名しない。過去の版の設定が名前で参照している。
+- 既存の版 (`versions/vN/`) の挙動を変えない。変えたいときは新しい版を作る (skill `add-version`)。
+
+## 実験の約束
+
+- 版どうしの比較は chain 評価 (定義: `docs/system/evaluation.md`) で、シード 2 本以上。学習ログの段ごとの成功率や `chain_est` で比べない。
+- 学習・評価の前にコードを commit する。未追跡のファイルは run のフォルダの `git/*.diff` に残らず、run を再現できなくなる。
+- 学習ログや代理の指標だけで出した結論は「推測」と書く。事実として commit メッセージや README に書かない。
+- 評価は学習と同じ Hydra の上書き、同じ `--device` と `agent.device` で行う。
+- 最後のチェックポイントの番号は `ls` で確かめる (rope study の run は `model_99.pt` で、`model_100.pt` は無い)。
+- 手順は skill `train-eval` (学習と chain 評価)、`physics-check` (物理を変えたときのゲート 1 と発散の計測)。
+
+## 長時間のジョブと GPU
+
+- GPU は他のジョブと共有している。起動の前に `nvidia-smi` を見る。
+- Isaac Sim を使うスクリプトは `python -u` で起動し、`timeout -k` を付け、ログをファイルに書く (Kit は固まると SIGTERM で止まらないことがある)。
+- 待つときは前景の `sleep` を使わず、`run_in_background` か Monitor を使う。
+- 自分が起動していないプロセスを kill しない。PID をユーザーに伝える。`pkill -f` は使わない (パターンを含む自分のシェルも殺す)。
+- 残すスクリプトとログは、追跡する場所か `outputs/` に置く。scratchpad (`/tmp/claude-*`) を文書やスクリプトから参照しない。
+
+## 触らないもの
+
+- `/home/itoyama/work/IsaacLab/` の下の旧実装の knot_tying (rsl-rl 5.x 前提の移植前のコード) は参照しない。このリポジトリは rsl-rl 3.0.1・isaaclab 2.3.0 (`.venv` の中)。IsaacLab の checkout の例をそのまま写さない。
+- `logs/`・`outputs/` は学習・評価のスクリプトが書く。手で編集しない (git の管理外で戻せない)。
+- ロープの USD (`common/rope_model/data/`) と `outputs/archive_seed/` を上書きしない。USD は `generate_assets.py --rope <名前>`、初期アーカイブは `overhand_script.py --dump_archive <新しいパス>` で作る。
+
+## 書き方
+
+- 文書と docstring は日本語。ルートの `README.md` だけ英語。
+- docstring には「何をするか」より「なぜそうしたか (今も有効な理由)」を書く。移植元と挙動を変えるときは、変えた理由と検証の結果を残す。経緯は書かない。
+- 現在の仕様は現在形で書く。結果には条件・シード・iteration・評価の方法を付け、「分かった / 推測 / 未確認」を分ける。
+- 1 つの情報の正本は 1 か所。現在地は `docs/STATUS.md`、結果は `docs/experiments/`、横断的な判断は `docs/decisions/`、経緯は `docs/history/` (通常は読まない)。

@@ -51,3 +51,7 @@ logs/
 
 # Pre-Trained Checkpoints
 /.pretrained_checkpoints/
+# Claude Code の作業ファイル (共有の設定 .claude/settings.json・skills・agents・rules・hooks は追跡する)
+.claude/*.lock
+.claude/worktrees/
+.claude/settings.local.json

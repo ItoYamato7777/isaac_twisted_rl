@@ -32,7 +32,7 @@ v4・v5 は物理の値 (ソルバの位置反復・めり込み解消速度) �
 ### 実装時に踏んだ注意点
 
 - `make_preset_cfgs` の `__post_init__` で `super(type(self), self)` を使うと、Play 側から呼ばれたときに無限再帰する。基底クラスを閉包で固定して直接呼ぶこと。
-- `--experiment_name` フラグは `cli_args.update_rsl_rl_cfg` が適用していないので効かない。cfg の側で `knot_tying_vN` を指定する。
+- ログ名は cfg の側で `knot_tying_vN` を指定する (`--experiment_name` は 1 回ごとの上書き。[`docs/system/logs.md`](../system/logs.md))。
 - `import_packages` の注意 (`mdp` というフォルダ名を変えない、など) は `kt/README.md` の「構造上の制約」にある。
 
 ## 検討して採らなかった案
@@ -51,7 +51,7 @@ v4・v5 は物理の値 (ソルバの位置反復・めり込み解消速度) �
 | `crossing_progress` (v0) と `knot_class_shaping` (v1) の共存 | `kt/common/mdp/rewards.py:61`、`:100` | 一致 |
 | `first_crossing_feature` の `.. deprecated::` | `kt/common/mdp/observations.py:97-100` | 一致 |
 | 閉包で基底を固定した `__post_init__` | `kt/common/rope_task_cfg.py:196-207` | 一致 |
-| `--experiment_name` は `update_rsl_rl_cfg` で適用されない | `src/isaac_twisted_rl/scripts/rsl_rl/cli_args.py:58-90` (定義は `:26`)、ログ名は `agent_cfg.experiment_name` から (`train.py:140`) | 一致 (ログ名の決まり方は [`docs/system/logs.md`](../system/logs.md)) |
+| ログ名は `agent_cfg.experiment_name` から | `train.py:140`。`--experiment_name` は `cli_args.update_rsl_rl_cfg` が写す (`tests/test_cli_args.py`) | 一致 (ログ名の決まり方は [`docs/system/logs.md`](../system/logs.md)) |
 | 追加のみの規約 | `kt/README.md` の「構造上の制約」(静的な検査は `tests/test_invariants.py:193` の I4) | README に同じ規約がある。既存の版の挙動を変えない規則は `.claude/rules/versions.md` |
 
 ## 出典

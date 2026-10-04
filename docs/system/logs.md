@@ -19,7 +19,7 @@ Claude は `logs/`・`outputs/` を手で編集しない (書くのは学習・�
 注意:
 
 - **ロープのプリセットはログ名に入らない。** 同じ版の 5 つのプリセットは同じエージェントの設定で登録されるので、同じ `knot_tying_vN/` に入り、フォルダ名で違うのは時刻だけになる (`knot_tying/__init__.py:97-108`)。`--resume` は最新の run を拾うので、別のプリセットの run を読みうる。ロープ `Knot` 以外で学習するときは、`--run_name` にプリセット名を入れる (`docs/glossary.md` の命名規則)。
-- **`--experiment_name` は効かない。** 引数は定義されているが、`update_rsl_rl_cfg` がそれを設定に写さない (`scripts/rsl_rl/cli_args.py:26`、`:60-91`)。ログ名を変えるなら Hydra で `agent.experiment_name=<名前>` を渡す。
+- **ログ名を変えるには `--experiment_name <名前>` を渡す** (`update_rsl_rl_cfg` が設定に写す。`scripts/rsl_rl/cli_args.py`、試験は `tests/test_cli_args.py`)。Hydra の `agent.experiment_name=<名前>` でも同じ。渡さなければ版の設定の名前のまま。評価・`play` も同じ名前を渡さないと、そのフォルダを探さない。
 - コードに無いログ名が 2 つある (refactor の調査 E-17):
   - `knot_tying_v4_speed`: Hydra の上書き `agent.experiment_name` で作った (`outputs/2026-09-30/22-2*/.hydra/overrides.yaml`)。
   - `knot_tying_v6_ablation`: v6 の切り分けの run を後から手で移した。各 run の `params/agent.yaml` のログ名は `knot_tying_v6` か `knot_tying_v7`。v7 の参照 run (`abl_depB`) もここにある。

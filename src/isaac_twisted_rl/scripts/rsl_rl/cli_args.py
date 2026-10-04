@@ -79,6 +79,9 @@ def update_rsl_rl_cfg(agent_cfg: RslRlBaseRunnerCfg, args_cli: argparse.Namespac
         agent_cfg.load_run = args_cli.load_run
     if args_cli.checkpoint is not None:
         agent_cfg.load_checkpoint = args_cli.checkpoint
+    # ログの根 logs/rsl_rl/<experiment_name> を変える。渡さなければ版の設定の名前 (knot_tying_vN など) のまま
+    if getattr(args_cli, "experiment_name", None) is not None:
+        agent_cfg.experiment_name = args_cli.experiment_name
     if args_cli.run_name is not None:
         agent_cfg.run_name = args_cli.run_name
     if args_cli.logger is not None:

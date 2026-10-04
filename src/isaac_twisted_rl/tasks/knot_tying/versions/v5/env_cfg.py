@@ -15,7 +15,7 @@ v4 の設定クラスを **継承して差分だけ** を上書きする。観�
    指や紐どうしが食い込んだときに、紐が一気に弾き出されて暴れるのを抑える。0.3 以下は把持が
    崩れ始める (指が閉じる速さに紐の押し戻しが追いつかない) ので、余裕を取って 0.4 にした。
 
-Play は v4 と同じ chain モード (`_play_post_init`): まっすぐなロープから始め、固結び・発散・18 手で
+Play は v4 と同じ chain モード (`play_post_init`): まっすぐなロープから始め、固結び・発散・18 手で
 だけ終わる。段が上がると次の段のエージェントに切り替わる。
 """
 
@@ -33,7 +33,7 @@ from ..v4.env_cfg import (
     ObservationsCfg,
     RewardsCfg,
     TerminationsCfg,
-    _play_post_init,
+    play_post_init,
 )
 
 __all__ = [
@@ -46,6 +46,7 @@ __all__ = [
     "ObservationsCfg",
     "RewardsCfg",
     "TerminationsCfg",
+    "play_post_init",
 ]
 
 RELEASE_TIP_Z = (0.05, 0.10)
@@ -73,4 +74,4 @@ class KnotTyingV5EnvCfg(KnotTyingV4EnvCfg):
     rope_max_depenetration_velocity: float | None = ROPE_MAX_DEPENETRATION_VELOCITY
 
 
-globals().update(make_preset_cfgs(KnotTyingV5EnvCfg, __name__, play_post_init=_play_post_init))
+globals().update(make_preset_cfgs(KnotTyingV5EnvCfg, __name__, play_post_init=play_post_init))

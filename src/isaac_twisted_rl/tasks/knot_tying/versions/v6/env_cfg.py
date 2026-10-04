@@ -29,12 +29,12 @@ from isaaclab.utils import configclass
 
 from ...common import mdp
 from ...common.rope_task_cfg import make_preset_cfgs
-from ..v2_r2.env_cfg import _DIVERGED_TERM
+from ..v2_r2.env_cfg import DIVERGED_TERM as _DIVERGED_TERM
 from ..v2_r2.env_cfg import ObservationsCfg as V2R2ObservationsCfg
 from ..v5.env_cfg import CurriculumCfg as V5CurriculumCfg
 from ..v5.env_cfg import KnotTyingV5EnvCfg
 from ..v5.env_cfg import RewardsCfg as V5RewardsCfg
-from ..v5.env_cfg import _play_post_init as _v5_play_post_init
+from ..v5.env_cfg import play_post_init as _v5_play_post_init
 
 __all__ = ["NEXT_EDGE_RULE", "KnotTyingV6EnvCfg"]
 

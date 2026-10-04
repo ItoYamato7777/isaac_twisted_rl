@@ -20,6 +20,10 @@
   過去の版の設定が名前で参照しているため。役目を終えた項は `.. deprecated::` で残す。
 - I5 追跡しているシェルスクリプトの `timeout` は `-k` (`--kill-after`) を付ける。Kit・FEM は固まると
   SIGTERM で止まらないことがあり、`-k` が無いと timeout の後もプロセスが GPU を握ったまま残る。
+- I6 版 (`versions/`) と rope study のモジュールが別の版から import する名前は、公開名 (`_` で始まらない)
+  で、import 先のモジュールの最上位に定義がある。後の版は前の版の設定を import でつないでいるので、
+  前の版の private な名前を消したり改名したりすると、後の版が黙って壊れる。公開名にして
+  「後の版が使う名前」を見えるようにする。
 """
 
 from __future__ import annotations
@@ -247,6 +251,68 @@ def test_i4_mdp_terms_are_additive():
     assert not missing, (
         "common/mdp/ の項が消えた (削除・改名は禁止。役目を終えた項は .. deprecated:: で残す): " + ", ".join(missing)
     )
+
+
+VERSIONED = (KT / "versions", KT / "rope_study")
+
+
+def _from_imports(path: Path):
+    """`path` の `from X import a, b` を、(X の絶対名, [a, b], 行) の形で返す。"""
+    tree = ast.parse(path.read_text(), filename=str(path))
+    pkg = _module_name(path)
+    if path.name != "__init__.py":
+        pkg = pkg.rpartition(".")[0]
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ImportFrom):
+            continue
+        if node.level:
+            base = pkg.split(".")
+            base = base[: len(base) - (node.level - 1)]
+            mod = ".".join(base + ([node.module] if node.module else []))
+        else:
+            mod = node.module or ""
+        yield mod, [a.name for a in node.names], node.lineno
+
+
+def _top_level_defined(path: Path) -> set[str]:
+    """モジュールの最上位で束縛される名前 (def・class・代入・import)。"""
+    names = set()
+    for node in _top_level_nodes(ast.parse(path.read_text(), filename=str(path))):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(node.name)
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            names |= {n.id for t in targets for n in ast.walk(t) if isinstance(n, ast.Name)}
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            names |= {(a.asname or a.name).split(".")[0] for a in node.names}
+    return names
+
+
+def _cross_version_import_problems() -> list[str]:
+    roots = {_module_name(r / "__init__.py") for r in VERSIONED}
+    bad = []
+    for root in VERSIONED:
+        for path in sorted(root.rglob("*.py")):
+            me = _module_name(path)
+            for mod, names, line in _from_imports(path):
+                if mod == me or not any(mod == r or mod.startswith(r + ".") for r in roots):
+                    continue
+                target = _module_path(mod)
+                defined = _top_level_defined(target) if target else set()
+                for name in names:
+                    where = f"{path.relative_to(REPO)}:{line} {mod}.{name}"
+                    if _module_path(f"{mod}.{name}"):
+                        continue
+                    if name.startswith("_"):
+                        bad.append(f"private な名前: {where}")
+                    elif name not in defined:
+                        bad.append(f"定義が無い: {where}")
+    return bad
+
+
+def test_i6_cross_version_imports_use_public_names():
+    problems = _cross_version_import_problems()
+    assert not problems, "版をまたぐ import の問題:\n" + "\n".join(problems)
 
 
 def _timeouts_without_kill(text: str) -> list[str]:

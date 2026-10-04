@@ -36,8 +36,10 @@ from ...common.env_cfg_base import EventCfg as BaseEventCfg
 from ...common.mdp import phases
 from ...common.rope_task_cfg import make_preset_cfgs
 from ..v2.env_cfg import GAMMA
-from ..v2_r2.env_cfg import _DIVERGED_TERM, _PLAY_PRINT_ENVS, KnotTyingV2R2EnvCfg
+from ..v2_r2.env_cfg import DIVERGED_TERM as _DIVERGED_TERM
+from ..v2_r2.env_cfg import PLAY_PRINT_ENVS as _PLAY_PRINT_ENVS
 from ..v2_r2.env_cfg import CurriculumCfg as V2R2CurriculumCfg
+from ..v2_r2.env_cfg import KnotTyingV2R2EnvCfg
 from ..v2_r2.env_cfg import RewardsCfg as V2R2RewardsCfg
 from ..v2_r2.env_cfg import TerminationsCfg as V2R2TerminationsCfg
 

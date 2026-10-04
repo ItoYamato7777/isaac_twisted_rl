@@ -19,7 +19,7 @@ from __future__ import annotations
 from isaaclab.utils import configclass
 
 from ...common.rope_task_cfg import make_preset_cfgs
-from ..v5.env_cfg import _play_post_init
+from ..v5.env_cfg import play_post_init as _play_post_init
 from ..v6.env_cfg import KnotTyingV6EnvCfg
 
 __all__ = ["KnotTyingV7EnvCfg"]

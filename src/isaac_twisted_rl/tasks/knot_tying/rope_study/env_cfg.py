@@ -36,7 +36,8 @@ from ..common.rope_backends.backend_cfg import RopeBackendCfg
 from ..common.rope_backends.noisy_action import NoisyPickPlaceActionCfg
 from ..common.rope_model.rope_cfg import make_rope_cfg
 from ..common.rope_model.rope_specs import get_spec
-from ..versions.v4.env_cfg import KnotTyingV4EnvCfg, _play_post_init
+from ..versions.v4.env_cfg import KnotTyingV4EnvCfg
+from ..versions.v4.env_cfg import play_post_init as _play_post_init
 from .models import MODELS, RopeModel
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[5]

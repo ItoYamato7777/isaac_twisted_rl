@@ -35,7 +35,8 @@ from isaaclab.utils import configclass
 
 from ...common import mdp
 from ...common.rope_task_cfg import make_preset_cfgs
-from ..v2_r2.env_cfg import _DIVERGED_TERM, _PLAY_PRINT_ENVS
+from ..v2_r2.env_cfg import DIVERGED_TERM as _DIVERGED_TERM
+from ..v2_r2.env_cfg import PLAY_PRINT_ENVS as _PLAY_PRINT_ENVS
 from ..v2_r2.env_cfg import ObservationsCfg as V2R2ObservationsCfg
 from ..v3.env_cfg import GAMMA, KnotTyingV3EnvCfg
 from ..v3.env_cfg import CurriculumCfg as V3CurriculumCfg
@@ -43,7 +44,7 @@ from ..v3.env_cfg import EventCfg as V3EventCfg
 from ..v3.env_cfg import RewardsCfg as V3RewardsCfg
 from ..v3.env_cfg import TerminationsCfg as V3TerminationsCfg
 
-__all__ = ["GAMMA", "NUM_STEPS_PER_ENV", "SAVE_INTERVAL", "SEED_ARCHIVE", "KnotTyingV4EnvCfg"]
+__all__ = ["GAMMA", "NUM_STEPS_PER_ENV", "SAVE_INTERVAL", "SEED_ARCHIVE", "KnotTyingV4EnvCfg", "play_post_init"]
 
 _STAGE_TERM = "reset_to_stage"
 """段ごとのアーカイブを持つ event 項の名前。保存 (`record_stage_archive`) とログがこれを引く。"""
@@ -226,5 +227,8 @@ def _play_post_init(cfg: KnotTyingV4EnvCfg) -> None:
     cfg.episode_length_s = _PLAY_ACTIONS * cfg.decimation * cfg.sim.dt
     cfg.rewards.topology_stats.params["print_envs"] = _PLAY_PRINT_ENVS
 
+
+play_post_init = _play_post_init
+"""後の版 (v5〜v7) と rope study が import する公開名 (`_play_post_init` と同じ関数)。"""
 
 globals().update(make_preset_cfgs(KnotTyingV4EnvCfg, __name__, play_post_init=_play_post_init))

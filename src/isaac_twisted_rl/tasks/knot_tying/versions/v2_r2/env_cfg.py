@@ -31,7 +31,7 @@ from ..v2.env_cfg import GAMMA, KnotTyingV2EnvCfg
 from ..v2.env_cfg import ObservationsCfg as V2ObservationsCfg
 from ..v2.env_cfg import RewardsCfg as V2RewardsCfg
 
-__all__ = ["GAMMA", "KnotTyingV2R2EnvCfg"]
+__all__ = ["DIVERGED_TERM", "GAMMA", "PLAY_PRINT_ENVS", "KnotTyingV2R2EnvCfg"]
 
 _PLAY_PRINT_ENVS = 9
 """Play で p-data を表示する環境数の上限 (`--num_envs` がこれより少なければそちら)。"""
@@ -44,6 +44,10 @@ _PLAY_PRINT_ENVS = 9
 _DIVERGED_TERM = "diverged"
 """発散の判定に使う終了項の名前。報酬・ログはこの項の判定をそのまま読む
 (`mdp.diverged_now`)。閾値を 1 か所 (`TerminationsCfg.diverged`) に集めるため。"""
+
+# 後の版 (v3・v4・v6) が import する公開名。private な名前は、この版の中の参照のために残す。
+DIVERGED_TERM = _DIVERGED_TERM
+PLAY_PRINT_ENVS = _PLAY_PRINT_ENVS
 
 _MAX_XY_DISTANCE = 3.0
 """env 原点からのロープ節点の水平距離の上限 [m] (= `env_spacing`)。全長 0.82 m の約 3.7 倍。"""

@@ -28,7 +28,19 @@
 
 ## 走っているジョブ
 
-なし (2026-10-04 に `nvidia-smi` で確認)。
+v7 の学習 2 本 (2026-10-04 22:37 起動、commit `55fa432`、GPU 1 枚に 1 本、1 iteration 約 190 s、終わりの見込み 10-05 04:10 頃)。
+止めるときは job の pid に SIGTERM を送る。
+
+| job のフォルダ (`outputs/jobs/`) | pid | GPU | run のフォルダ (`logs/rsl_rl/knot_tying_v7/`) |
+|---|---|---|---|
+| `2026-10-04_22-37-37_v7_s43` | 876278 | cuda:0 | `*_v7_s43` |
+| `2026-10-04_22-37-42_v7_s44` | 876547 | cuda:1 | `*_v7_s44` |
+
+コマンド (s44 は `--device cuda:1 --seed 44 --run_name v7_s44 agent.device=cuda:1`):
+`run_job.sh --name v7_s43 --timeout 10h --detach -- uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:0 --seed 43 --max_iterations 101 --run_name v7_s43 agent.device=cuda:0 agent.save_interval=10`
+
+終わったら: `exit.txt` に `signal:` が無いことと `model_100.pt` を確かめ、iteration 70 / 100 を chain 評価する (Hydra の上書きなし)。
+v7 seed 42 に当たるのは `abl_depB_s42` (v6 + 上書きで params の env.yaml は v7 と同じ。iteration 70 まで)。
 
 ## 次の作業
 

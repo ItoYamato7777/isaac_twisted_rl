@@ -6,7 +6,8 @@ required-version = "==0.16.10"
 line-length = 120
 target-version = "py311"
 # 文書の中のコードブロックは整形しない (コメントの桁揃えが崩れる。凍結した報告書もある)。
-extend-exclude = ["*.md"]
+# docs/history/ の下の道具 (リファクタリングの記録) は、結果を出したときの形のまま残す。
+extend-exclude = ["*.md", "docs/history/"]
 
 [lint]
 # 最初は小さい集合にする。B008 (SceneEntityCfg を既定値に置く Isaac Lab の慣用) などは選ばない。

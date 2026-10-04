@@ -25,7 +25,7 @@ v3 の最初の学習 ([`2026-09-28_v3_main.md`](2026-09-28_v3_main.md)) では�
 | num_envs | 1024 環境 x 24 手 = 24,576 手 (§1 は 4096 環境 x 12 手、§4 は 256 環境 x 種 2 通り、±25% 揺らし) |
 | コマンド | 下の「計測の方法」のブロック (4096 環境 x 12 手と §4 のコマンドは記録なし) |
 | 学習済み方策 | `logs/rsl_rl/knot_tying_v3/2026-09-28_17-28-57/model_150.pt` |
-| 出力 | 記録なし。`outputs/divergence_bench/` に 73 件 (`*.out` 35 件と同名のフォルダ 38 件。例: `base_rand_straight`、`A_ckpt150`、`Adep04_ckpt150`、`buf_old_ckpt_4096`、`buf_new_ckpt_4096`) があり、名前からこの計測の出力と思われるが、どれが表のどの行かは未確認 (`refactor/audit/B_2.md` の B-116) |
+| 出力 | 記録なし。`outputs/divergence_bench/` に 73 件 (`*.out` 35 件と同名のフォルダ 38 件。例: `base_rand_straight`、`A_ckpt150`、`Adep04_ckpt150`、`buf_old_ckpt_4096`、`buf_new_ckpt_4096`) があり、名前からこの計測の出力と思われるが、どれが表のどの行かは未確認 (`docs/history/refactor/audit/B_2.md` の B-116) |
 | 無効にした run | なし |
 
 ## ゲート (学習の前の確認)

@@ -32,7 +32,7 @@
 | `OPEN_RATIO = 1.0`、`RELEASE_RATIO` は統合して無い | `kt/common/mdp/phases.py:49-56`、`:25-31` | 一致 |
 | `settle_out` を残す理由 | `kt/common/mdp/phases.py:19-22`、`PhaseDurations` の docstring (`:145-148`) | 一致 |
 | 再発をログで気付くための `held_up_penalty` | `kt/common/mdp/rewards.py:410-424` | 一致 |
-| 学習に使うプリセットと再確認の注意 | `kt/common/rope_task_cfg.py:7-13` | 見出しは「`knot` (v3)」のまま。v4〜v7 も `knot` で学習している (`refactor/audit/C.md` §2.4) |
+| 学習に使うプリセットと再確認の注意 | `kt/common/rope_task_cfg.py:7-13` | 見出しは「`knot` (v3)」のまま。v4〜v7 も `knot` で学習している (`docs/history/refactor/audit/C.md` §2.4) |
 
 ## 出典
 

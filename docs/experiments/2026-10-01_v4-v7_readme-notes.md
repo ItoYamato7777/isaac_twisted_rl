@@ -25,13 +25,13 @@
 | `logs/rsl_rl/knot_tying_v6/2026-10-01_19-23-28_overnight_s43` | `Isaac-Twisted-RL-Knot-v6` | `881dc8d` | あり | 43 | `model_110.pt` (115 iteration 学習した) | `eval_chain_it{50,70,100}.json` | `agent.save_interval=10` |
 | `logs/rsl_rl/knot_tying_v6_ablation/2026-10-02_12-33-10_abl_relA_s42` | `Isaac-Twisted-RL-Knot-v6` | `881dc8d` (ログの `README.md`) | あり | 42 | `model_70.pt` | `eval_chain_it70.json` | `env.actions.pick_place.limits.release_tip_z=null` |
 | `logs/rsl_rl/knot_tying_v6_ablation/2026-10-02_12-33-35_abl_depB_s42` (**= v7 の設定**) | `Isaac-Twisted-RL-Knot-v6` | `881dc8d` (同) | あり | 42 | `model_70.pt` | `eval_chain_it70.json` | `env.scene.rope.spawn.rigid_props.max_depenetration_velocity=0.96` |
-| `logs/rsl_rl/knot_tying_v6_ablation/2026-10-02_12-34-00_abl_toP_s42` (**当時の v7**) | `Isaac-Twisted-RL-Knot-v7` (当時。報酬項 `stage_time_out`) | 記録なし (`stage_time_out` はどのコミットにも無い: `refactor/audit/B_2.md` の B-102) | あり | 42 | `model_70.pt` | `eval_chain_it70.json` | — |
+| `logs/rsl_rl/knot_tying_v6_ablation/2026-10-02_12-34-00_abl_toP_s42` (**当時の v7**) | `Isaac-Twisted-RL-Knot-v7` (当時。報酬項 `stage_time_out`) | 記録なし (`stage_time_out` はどのコミットにも無い: `docs/history/refactor/audit/B_2.md` の B-102) | あり | 42 | `model_70.pt` | `eval_chain_it70.json` | — |
 | `logs/rsl_rl/knot_tying_v6_ablation/2026-10-02_12-34-26_abl_sw2_s42` | `Isaac-Twisted-RL-Knot-v6` | `881dc8d` (同) | あり | 42 | `model_70.pt` | `eval_chain_it70.json` | `'env.events.reset_to_stage.params.stage_weights=[1.0,1.0,2.0]'` |
 
 - 学習した iteration 数は overnight の §1 の「到達 iteration」の値。チェックポイントは 10 iteration ごとなので、最後のファイルはそれより手前になる。
 - 学習と評価のコマンドの例は overnight の「付録: 再現の手順」(v6 s42) と「再現の手順 (追記の run)」(depB)。他の run のコマンドは記録なし。
 - 切り分けの上書きの正本は `logs/rsl_rl/knot_tying_v6_ablation/README.md` (追跡外)。relA / depB を Play・chain 評価で読むときは、学習と同じ上書きを付ける。
-- **v7 の結果は v7 のタスク ID からは辿れない。** v7 と同じ設定の run は、v7 のコミット (`95ac19a`、2026-10-02 23:09) より前に v6 + Hydra の上書きで走った `abl_depB_s42` だけ (`refactor/audit/B_1.md` の B-13)。`logs/rsl_rl/knot_tying_v7/` は無い。
+- **v7 の結果は v7 のタスク ID からは辿れない。** v7 と同じ設定の run は、v7 のコミット (`95ac19a`、2026-10-02 23:09) より前に v6 + Hydra の上書きで走った `abl_depB_s42` だけ (`docs/history/refactor/audit/B_1.md` の B-13)。`logs/rsl_rl/knot_tying_v7/` は無い。
 
 ## ゲート (学習の前の確認)
 

@@ -1,7 +1,7 @@
 > **状態: 打ち切り中 (2026-10-03)** (ユーザーの指示で評価と実装を打ち切った。経緯は [`docs/history/rope_study_HANDOFF.md`](../history/rope_study_HANDOFF.md))。移動前のパス: `src/isaac_twisted_rl/tasks/knot_tying/rope_study/Report_rope_models.md` (commit 62b251b で移動。本文は変えていない)。
 > 読むべき状況: 紐モデル (剛体鎖・XPBD・FEM) の比較を再開するとき、今のロープ `Knot` (= `Art28`) の物理の弱点を確かめるとき。
 > **§7.1.2 は無効な経過の記録** (XPBD の行は直す前の版、学習の尺の列は途中の形から始まっていた)。最終の値は §7.1.3・§7.1.7。
-> **発散の数値は `src/isaac_twisted_rl/tasks/knot_tying/rope_study/bench_physics.py:378` の数え方** (`tm.get_term("diverged")` を reset のマスクを掛けずに読む) **により過大の可能性がある (未確認**。`refactor/audit/D.md` の D-3。v2-R2 で同じ読み方が本当の発散 3.4% に対して 17.5% を返した: [`2026-09-27_v2r2_fix.md`](2026-09-27_v2r2_fix.md))。
+> **発散の数値は `src/isaac_twisted_rl/tasks/knot_tying/rope_study/bench_physics.py:378` の数え方** (`tm.get_term("diverged")` を reset のマスクを掛けずに読む) **により過大の可能性がある (未確認**。`docs/history/refactor/audit/D.md` の D-3。v2-R2 で同じ読み方が本当の発散 3.4% に対して 17.5% を返した: [`2026-09-27_v2r2_fix.md`](2026-09-27_v2r2_fix.md))。
 > 次の作業 (§12) は `docs/STATUS.md` (作成予定) の保留へ。
 >
 > **再現の補足: 有効な run のフォルダ** (`docs/history/rope_study_HANDOFF.md` の「0000.1b」の節 (頭書きが付く前の行番号で `:57-58`) と `ls logs/rsl_rl/knot_tying_rs_*/` で確認。4096 環境、100 iteration。**最後のチェックポイントは `model_99.pt`** (`model_100.pt` は無い))

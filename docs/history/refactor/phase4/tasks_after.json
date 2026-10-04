@@ -1,0 +1,1330 @@
+{
+ "Isaac-Twisted-RL-Fine-Play-v0": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v1": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v2-R2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v2-R2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v2-R2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v3": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v3-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v3-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v5": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v6": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-Play-v7": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.env_cfg:FinePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v0": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v1": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v2-R2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v2-R2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v2-R2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v3": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v3-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v3-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v5": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v6": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Fine-v7": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.env_cfg:FineEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v0": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v1": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v2-R2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v2-R2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v2-R2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v3": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v3-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v3-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v5": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v6": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-Play-v7": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.env_cfg:KnotPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v0": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v1": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v2-R2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v2-R2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v2-R2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v3": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v3-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v3-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v5": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v6": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Knot-v7": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.env_cfg:KnotEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-Art28-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:Art28PlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:Art28PPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-Art28-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:Art28EnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:Art28PPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-Art28LowMu-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:Art28LowMuPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:Art28LowMuPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-Art28LowMu-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:Art28LowMuEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:Art28LowMuPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-Art56-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:Art56PlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:Art56PPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-Art56-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:Art56EnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:Art56PPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-Fem-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:FemPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:FemPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-Fem-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:FemEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:FemPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-XpbdC28-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:XpbdC28PlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:XpbdC28PPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-XpbdC28-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:XpbdC28EnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:XpbdC28PPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-XpbdC28LowMu-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:XpbdC28LowMuPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:XpbdC28LowMuPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-XpbdC28LowMu-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:XpbdC28LowMuEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:XpbdC28LowMuPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-XpbdC56-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:XpbdC56PlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:XpbdC56PPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-XpbdC56-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:XpbdC56EnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:XpbdC56PPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-XpbdMS28-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:XpbdMS28PlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:XpbdMS28PPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-RS-XpbdMS28-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaac_twisted_rl.tasks.knot_tying.common.rope_backends.env:RopeStudyEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.env_cfg:XpbdMS28EnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.rope_study.agents.rsl_rl_ppo_cfg:XpbdMS28PPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v0": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v1": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v2-R2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v2-R2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v2-R2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v3": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v3-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v3-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v5": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v6": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-Play-v7": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.env_cfg:SimplePlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v0": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v1": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v2-R2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v2-R2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v2-R2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v3": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v3-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v3-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v5": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v6": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Simple-v7": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.env_cfg:SimpleEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v0": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v1": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v2-R2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v2-R2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v2-R2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v3": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v3-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v3-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v5": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v6": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-Play-v7": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.env_cfg:StiffPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v0": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v1": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v2-R2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v2-R2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v2-R2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v3": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v3-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v3-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v5": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v6": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Stiff-v7": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.env_cfg:StiffEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v0": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v1": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v2-R2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v2-R2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v2-R2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v3": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v3-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v3-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v5": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v6": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-Play-v7": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.env_cfg:TwistPlayEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v0": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v0.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v1": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v1.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v2-R2": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v2-R2-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v2-R2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2_r2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v2-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v2.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v3": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v3-LSTM": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingLSTMPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v3-RNN": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v3.agents.rsl_rl_ppo_cfg:KnotTyingRNNPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v4": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v4.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v5": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v5.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v6": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v6.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ },
+ "Isaac-Twisted-RL-Twist-v7": {
+  "disable_env_checker": true,
+  "entry_point": "isaaclab.envs:ManagerBasedRLEnv",
+  "kwargs": {
+   "env_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.env_cfg:TwistEnvCfg",
+   "rsl_rl_cfg_entry_point": "isaac_twisted_rl.tasks.knot_tying.versions.v7.agents.rsl_rl_ppo_cfg:KnotTyingPPORunnerCfg"
+  }
+ }
+}

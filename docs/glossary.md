@@ -127,7 +127,7 @@
 | 実験記録 | `docs/experiments/YYYY-MM-DD_<題>.md` (日付は学習を始めた日) | §2 |
 | 設計判断 | `docs/decisions/NNNN-<題>.md` | §2 |
 
-根拠の列の記号 (C-n・E-n・§2・BRIEF) は refactor の調査と提案 (`refactor/audit/C.md`、`refactor/audit/E.md`、`refactor/proposal.md` §3.2) の番号。
+根拠の列の記号 (C-n・E-n・§2・BRIEF) は refactor の調査と提案 (`docs/history/refactor/audit/C.md`、`docs/history/refactor/audit/E.md`、`docs/history/refactor/proposal.md` §3.2) の番号。
 
 ## 3. 互換名の表
 
@@ -140,7 +140,7 @@
 | 版のタスク | `Isaac-Twisted-RL-{プリセット}[-Play]-vN[-RNN\|-LSTM]`。プリセットは `Twist` / `Simple` / `Stiff` / `Fine` / `Knot`、vN は `v0`〜`v7` と `v2-R2`。`-RNN` (GRU) / `-LSTM` は v2・v2-R2・v3 だけ | 150 本 (版 9 × プリセット 5 × 学習/Play 2 = 90 に、v2・v2-R2・v3 の `-RNN` 30 本と `-LSTM` 30 本) | [`kt/__init__.py`](../src/isaac_twisted_rl/tasks/knot_tying/__init__.py) (`:97-119`) |
 | rope study のタスク | `Isaac-Twisted-RL-RS-<紐モデル>[-Play]-v4`。紐モデルは §1.2 の 8 個 (元の大文字小文字)。末尾の `-v4` は MDP が v4 という意味 | 16 本 (紐モデル 8 × 学習/Play 2) | [`kt/rope_study/__init__.py`](../src/isaac_twisted_rl/tasks/knot_tying/rope_study/__init__.py) (`:18-28`) |
 
-合計 166 本、うち `-Play` は 83 本。`-Play` は版の前に入る (`…-Knot-Play-v4`、`…-RS-XpbdC28-Play-v4`)。変種の接尾辞は版の後ろに付く (`…-Twist-v2-RNN`)。全一覧は持たない。登録モジュールを `gymnasium` のスタブの下で実行すれば出せる (スクリプトは `refactor/audit/C.md` の付録 B)。
+合計 166 本、うち `-Play` は 83 本。`-Play` は版の前に入る (`…-Knot-Play-v4`、`…-RS-XpbdC28-Play-v4`)。変種の接尾辞は版の後ろに付く (`…-Twist-v2-RNN`)。全一覧は持たない。登録モジュールを `gymnasium` のスタブの下で実行すれば出せる (スクリプトは `docs/history/refactor/audit/C.md` の付録 B)。
 
 表記の対応 (層ごとに書き方が違う):
 

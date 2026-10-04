@@ -66,3 +66,4 @@
 | [`history/rope_study_HANDOFF.md`](history/rope_study_HANDOFF.md) | rope study の 4 つのセッションの引き継ぎメモ |
 | [`history/v1_diff_to_TwistedRL.md`](history/v1_diff_to_TwistedRL.md) | v1 の時点で移植元のコードと比べたスナップショット |
 | [`history/v3_html/`](history/v3_html/v3-implementation.html) | v3 の実装の図解と、論文との比較 (2026-09-28 時点) |
+| [`history/refactor/`](history/refactor/README.md) | 2026-10-03〜04 のリファクタリングの記録 (依頼・調査・提案・最終報告・確認の道具)。文書や試験が引く所見の番号 (A-3・B-101・D-6 など) の出典 |

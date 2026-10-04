@@ -1,6 +1,6 @@
 > **状態: 打ち切り中 (2026-10-03)** (評価を途中で止めた中間の報告。予定 10 本のうち最後まで終わったのは 4 本: §2.3)。移動前のパス: `paper/Report_Search.md` (commit 62b251b で移動。本文は変えていない)。
 > 読むべき状況: 推論時探索 (best-of-N・ビーム探索・状態の複製) の評価を再開するとき、`eval_search.py` の結果 JSON を読むとき。
-> **文中の「V8」には定義がない** (次の版を指すと読めるが、どこにも定義されていない。`refactor/audit/A.md` の A-15)。
+> **文中の「V8」には定義がない** (次の版を指すと読めるが、どこにも定義されていない。`docs/history/refactor/audit/A.md` の A-15)。
 > §6 の次の作業は `docs/STATUS.md` (作成予定) の保留へ。文中の v7 は v7 のタスク ID ではなく、v6 + 上書きの run `abl_depB_s42` (§2.1。[`2026-10-01_v4-v7_readme-notes.md`](2026-10-01_v4-v7_readme-notes.md))。
 > §6 の 5 にある `versions/v6/Result_Report_v6.md` は、今の [`2026-10-01_v4-v6_overnight.md`](2026-10-01_v4-v6_overnight.md)。
 > 本文の `scripts/rsl_rl/README.md` へのリンクは移動で切れている (今の場所は [`src/isaac_twisted_rl/scripts/rsl_rl/README.md`](../../src/isaac_twisted_rl/scripts/rsl_rl/README.md))。

@@ -80,7 +80,7 @@
 | 位置反復 8 (v4 以降) | `kt/versions/v4/env_cfg.py:192` | 一致 |
 | めり込み解消速度 0.4 m/s (v5・v6)、v7 で既定 (0.96 m/s) に戻す | `kt/versions/v5/env_cfg.py:66`、`kt/versions/v7/env_cfg.py:32` | 一致 |
 | 指のゲイン `1500 × link_mass / capsule_radius` | `kt/common/rope_model/rope_specs.py:154`、`kt/common/rope_task_cfg.py:69` | 一致 (10.05 g / 0.01 m で 1507 N/m) |
-| 学習用のプリセットのコメント | `kt/__init__.py:52-53`、`kt/common/rope_task_cfg.py:7` | 「`Knot` (v3)」のまま。v4〜v7 も `Knot` で学習している (`refactor/audit/C.md` §2.4) |
+| 学習用のプリセットのコメント | `kt/__init__.py:52-53`、`kt/common/rope_task_cfg.py:7` | 「`Knot` (v3)」のまま。v4〜v7 も `Knot` で学習している (`docs/history/refactor/audit/C.md` §2.4) |
 
 ## 出典
 

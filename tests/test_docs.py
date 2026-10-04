@@ -83,7 +83,7 @@ def test_no_scratchpad_references():
     for f in _tracked():
         rel = f.relative_to(REPO).as_posix()
         if (
-            rel.startswith(("docs/history/", "refactor/"))
+            rel.startswith("docs/history/")
             or rel == "tests/test_docs.py"
             or f.suffix in {".usd", ".png", ".pdf", ".pt"}
         ):

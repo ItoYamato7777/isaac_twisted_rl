@@ -24,7 +24,7 @@ import sys
 
 from isaaclab.app import AppLauncher
 
-import isaac_twisted_rl.scripts.rsl_rl.cli_args as cli_args  # isort: skip
+from isaac_twisted_rl.scripts.rsl_rl import cli_args  # isort: skip
 
 parser = argparse.ArgumentParser(description="Evaluate a checkpoint per episode in chain mode.")
 parser.add_argument("--num_envs", type=int, default=1024, help="Number of environments (= episodes counted).")

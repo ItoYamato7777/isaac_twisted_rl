@@ -14,6 +14,11 @@ select = ["E4", "E7", "E9", "F", "I"]
 
 [lint.isort]
 known-first-party = ["isaac_twisted_rl"]
+# Isaac Lab の慣用に合わせ、isaaclab 系を他のサードパーティ (torch など) と別の塊にする。
+section-order = ["future", "standard-library", "third-party", "isaaclab", "first-party", "local-folder"]
+
+[lint.isort.sections]
+isaaclab = ["isaaclab", "isaaclab_assets", "isaaclab_rl", "isaaclab_tasks"]
 
 [lint.per-file-ignores]
 # AppLauncher で Kit を起動してから isaaclab などを import するスクリプト。

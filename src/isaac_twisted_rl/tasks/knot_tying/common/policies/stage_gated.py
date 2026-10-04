@@ -45,11 +45,10 @@ Isaac Sim 無しで検証できる)。
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
-from torch.distributions import Normal
-
 from rsl_rl.modules import ActorCritic
 from rsl_rl.networks import MLP
+from torch import nn
+from torch.distributions import Normal
 
 
 class GatedMLP(nn.Module):
@@ -164,6 +163,6 @@ class StageGatedActorCritic(ActorCritic):
 
 def register_with_rsl_rl() -> None:
     """`OnPolicyRunner` の `eval(class_name)` から `"StageGatedActorCritic"` を引けるようにする。"""
-    import rsl_rl.runners.on_policy_runner as on_policy_runner
+    from rsl_rl.runners import on_policy_runner
 
     on_policy_runner.StageGatedActorCritic = StageGatedActorCritic

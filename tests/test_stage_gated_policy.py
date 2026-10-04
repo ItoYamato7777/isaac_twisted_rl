@@ -137,7 +137,7 @@ def test_gated_mlp_handles_extra_batch_dims():
 
 
 def test_register_with_rsl_rl():
-    import rsl_rl.runners.on_policy_runner as on_policy_runner
+    from rsl_rl.runners import on_policy_runner
 
     register_with_rsl_rl()
     # OnPolicyRunner._construct_algorithm と同じ解決のしかた。

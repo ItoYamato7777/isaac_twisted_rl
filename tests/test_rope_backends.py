@@ -36,7 +36,6 @@ def _load(name: str):
 cl = _load("centerline")
 from topology import polyline_from_link_centers  # noqa: E402
 
-
 # ---------------------------------------------------------------- centerline
 
 

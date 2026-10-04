@@ -37,7 +37,6 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils import configclass
 
 from . import mdp
-
 from .mdp import phases
 from .rope_model.rope_specs import GROUND_FRICTION
 

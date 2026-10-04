@@ -45,8 +45,8 @@ import torch
 from isaaclab.assets import Articulation
 from isaaclab.managers import EventTermCfg, ManagerTermBase, SceneEntityCfg
 
-from .. import topology as tp
 from .. import state_archive as sa
+from .. import topology as tp
 from .observations import get_extractor, rope_zmax
 from .terminations import diverged_now
 

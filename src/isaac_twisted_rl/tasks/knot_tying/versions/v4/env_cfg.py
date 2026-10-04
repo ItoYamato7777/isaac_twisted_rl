@@ -43,7 +43,7 @@ from ..v3.env_cfg import EventCfg as V3EventCfg
 from ..v3.env_cfg import RewardsCfg as V3RewardsCfg
 from ..v3.env_cfg import TerminationsCfg as V3TerminationsCfg
 
-__all__ = ["GAMMA", "NUM_STEPS_PER_ENV", "SAVE_INTERVAL", "KnotTyingV4EnvCfg", "SEED_ARCHIVE"]
+__all__ = ["GAMMA", "NUM_STEPS_PER_ENV", "SAVE_INTERVAL", "SEED_ARCHIVE", "KnotTyingV4EnvCfg"]
 
 _STAGE_TERM = "reset_to_stage"
 """段ごとのアーカイブを持つ event 項の名前。保存 (`record_stage_archive`) とログがこれを引く。"""

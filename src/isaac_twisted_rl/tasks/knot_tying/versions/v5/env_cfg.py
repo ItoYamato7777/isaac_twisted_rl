@@ -25,9 +25,16 @@ from isaaclab.utils import configclass
 
 from ...common.mdp import phases
 from ...common.rope_task_cfg import make_preset_cfgs
-from ..v4.env_cfg import GAMMA, KnotTyingV4EnvCfg
-from ..v4.env_cfg import CurriculumCfg, EventCfg, ObservationsCfg, RewardsCfg, TerminationsCfg
-from ..v4.env_cfg import _play_post_init
+from ..v4.env_cfg import (
+    GAMMA,
+    CurriculumCfg,
+    EventCfg,
+    KnotTyingV4EnvCfg,
+    ObservationsCfg,
+    RewardsCfg,
+    TerminationsCfg,
+    _play_post_init,
+)
 
 __all__ = [
     "GAMMA",

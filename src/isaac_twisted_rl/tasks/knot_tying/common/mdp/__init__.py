@@ -24,6 +24,12 @@ from .events import bind_grasp_material, check_rope_link_order  # noqa: F401
 from .observations import *  # noqa: F401, F403
 from .phases import GraspLimits, PhaseDurations  # noqa: F401
 from .rewards import *  # noqa: F401, F403
-from .stages import current_stage, knot_stage_one_hot, stage_changed, stage_transition, stage_transition_reward  # noqa: F401
+from .stages import (  # noqa: F401
+    current_stage,
+    knot_stage_one_hot,
+    stage_changed,
+    stage_transition,
+    stage_transition_reward,
+)
 from .terminations import *  # noqa: F401, F403
 from .topology_log import NextEdgeStats, TopologyStats, log_next_edge_stats, log_topology_stats  # noqa: F401

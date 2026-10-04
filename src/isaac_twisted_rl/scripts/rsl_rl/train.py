@@ -13,7 +13,7 @@ import sys
 from isaaclab.app import AppLauncher
 
 # local imports
-import isaac_twisted_rl.scripts.rsl_rl.cli_args as cli_args  # isort: skip
+from isaac_twisted_rl.scripts.rsl_rl import cli_args  # isort: skip
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Train an RL agent with RSL-RL.")
@@ -50,7 +50,7 @@ simulation_app = app_launcher.app
 
 """Check for minimum supported RSL-RL version."""
 
-import importlib.metadata as metadata
+from importlib import metadata
 import platform
 
 from packaging import version

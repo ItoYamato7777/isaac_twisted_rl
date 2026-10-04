@@ -188,7 +188,7 @@ def generate_next(state: AbstractState) -> Iterator[AbstractState]:
         yield new
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _enumerate_moves(max_crossings: int) -> tuple[list[AbstractState], list[list[tuple[int, tuple[int, ...], int]]]]:
     """自明な状態から BFS し、状態と「移動の種類・パラメータ・子の番号」を全列挙する。
 
@@ -216,7 +216,7 @@ def _enumerate_moves(max_crossings: int) -> tuple[list[AbstractState], list[list
     return states, moves
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def enumerate_graph(max_crossings: int = MAX_GRAPH_CROSSINGS) -> tuple[tuple[str, ...], tuple[tuple[int, ...], ...]]:
     """自明な状態から BFS し、交差 `max_crossings` 個以下の状態と辺を全列挙する。
 
@@ -236,7 +236,7 @@ def is_goal(p_data: tuple[str, ...] | list[str]) -> list[bool]:
     return (topology_class(reduce_r2(batch)) == CLASS_OVERHAND).tolist()
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def distance_to_overhand(max_crossings: int = MAX_GRAPH_CROSSINGS) -> dict[str, int]:
     """p-data ごとの、ゴール (R2 除去後に固結びを含む状態) までの最短手数。届かない p-data は含めない。
 
@@ -374,7 +374,7 @@ def _simple_edge(kind: int, params: tuple[int, ...], child: str, points: list[in
     )
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def shortest_edges(
     max_crossings: int = MAX_GRAPH_CROSSINGS,
 ) -> dict[str, tuple[GraphEdge, ...]]:

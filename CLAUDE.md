@@ -35,7 +35,8 @@ Isaac Lab 上で、ロボットハンドがロープを固結び (overhand knot)
 ## 長時間のジョブと GPU
 
 - GPU は他のジョブと共有している。起動の前に `nvidia-smi` を見る。
-- Isaac Sim を使うスクリプトは `python -u` で起動し、`timeout -k` を付け、ログをファイルに書く (Kit は固まると SIGTERM で止まらないことがある)。
+- Isaac Sim を使うジョブは `src/isaac_twisted_rl/scripts/run_job.sh --name <名前> --timeout <上限> --detach -- <コマンド>` で起動する (バッファ無効・`timeout -k`・ログと記録 `outputs/jobs/<時刻>_<名前>/` をまとめて行う。Kit は固まると SIGTERM で止まらないことがある。`--detach` が無いと session の終わりに止まる)。
+- exit 0 は完了を意味しない (Isaac Lab は SIGTERM でも 0 で終わる)。job の `exit.txt` に `signal:` の行が無いことと、最後のチェックポイントで確かめる。
 - 待つときは前景の `sleep` を使わず、`run_in_background` か Monitor を使う。
 - 自分が起動していないプロセスを kill しない。PID をユーザーに伝える。`pkill -f` は使わない (パターンを含む自分のシェルも殺す)。
 - 残すスクリプトとログは、追跡する場所か `outputs/` に置く。scratchpad (`/tmp/claude-*`) を文書やスクリプトから参照しない。

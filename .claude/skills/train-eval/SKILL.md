@@ -19,9 +19,13 @@ description: 版や設定を学習し、chain 評価で比べるときに使う�
 数 iteration だけ回し、起動・観測の次元・報酬の配線が落ちないことを確かめる。run のフォルダが 1 つできるので、run 名に `smoke` を入れる。
 
 ```bash
-uv run train --task Isaac-Twisted-RL-Knot-vN --headless --device cuda:0 --seed 42 --max_iterations 2 \
+src/isaac_twisted_rl/scripts/run_job.sh --name smoke_vN --timeout 20m --detach -- \
+    uv run train --task Isaac-Twisted-RL-Knot-vN --headless --device cuda:0 --seed 42 --max_iterations 2 \
     --run_name smoke_vN agent.device=cuda:0
 ```
+
+v6 (4096 環境) では 1 iteration が約 3 分、2 iteration で約 7 分かかった (2026-10-04、`outputs/jobs/2026-10-04_18-24-56_smoke_runjob_v6`)。
+終わりに出る `TypeError: post_quit()` は Kit の終了処理のもので、無視してよい (`docs/experiments/2026-09-28_v4_smoke-test.md`)。
 
 ## 2. 学習 (シードごとに 1 本)
 
@@ -29,22 +33,25 @@ uv run train --task Isaac-Twisted-RL-Knot-vN --headless --device cuda:0 --seed 4
 ロープ `Knot` 以外のプリセットで学習するときは、ログ名にプリセットが入らないので run 名に入れる。
 
 ```bash
-PYTHONUNBUFFERED=1 uv run train --task Isaac-Twisted-RL-Knot-vN --headless --device cuda:0 --seed 42 \
-    --max_iterations 100 --run_name <略>_s42 agent.device=cuda:0 agent.save_interval=10 \
-    > outputs/jobs/<略>_s42.log 2>&1
+src/isaac_twisted_rl/scripts/run_job.sh --name <略>_s42 --timeout <上限> --detach -- \
+    uv run train --task Isaac-Twisted-RL-Knot-vN --headless --device cuda:0 --seed 42 \
+    --max_iterations 100 --run_name <略>_s42 agent.device=cuda:0 agent.save_interval=10
 ```
 
-- Bash の `run_in_background` で起動し、待つときは前景の `sleep` を使わない (Monitor か `run_in_background` の until ループ)。
-- 起動したら PID・GPU・run のフォルダ・コマンドを `docs/STATUS.md` の「走っているジョブ」に書く。
+- run_job.sh は起動の前に GPU の空きを確かめ、`outputs/jobs/<時刻>_<略>_s42/` に job.log・コマンド・commit・差分・GPU の状態・pid を残し、終わると `exit.txt` を書く。
+- 終わりを待つときは前景の `sleep` を使わない (`run_in_background` で `until [ -f <job>/exit.txt ]; do sleep 10; done`、か Monitor)。
+- 起動したら pid (run_job.sh が出す。`timeout` のプロセス)・job のフォルダ・GPU・run のフォルダ・コマンドを `docs/STATUS.md` の「走っているジョブ」に書く。
+- 最後まで走ったかは `exit.txt` (`exit: 0` で `signal:` の行が無い) と最後の `model_*.pt` で確かめる。
 - 物理などを Hydra で上書きするなら、上書きをすべてメモする (評価にも同じものを付ける)。
-- 止めてよいのは自分が起動して記録した PID だけ。`pkill -f` は使わない。
+- 止めてよいのは自分が起動して記録した PID だけ。job の pid に SIGTERM を送る (timeout が子に伝え、止まらなければ SIGKILL)。`pkill -f` は使わない。
 
 ## 3. chain 評価
 
 シードごと・評価する iteration ごとに 1 回。最後のチェックポイントの番号は `ls logs/rsl_rl/<ログ名>/<run>/` で確かめる。
 
 ```bash
-uv run python -u src/isaac_twisted_rl/scripts/rsl_rl/eval_chain.py --task Isaac-Twisted-RL-Knot-Play-vN \
+src/isaac_twisted_rl/scripts/run_job.sh --name eval_<略>_s42_it<it> --timeout <上限> --detach -- \
+    uv run python src/isaac_twisted_rl/scripts/rsl_rl/eval_chain.py --task Isaac-Twisted-RL-Knot-Play-vN \
     --num_envs 512 --headless --device cuda:0 --seed 7 \
     --checkpoint logs/rsl_rl/<ログ名>/<run>/model_<it>.pt agent.device=cuda:0 <学習と同じ Hydra の上書き> \
     --out logs/rsl_rl/<ログ名>/<run>/eval_chain_it<it>.json

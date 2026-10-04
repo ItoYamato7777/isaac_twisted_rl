@@ -12,8 +12,11 @@ description: 物理パラメータ・ロープのプリセット・紐モデル�
 
 学習と同じタスクの環境で、台本 (5 手) を揺らしながら回し、固結びになった割合を数える。台本は常にまっすぐなロープから始まる (commit `a9b02b3` で固定した)。
 
+起動は他の Isaac Sim のジョブと同じく `run_job.sh` で包む (下のコマンドは中身だけを書く)。
+
 ```bash
-uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py --task Isaac-Twisted-RL-Knot-vN \
+src/isaac_twisted_rl/scripts/run_job.sh --name gate1_<名前> --timeout <上限> --detach -- \
+    uv run python src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py --task Isaac-Twisted-RL-Knot-vN \
     --num_envs 128 --jitter 0.25 --headless --out outputs/overhand_script/<物理の条件の名前>
 ```
 
@@ -37,7 +40,8 @@ uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py 
 ## 3. 1 手あたりの発散の計測
 
 ```bash
-uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/divergence_bench.py --task Isaac-Twisted-RL-Knot-vN \
+src/isaac_twisted_rl/scripts/run_job.sh --name div_<名前> --timeout <上限> --detach -- \
+    uv run python src/isaac_twisted_rl/tasks/knot_tying/demos/divergence_bench.py --task Isaac-Twisted-RL-Knot-vN \
     --num_envs 1024 --steps 24 --headless --archive_prob 0.0 --cfg "<Hydra の上書き>"
 #   学習済みの方策で打つとき: --policy ckpt --checkpoint logs/rsl_rl/<ログ名>/<run>/model_<it>.pt
 ```

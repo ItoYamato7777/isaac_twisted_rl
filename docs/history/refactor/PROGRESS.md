@@ -5,7 +5,7 @@
 
 ## 現在のフェーズ
 
-Phase 5 (検証と最終報告)。2026-10-04 に開始。表の 0〜7 (cold-start・検証の一式・最終報告) はすべて済。Q5-4・Q5-5 の回答待ち。Phase 4 は完了 (表の 0〜9、P4-7・P4-10 は rope study の再開のときに回した)。Phase 3 は完了 (settings.json は 0a54bac で有効にした)。
+**リファクタリングは完了** (2026-10-04)。Phase 5 の表 0〜7 と、回答を受けた後の実施 A〜D がすべて済。このファイルは `refactor/` から `docs/history/refactor/` へ移した (本文の `refactor/...` はそこと読み替える)。Phase 4 は完了 (表の 0〜9、P4-7・P4-10 は rope study の再開のときに回した)。Phase 3 は完了 (settings.json は 0a54bac で有効にした)。
 
 ## session の区切り方 (2026-10-03 ユーザーの指示)
 
@@ -16,9 +16,7 @@ Phase 5 (検証と最終報告)。2026-10-04 に開始。表の 0〜7 (cold-star
 
 ## 次の 1 手
 
-Phase 5 の表 0〜7 はすべて済 (2026-10-04)。最終報告は `refactor/final_report.md`。ユーザーの回答待ち:
-1. Q5-4 (`refactor/` の後始末)・Q5-5 (文書の誤り `final_report.md` §10.2 を直すか)・`docs/workflow.md` を作るか (§12 の記録のない逸脱)。
-2. 回答を受けたら、その範囲で実施する (Q5-5 (a) なら文書と docstring だけ直し、pytest・ruff を回してコミット。Q5-4 (a) なら `docs/history/refactor/` へ移し 18 行の参照を直す。ファイルの削除・移動は承認の範囲を確かめてから)。最後に `docs/STATUS.md` を skill `handoff` で上書きする (今は「Phase 3」のまま)。
+なし (リファクタリングは完了)。残る判断はユーザーのもの: ブランチ `refactor/claude-foundation` を main に入れるか、打ち切った 2 研究を再開するか (`docs/STATUS.md` の「次の作業」)。
 
 settings.json の残りの確認は Phase 5 の表の 0 (2026-10-04 の session で済。kill はユーザーの確認待ち)。
 
@@ -36,9 +34,9 @@ Phase 3 で見つけて、まだ直していないこと (Phase 5 の最終報�
 | # | やること | 状態 |
 |---|---|---|
 | A | Q5-5: `final_report.md` §10.2 の誤りを直す (文書と docstring だけ)。メインが未確認のものは先に確かめる。凍結した記録 (§10.2 の 15) は直さない。pytest・ruff。コミット | 済 (e943d65)。6〜14 をメインが確かめた (6 は D-17 の元 R-26・R-27 と `train.py:121,191`、13 の文言は 32c9f93 で消え初版 5fd7e3c にある、14 の摩擦は初版から 2.0、8192 の理由は next_action §4.8.9 の 09-30 の追記)。11 (v5) は注記済みで変更なし。evaluation.md:58 の出典の行番号も同じ誤りだったので直した。.py は docstring を除いた AST が同じ。pytest 281 passed、items 欠落 0 |
-| B | `docs/workflow.md` (proposal §5.1・§5.3・§5.4 の段階表。コマンドは書かず skill へリンク)。`docs/README.md` の地図に足す。コミット | |
-| C | Q5-4: `refactor/` を `docs/history/refactor/` へ移して追跡。18 行の参照を直す。道具のパスの計算 (ROOT) を新しい場所に合わせる。`items.py check` は `docs/history/refactor/` を照合の対象から外す (数値の写しで欠落を隠さないため)。大きな JSON の扱いを決める。T6・ruff・I5 を通す。コミット | |
-| D | STATUS を skill `handoff` で上書き。final_report を実施の結果に合わせて直す | |
+| B | `docs/workflow.md` (proposal §5.1・§5.3・§5.4 の段階表。コマンドは書かず skill へリンク)。`docs/README.md` の地図に足す。コミット | 済 (4933775) |
+| C | Q5-4: `refactor/` を `docs/history/refactor/` へ移して追跡。18 行の参照を直す。道具のパスの計算 (ROOT) を新しい場所に合わせる。`items.py check` は `docs/history/refactor/` を照合の対象から外す (数値の写しで欠落を隠さないため)。大きな JSON の扱いを決める。T6・ruff・I5 を通す。コミット | 済 (c99bec7)。参照は 16 行を置き換え (残る 2 行は 0020 の注記を A で削除、`test_docs.py:86` の除外を外した)。道具 5 本の `parents[2]`→`[4]`。env_cfgs の JSON 3 本 (sha256 同じ) は `.gitignore`、sha256 は README。ruff.toml で `docs/history/` を除外。`.git/info/exclude` の `/refactor/` を消した。README を足した |
+| D | STATUS を skill `handoff` で上書き。final_report を実施の結果に合わせて直す | 済。final_report §0・§1・§4・§6・§10.1・§10.2・§11.3・§12 |
 
 ## Phase 5 の計画 (2026-10-04)
 

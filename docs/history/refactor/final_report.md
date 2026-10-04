@@ -1,7 +1,7 @@
 # 最終報告: Claude Code の基盤づくりとリファクタリング (Phase 0〜5)
 
-- 期間: 2026-10-03〜2026-10-04。ブランチ `refactor/claude-foundation` (基点 `6f41ef1`、最新 `0252f55`、コミット 21 本、push していない)
-- この報告の構成は BRIEF §10 の 11 項目の順。詳細の正本は各項目に書いたファイル (多くは git 管理外の `refactor/` の中)
+- 期間: 2026-10-03〜2026-10-04。ブランチ `refactor/claude-foundation` (基点 `6f41ef1`、Phase 5 の検証の時点 `0252f55` (21 本)、回答を受けた後の実施を含めて 25 本、push していない)
+- この報告の構成は BRIEF §10 の 11 項目の順。詳細の正本は各項目に書いたファイル。作業中は git 管理外の `refactor/` にあり、Phase 5 の後に `docs/history/refactor/` へ移して追跡した (本文の `refactor/...` はそこと読み替える)
 - 「分かった / 推測 / 未確認」を分けて書く。検証のコマンドと出力は §11
 
 ## 目次
@@ -28,8 +28,8 @@
 - 規則のうち機械で判定できるものは、試験 (I1〜I6・T5〜T7)・hook (3 本)・permissions に置いた。CLAUDE.md は 55 行 (§2)。
 - 学習・評価の挙動・タスク ID・ログとの互換は変えていない。タスク ID 166 件の一覧が前後で同じ。P4-9 の前後で 166 タスクの環境設定と PPO 設定のダンプがバイト単位で同じ (§7)。
 - 再現の項目 (commit・seed・iteration・チェックポイント・パス・単位付きの数値) 2,259 組は、移動・要約の後もすべて追跡ファイルに残っている (§5)。
-- 人の判断が要る点: Q5-4 (`refactor/` の後始末)、Q5-5 (見つかった文書の誤りを直すか)。どちらも回答をまだ受け取っていない (§10.1)。
-- 記録のない逸脱が 1 つ見つかった: 承認された proposal の `docs/workflow.md` (研究サイクルの段階表) を作っていない (§12)。
+- Q5-4・Q5-5・workflow.md への回答 (2026-10-04、どれも推奨どおり) を受けて実施した: 文書の誤りを直し (e943d65)、`docs/workflow.md` を作り (4933775)、`refactor/` を `docs/history/refactor/` へ移して 18 行の参照を直した (c99bec7)。検証は §11.3 (§10.1)。
+- Phase 5 の検証の時点で、記録のない逸脱が 1 つあった: 承認された proposal の `docs/workflow.md` を作っていなかった。回答を受けて作った (§12)。
 
 ---
 
@@ -46,7 +46,8 @@ docs/
   system/logs.md              # ログのフォルダ名・run 名・チェックポイント・ログのキー (67 行)
   decisions/                  # 版をまたぐ設計の判断。1 判断 1 ファイル (0001〜0015・0020・0021 の 17 本と README)
   experiments/                # 実験記録。1 実験 1 ファイル、書いたら凍結 (13 本と一覧の README)
-  history/                    # 経緯。通常は読まない (4 本と v3 の HTML 2 本)
+  workflow.md                 # 研究の 1 サイクル・セッション・長時間ジョブの規約。コマンドは skill (Q5 の回答の後に追加)
+  history/                    # 経緯。通常は読まない (4 本と v3 の HTML 2 本、リファクタリングの記録 refactor/)
 src/.../knot_tying/README.md  # パッケージの仕様 (版の系譜・タスク ID の規則・フォルダ構成)。状態と結果は持たない
 src/.../versions/vN/README.md # その版の仕様と理由だけ。結果は experiments へ移してリンク
 src/.../common/README.md      # 全版に共通の仕組みの仕様
@@ -62,7 +63,7 @@ paper/                        # 論文と論文に関わる文書 (動かして�
 | Historical context | `docs/history/` |
 | 用語・過去の名前 | `docs/glossary.md` (過去の名前は互換表にだけ置く) |
 
-proposal (Phase 2) からの主な変更: `docs/system/` は 2 本だけにした (版の仕様はコードの隣に残す)。`docs/workflow.md` は作っていない (§12)。
+proposal (Phase 2) からの主な変更: `docs/system/` は 2 本だけにした (版の仕様はコードの隣に残す)。`docs/workflow.md` は Phase 3 で作り漏れ、回答を受けて作った (§12)。
 
 ---
 
@@ -114,7 +115,7 @@ proposal (Phase 2) からの主な変更: `docs/system/` は 2 本だけにし�
 | セッション | CLAUDE.md「セッションの始めと終わり」、hook H1、skill `handoff` | 始め: H1 の出力 (git・STATUS の要点・GPU のジョブ) を確かめる。終わり: STATUS を上書き (追記しない)、結果は実験記録、コミットできる状態か確かめる |
 | 長時間ジョブ | CLAUDE.md「長時間のジョブと GPU」、`run_job.sh`、permissions | `run_job.sh --detach` で起動。記録は `outputs/jobs/<時刻>_<名前>/`。exit 0 は完了を意味しない (`exit.txt` の `signal:` の行とチェックポイントで確かめる)。自分が起動していないプロセスは kill せず PID を伝える。起動前に `nvidia-smi` |
 
-不足: proposal §5.1 の「段階・終了の条件・残す記録・飛ばしてよい条件」の表を 1 枚にした人間向けの文書 (`docs/workflow.md`) が無い。中身は skill 4 本に分かれて入っている (§12)。
+全体を見渡す 1 枚: `docs/workflow.md` (段階・終了の条件・残す記録・飛ばしてよい段階、セッションと長時間ジョブの規約)。Phase 3 で作り漏れ、回答を受けて作った (4933775、§12)。
 
 ---
 
@@ -158,7 +159,7 @@ proposal (Phase 2) からの主な変更: `docs/system/` は 2 本だけにし�
 - `paper/Report.md` (実体は `Report_Paper.md`、`dbf9a97` で改名) への切れたリンク: Markdown 11 か所 (ルート README・kt/README・Discussion・next_action・diff_to_TwistedRL・v2・v2-R2・v3 の README)、`paper/explainer/` の HTML 2 ファイルの `href="../Report.md"` 2 か所。docstring・コメントの旧名の参照も直した。
 - 移動 (62b251b) で切れるリンク: `refactor/phase3/fix_links.py` で history・paper の 7 本を機械的に書き換え、残りは手で直した。
 - 今の状態: `tests/test_docs.py` (T6) が全 Markdown の相対リンクの実在を検査し、通る (§11)。`paper/Report.md` の文字列が残るのは互換表・history・凍結した文書の中の旧名の言及だけ。
-- 残っている注意: 追跡ファイル 15 本・18 行が、git 管理外の `refactor/` のファイルを根拠として名指ししている (`git grep -n "refactor/"`。ブランチ名を除く)。どれもリンクではなくコード表記の中のパスなので、T6 には掛からない (`_strip_code` が外す: `tests/test_docs.py:61-63`)。他の checkout では辿れない (§10.1 の Q5-4)。
+- `refactor/` を名指しする追跡ファイルの 18 行 (コード表記で、T6 の検査の外): Q5-4 (a) で `refactor/` を `docs/history/refactor/` へ移し、16 行を新しい場所へ向け直した。残る 2 行は、直して不要になった decisions 0020 の注記 (e943d65 で削除) と、`tests/test_docs.py:86` の除外 (`docs/history/` で足りるので外した) (c99bec7)。
 
 ---
 
@@ -210,23 +211,21 @@ proposal (Phase 2) からの主な変更: `docs/system/` は 2 本だけにし�
 
 ## 10. まだ人間の判断が必要な点と、今後の改善の候補
 
-### 10.1 判断していただきたい点
+### 10.1 判断していただいた点と、まだ判断が要る点
 
-**Q5-4 作業ディレクトリ `refactor/` の後始末** (BRIEF §4「Phase 5 で私が決める」)
-- (a) 推奨: 再現に要る道具と記録 (`phase3/`・`phase4/` のスクリプト、`audit/`、`phase5/coldstart.md`、`proposal.md`、`claude-code-spec.md`、この報告、BRIEF、PROGRESS) を `docs/history/refactor/` へ移して追跡し、追跡ファイルの 18 行の参照をそこへ向け直す。理由: 実験記録の「記録なし」の根拠 (B-101・B-117 など) と、Phase 4 の挙動の確認の道具が他の checkout からも辿れる。大きな JSON (`env_cfgs_*.json` 各約 3.5 MB、`baseline_items.json`) は追跡に入れるかを別に決める (入れないなら 18 行の参照に影響しない)。
-- (b) `refactor/` を削除し、18 行の参照を消す (根拠の一部が辿れなくなる)。
-- (c) 今のまま git 管理外に残す (他の checkout では 18 行が切れたまま)。
+| 質問 | 回答 (2026-10-04) | 実施 |
+|---|---|---|
+| Q5-4 `refactor/` の後始末 | (a) `docs/history/refactor/` へ移して追跡し、18 行を直す | c99bec7。道具 5 本の ROOT の計算を新しい深さに合わせ、`items.py check` は移した先を照合の外にした (数値を写しているので欠落を隠す)。P4-9 の設定のダンプ 3 本 (各 3.5 MB、sha256 が同じ) は追跡せず sha256 を README に残した。ruff は `docs/history/` を対象から外した。`.git/info/exclude` の `/refactor/` の行を消した |
+| Q5-5 文書の誤りを直すか | (a) 直す | e943d65。10.2 |
+| `docs/workflow.md` を作るか | 作る | 4933775。`docs/README.md` の地図に足した |
 
-**Q5-5 見つかった文書の誤りを直すか**
-- (a) 推奨: 直す (文書と docstring だけ。挙動は変えない。T6 などの試験を回してからコミット)。測定は終わっているので、質問への最適化にはならない。対象は 10.2 の一覧。
-- (b) 直さずに、この報告の改善の候補として残す。
-
-**その他**
+まだ判断が要る点:
 - 打ち切った 2 研究 (rope study・推論時探索) を再開するか (STATUS の「保留」)。再開するなら P4-7・P4-10 と rope study の `MODELS` の一本化 (C-9) を最初に行う。
 - `refactor/claude-foundation` を main に入れるか (push・マージは行っていない)。
-- `docs/workflow.md` を作るか (§12)。
 
-### 10.2 見つかった文書の誤り (Q5-5 の対象。まだ直していない)
+### 10.2 見つかった文書の誤り (Q5-5 (a) で直した: e943d65)
+
+6〜14 は直す前にメインが根拠を開いて確かめた (6 は D-17 の元の規則 R-26・R-27 と `train.py:121`・`:191`、13 の文言は 32c9f93 で next_action から消え初版 `5fd7e3c` にある、14 の摩擦は初版から 2.0、8192 環境の理由は `docs/history/next_action.md` §4.8.9 の 09-30 の実測)。直さなかったのは 11 (注記済み) と 15 (凍結した記録の当時の手順) だけ。4 と同じ誤りが `docs/system/evaluation.md:58` にもあったので直した。5 (STATUS) は skill `handoff` で上書きした。`.py` の変更は docstring だけ (docstring を除いた AST が前後で同じ)。
 
 | # | 場所 | 誤り | 出典 |
 |---|---|---|---|
@@ -283,13 +282,27 @@ Phase 3〜5 の途中で行った検証 (コマンドと出力の詳細は `refa
 | Isaac Sim: P4-9 の設定のダンプ前後 (`..._19-15-43_p49_cfg_before2`・`..._19-15-55_p49_cfg_after`) | バイト単位で同じ。1 回目の前 (`..._19-14-55_p49_cfg_before`) は読んだコードを出力から判別できず、印を足して再実行した (自分の計測の誤り) |
 | SessionStart・rules の `paths`・kill の確認・guard の拒否・`env` | 新しい session で効いた (§2) |
 
+
+### 11.3 回答を受けた後の実施の後 (2026-10-04、c99bec7 + STATUS と記録の更新の作業ツリー)
+
+道具のパスは移した先 (`docs/history/refactor/`)。
+
+| コマンド | 結果 |
+|---|---|
+| `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run python -m pytest tests/ -q` | `281 passed, 1 warning in 49.93s` (T6 は移した Markdown 40 本のリンクも検査した) |
+| `uvx ruff@0.16.10 check .` / `format --check .` | `All checks passed!` / `130 files already formatted` |
+| `python3 docs/history/refactor/phase3/items.py check` | `check: 2259 pairs, missing 0` (移した先は照合の外) |
+| `uv run python docs/history/refactor/phase4/dump_tasks.py \| diff - docs/history/refactor/phase4/tasks_before.json` | 差分なし (166 件) |
+| `bash docs/history/refactor/phase4/test_run_job.sh` | `19 passed, 0 failed` |
+| `python3 docs/history/refactor/phase3/test_guard.py` | `24/24 as expected` |
+| e943d65 の `.py` 6 本: docstring を除いた AST を HEAD と比べる (一時のスクリプト) | 6 本とも同じ |
 ---
 
 ## 12. 承認済みの提案からの逸脱
 
 | 逸脱 | 理由 | 記録 |
 |---|---|---|
-| **`docs/workflow.md` (研究サイクルの段階表) を作っていない** (proposal §2.1・§5、Q2 の (a) で承認) | 作らない判断の記録が無い。作業の型は skill 4 本と CLAUDE.md に入っているが、人間が全体を見渡す 1 枚が無い。原因は未確認 (Phase 3 の計画の表 1〜14 に workflow.md の行が無く、計画に落とすときに抜けたとみられる: 推測) | この報告で初めて記録 |
+| **`docs/workflow.md` (研究サイクルの段階表) を Phase 3 で作り漏れた** (proposal §2.1・§5、Q2 の (a) で承認) | 作らない判断の記録は無く、Phase 3 の計画の表 1〜14 に行が無かった。計画に落とすときに抜けたとみられる (推測)。最終報告の作成中に気づいた | この報告で記録し、回答を受けて作った (4933775) |
 | ruff の設定を `pyproject.toml` ではなく `ruff.toml` に置いた | `pyproject.toml` を変えると `uv run` が editable install を作り直して `.venv` を書き換える (Q2-8 (a) に反する) | PROGRESS「計画の小さな変更」 |
 | CLAUDE.md は約 90 行の案に対して 55 行 | 各行が「消すと間違えるか」に通るものだけにした | — |
 | v1・v3 の README の局所の理由を decisions へ移さず残した | proposal §1 の「局所の理由はコードの隣」と §2.3 の表が食い違っていたため、§1 を優先 | PROGRESS (2026-10-03) |

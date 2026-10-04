@@ -16,22 +16,12 @@ from __future__ import annotations
 
 import itertools
 import math
-import pathlib
-import sys
 
 import pytest
+import topology as tp
 import torch
-
-_KNOT_TYING_DIR = (
-    pathlib.Path(__file__).resolve().parents[1] / "src" / "isaac_twisted_rl" / "tasks" / "knot_tying" / "common"
-)
-sys.path.insert(0, str(_KNOT_TYING_DIR))
-
-import topology as tp  # noqa: E402
-from topology import knot_detect as kd  # noqa: E402
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from test_knot_detect import _random_ropes, _trefoil, _trefoil_with_tail_loop  # noqa: E402
+from test_knot_detect import _random_ropes, _trefoil, _trefoil_with_tail_loop
+from topology import knot_detect as kd
 
 # ---------------------------------------------------------------- 手順どおりのロープ
 

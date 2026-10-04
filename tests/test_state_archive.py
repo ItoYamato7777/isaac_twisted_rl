@@ -8,16 +8,10 @@ Isaac Sim を起動せずに走る (純 torch)::
 from __future__ import annotations
 
 import math
-import pathlib
-import sys
 
 import pytest
+import state_archive as sa
 import torch
-
-_COMMON = pathlib.Path(__file__).resolve().parents[1] / "src" / "isaac_twisted_rl" / "tasks" / "knot_tying" / "common"
-sys.path.insert(0, str(_COMMON))
-
-import state_archive as sa  # noqa: E402
 
 J = 5
 

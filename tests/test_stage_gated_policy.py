@@ -17,17 +17,11 @@ from __future__ import annotations
 
 import copy
 import io
-import pathlib
-import sys
 
 import pytest
 import torch
-
-_COMMON = pathlib.Path(__file__).resolve().parents[1] / "src" / "isaac_twisted_rl" / "tasks" / "knot_tying" / "common"
-sys.path.insert(0, str(_COMMON))
-
-from policies.stage_gated import GatedMLP, StageGatedActorCritic, register_with_rsl_rl  # noqa: E402
-from rsl_rl.modules import ActorCritic  # noqa: E402
+from policies.stage_gated import GatedMLP, StageGatedActorCritic, register_with_rsl_rl
+from rsl_rl.modules import ActorCritic
 
 OBS, ACT, STAGE_DIMS = 12, 6, 4
 GROUPS = {"policy": ["policy"], "critic": ["policy"]}

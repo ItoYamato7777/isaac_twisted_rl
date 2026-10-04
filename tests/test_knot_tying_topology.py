@@ -8,11 +8,11 @@
 対象パッケージは `isaaclab` / `omni` / `pxr` を import しないので、
 **Isaac Sim を起動せずに素の pytest で実行できる**:
 
-    PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/test_knot_tying_topology.py
+    PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run python -m pytest tests/test_knot_tying_topology.py
 
 `isaac_twisted_rl.tasks` の `__init__.py` は全サブパッケージを自動 import する
-(= Isaac Sim が要る) ため、通常の import 経路は使わず、`knot_tying`
-ディレクトリを直接 `sys.path` に足して `topology` を単独で読み込む。
+(= Isaac Sim が要る) ため、通常の import 経路は使わず、`knot_tying/common`
+ディレクトリを `sys.path` に足して (`tests/conftest.py`) `topology` を単独で読み込む。
 
 ## ゴールデンデータの出どころ
 
@@ -35,18 +35,10 @@
 from __future__ import annotations
 
 import math
-import pathlib
-import sys
 
 import pytest
+import topology as tp
 import torch
-
-_KNOT_TYING_DIR = (
-    pathlib.Path(__file__).resolve().parents[1] / "src" / "isaac_twisted_rl" / "tasks" / "knot_tying" / "common"
-)
-sys.path.insert(0, str(_KNOT_TYING_DIR))
-
-import topology as tp  # noqa: E402
 
 # ---------------------------------------------------------------- ゴールデンデータ
 

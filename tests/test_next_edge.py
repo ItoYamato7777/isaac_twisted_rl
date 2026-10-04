@@ -17,21 +17,13 @@ Isaac Sim を起動せずに走る (グラフの列挙に約 20 s。`test_knot_g
 from __future__ import annotations
 
 import collections
-import pathlib
-import sys
 
 import pytest
+import topology as tp
 import torch
-
-_COMMON = pathlib.Path(__file__).resolve().parents[1] / "src" / "isaac_twisted_rl" / "tasks" / "knot_tying" / "common"
-sys.path.insert(0, str(_COMMON))
-
-import topology as tp  # noqa: E402
-from topology import knot_graph as kg  # noqa: E402
-from topology import next_edge as ne  # noqa: E402
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from test_knot_detect import _random_ropes  # noqa: E402
+from test_knot_detect import _random_ropes
+from topology import knot_graph as kg
+from topology import next_edge as ne
 
 N = 28
 """`Knot` プリセットのリンク数。"""

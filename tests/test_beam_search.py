@@ -8,17 +8,11 @@ Isaac Sim を起動せずに走る::
 from __future__ import annotations
 
 import math
-import pathlib
 import random
-import sys
 
+import beam_search as bs
 import pytest
 import torch
-
-_COMMON = pathlib.Path(__file__).resolve().parents[1] / "src" / "isaac_twisted_rl" / "tasks" / "knot_tying" / "common"
-sys.path.insert(0, str(_COMMON))
-
-import beam_search as bs  # noqa: E402
 
 # ---------------------------------------------------------------- classify
 

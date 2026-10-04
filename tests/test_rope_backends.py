@@ -16,7 +16,6 @@ import pytest
 import torch
 
 _COMMON = pathlib.Path(__file__).resolve().parents[1] / "src" / "isaac_twisted_rl" / "tasks" / "knot_tying" / "common"
-sys.path.insert(0, str(_COMMON))
 
 # `rope_backends` を isaaclab 抜きで読む (パッケージの __init__ は docstring だけだが、親の
 # `isaac_twisted_rl.tasks` を経由すると isaaclab を import してしまうので、直接ファイルから読む)。

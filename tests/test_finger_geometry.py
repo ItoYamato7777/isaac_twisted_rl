@@ -3,16 +3,10 @@
 from __future__ import annotations
 
 import math
-import pathlib
-import sys
 
+import finger_geometry as fg
+import phases
 import torch
-
-_MDP = pathlib.Path(__file__).resolve().parents[1] / "src/isaac_twisted_rl/tasks/knot_tying/common/mdp"
-sys.path.insert(0, str(_MDP))
-
-import finger_geometry as fg  # noqa: E402
-import phases  # noqa: E402
 
 R = 0.01
 """`knot` のロープ半径 [m]。"""

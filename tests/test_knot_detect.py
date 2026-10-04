@@ -29,19 +29,12 @@
 from __future__ import annotations
 
 import math
-import pathlib
 import sys
 
 import pytest
+import topology as tp
 import torch
-
-_KNOT_TYING_DIR = (
-    pathlib.Path(__file__).resolve().parents[1] / "src" / "isaac_twisted_rl" / "tasks" / "knot_tying" / "common"
-)
-sys.path.insert(0, str(_KNOT_TYING_DIR))
-
-import topology as tp  # noqa: E402
-from topology import knot_detect as kd  # noqa: E402
+from topology import knot_detect as kd
 
 # ---------------------------------------------------------------- ポリライン生成
 

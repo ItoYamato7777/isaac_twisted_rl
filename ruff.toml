@@ -1,0 +1,39 @@
+# ruff の設定。呼び出しは `uvx ruff@0.16.10 check|format <ファイル>`。
+# ruff は uv の環境に入れない (uv.lock と .venv を変えないため)。設定を pyproject.toml に置かないのも同じ理由
+# (pyproject.toml が変わると、次の `uv run` がこのプロジェクトの editable install を作り直す)。
+# 版によって既定の規則の集合が大きく変わるので、版を固定する。
+required-version = "==0.16.10"
+line-length = 120
+target-version = "py311"
+# 文書の中のコードブロックは整形しない (コメントの桁揃えが崩れる。凍結した報告書もある)。
+extend-exclude = ["*.md"]
+
+[lint]
+# 最初は小さい集合にする。B008 (SceneEntityCfg を既定値に置く Isaac Lab の慣用) などは選ばない。
+select = ["E4", "E7", "E9", "F", "I"]
+
+[lint.isort]
+known-first-party = ["isaac_twisted_rl"]
+
+[lint.per-file-ignores]
+# AppLauncher で Kit を起動してから isaaclab などを import するスクリプト。
+# import の位置と順序に意味があるので、E402 と並べ替え (I) を当てない。
+"src/isaac_twisted_rl/scripts/list_envs.py" = ["E402", "I"]
+"src/isaac_twisted_rl/scripts/random_agent.py" = ["E402", "I"]
+"src/isaac_twisted_rl/scripts/rsl_rl/eval_chain.py" = ["E402", "I"]
+"src/isaac_twisted_rl/scripts/rsl_rl/eval_search.py" = ["E402", "I"]
+"src/isaac_twisted_rl/scripts/rsl_rl/play.py" = ["E402", "I"]
+"src/isaac_twisted_rl/scripts/rsl_rl/train.py" = ["E402", "I"]
+"src/isaac_twisted_rl/scripts/zero_agent.py" = ["E402", "I"]
+"src/isaac_twisted_rl/tasks/knot_tying/demos/divergence_bench.py" = ["E402", "I"]
+"src/isaac_twisted_rl/tasks/knot_tying/demos/generate_assets.py" = ["E402", "I"]
+"src/isaac_twisted_rl/tasks/knot_tying/demos/multi_rope_catch.py" = ["E402", "I"]
+"src/isaac_twisted_rl/tasks/knot_tying/demos/overhand_script.py" = ["E402", "I"]
+"src/isaac_twisted_rl/tasks/knot_tying/demos/parallel_gripper.py" = ["E402", "I"]
+"src/isaac_twisted_rl/tasks/knot_tying/demos/rope_catch.py" = ["E402", "I"]
+"src/isaac_twisted_rl/tasks/knot_tying/demos/spawn_rope.py" = ["E402", "I"]
+"src/isaac_twisted_rl/tasks/knot_tying/demos/topology_debug.py" = ["E402", "I"]
+"src/isaac_twisted_rl/tasks/knot_tying/rope_study/bench_cantilever_art.py" = ["E402", "I"]
+"src/isaac_twisted_rl/tasks/knot_tying/rope_study/bench_physics.py" = ["E402", "I"]
+"src/isaac_twisted_rl/tasks/knot_tying/rope_study/eval_robust.py" = ["E402", "I"]
+"src/isaac_twisted_rl/tasks/knot_tying/rope_study/smoke_test.py" = ["E402", "I"]

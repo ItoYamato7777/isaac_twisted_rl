@@ -13,7 +13,7 @@ Isaac Lab 上で、ロボットハンドがロープを固結び (overhand knot)
 - テスト (約 50 s、Isaac Sim 不要): `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run python -m pytest tests/ -q`
   - 環境変数は、`/opt/ros/jazzy` の `launch_testing` が pytest のプラグインの自動読み込みに引っかかり `ModuleNotFoundError: lark` で落ちるのを避けるため。
   - `uv run pytest` は使わない (`.venv/bin/pytest` の shebang が別のリポジトリの python を指す)。
-- lint: ruff の設定はまだリポジトリに無い (`.pre-commit-config.yaml` も無い)。ファイル全体に `ruff format` や `ruff check --fix` をかけない (触っていない行が変わり、起動スクリプトの import の順序や Warp のカーネルを壊すものがある)。
+- lint: 設定は `ruff.toml` (版を固定)。`uvx ruff@0.16.10 check <ファイル>`・`uvx ruff@0.16.10 format <ファイル>` (`uv run ruff` は無い)。`--select` で規則を足して `--fix` をかけない (起動スクリプトの import の順序や、Warp のカーネルの中の `float(0.0)` を壊すものがある)。
 
 ## 壊してはいけない制約 (`tests/test_invariants.py` が検査する)
 

@@ -15,6 +15,8 @@
 #   (変えると cuda:N の番号の対応が変わり、学習と評価で同じ --device を使う約束が崩れる)。
 # - 止めるときは job の pid のファイルにある PID (timeout のプロセス) に SIGTERM を送る。timeout が子に伝え、
 #   kill-after の後に SIGKILL する。自分が起動していないジョブの PID は、止めずにユーザーに伝える。
+# - Claude Code のバックグラウンドの Bash で前景のまま起動すると、session の終わりにシェルごと止められる。
+#   session をまたぐジョブは --detach で起動する。
 set -euo pipefail
 
 usage() { sed -n '2,4p' "$0" >&2; exit 2; }
@@ -103,7 +105,10 @@ timeout -k "$kill_after" "$duration" "$@" > "$jobdir/job.log" 2>&1 &
 child=$!
 echo "$child" > "$jobdir/pid"
 echo "pid: $child  log: $jobdir/job.log" >&2
-trap 'kill -TERM "$child" 2>/dev/null || true' INT TERM
+got=""
+trap 'got=INT; kill -TERM "$child" 2>/dev/null || true' INT
+trap 'got=TERM; kill -TERM "$child" 2>/dev/null || true' TERM
+trap 'got=HUP; kill -TERM "$child" 2>/dev/null || true' HUP
 set +e
 wait "$child"; rc=$?
 # trap で wait が途中で返ったときは、子の終わりをもう一度待つ
@@ -112,4 +117,6 @@ set -e
 printf 'exit: %s\nend: %s\n' "$rc" "$(date --iso-8601=seconds)" > "$jobdir/exit.txt"
 [ "$rc" = 124 ] && echo "timeout: ${duration} で止めた" >> "$jobdir/exit.txt"
 [ "$rc" = 137 ] && echo "SIGKILL で止まった (timeout の kill-after か、外からの kill -9)" >> "$jobdir/exit.txt"
+# Isaac Lab の AppLauncher は SIGTERM を受けると app を閉じて exit 0 で終わる。exit 0 だけでは最後まで走ったと言えない
+[ -n "$got" ] && echo "signal: run_job が SIG$got を受け、子に SIGTERM を送った (exit 0 でも途中で止まっている)" >> "$jobdir/exit.txt"
 exit "$rc"

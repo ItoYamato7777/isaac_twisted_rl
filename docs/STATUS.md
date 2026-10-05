@@ -30,15 +30,16 @@
 
 ## 走っているジョブ
 
-v7 seed 43 を iteration 100 から 500 まで再開した学習 (2026-10-05 20:39 起動、1 iteration 約 220 s の見込みで約 24 時間)。
+2026-10-05 22:05 に確認。止めてよいのは自分が起動した PID だけ (job の `pid` のファイルの PID に SIGTERM)。
 
-- pid 435966 (`timeout`)、GPU 0 (cuda:0)、job: `outputs/jobs/2026-10-05_20-39-20_v7_s43_to500/`、run: `logs/rsl_rl/knot_tying_v7/2026-10-05_20-39-*_v7_s43_to500/` (iteration は 100 から数える。最後は `model_500.pt`)。
-- 起点: `2026-10-04_22-37-42_v7_s43/model_100.pt` (chain 評価の固結び 53.7%。v7 の 2 シード・2 点のうち最良)。
-- コマンド: `uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:0 --seed 43 --resume --load_run 2026-10-04_22-37-42_v7_s43 --checkpoint model_100.pt --max_iterations 401 --run_name v7_s43_to500 agent.device=cuda:0 agent.save_interval=10 'env.events.reset_to_stage.params.load_paths=[<起点の run>/archive.pt]'`。
-  評価には同じ `env.events...load_paths` の上書きは不要 (Play は段 0 のまっすぐなロープから始めるため。未確認)。
-- 起動時に、元の run の最後のアーカイブ (`archive.pt`、段 0〜2 が各 16384 件) を読ませた。付けないと初期アーカイブからやり直しになる。optimizer は `runner.load` が復元する。
-- 起動したとき `versions/v9/`・`tests/test_v9_cfg.py` が未追跡だった (v7 の挙動には関係しない)。
-- 同時に別の学習を cuda:0 に載せない (2026-10-05 14:05 の再開 3 本は GPU 共有で Kit が落ちた)。
+| job (`outputs/jobs/`) | PID | GPU | 中身 | run のフォルダ |
+|---|---|---|---|---|
+| `2026-10-05_21-01-23_v9_s43` | 460925 | cuda:1 | v9 seed 43 の学習 (`--max_iterations 101`、`agent.save_interval=10`)。1 iteration 約 218 s、03:10 頃に終わる見込み | `logs/rsl_rl/knot_tying_v9/2026-10-05_21-01-28_v9_s43` |
+| `2026-10-05_22-04-07_chain_B_then_v9_s44` | 527195 | cuda:1 | v9 s43 の `exit.txt` を待ち、v7 (seed 43 / 44、iteration 100) の評価を順に回してから v9 seed 44 の学習を `--detach` で起動する。評価: `shapes` (run の `archive.pt` の段 2 から 128 形、台本の初期アーカイブの段 2 の全 130 形。各 64 回・6 手・決定論的・1024 環境)、`rollouts`、`search` (記録の付録と同じ設定、`--max_minutes 120`)。コマンドは job の `cmd.txt` | 評価の JSON は v7 の各 run のフォルダの `eval_search_*_it100*.json` |
+| (自分の起動ではない) `2026-10-05_20-39-20_v7_s43_to500` | 435971 | cuda:0 | v7 seed 43 を iteration 100 から 500 まで延長 (`--resume`)。20:39 起動 | `logs/rsl_rl/knot_tying_v7/2026-10-05_20-39-25_v7_s43_to500` |
+
+- GPU の割り当てはユーザーの判断 (2026-10-05): v9 は GPU 1 に 1 本ずつ (s43 の後に s44)、作業 B の評価は s43 と s44 の間に GPU 1 で回す。GPU 0 は上の延長学習が使っている。
+- smoke test (`outputs/jobs/2026-10-05_20-44-19_smoke_v9`、GPU 0 を延長学習と共有) は通った。`params/env.yaml` を v7 s43 と diff し、差がシード・ログのパス・`stage_weights` の 3 番目 (1.0 -> 2.0) だけであることを確かめた。学習ログの `start_frac_s2` は 0.50。
 
 ## 次の作業
 

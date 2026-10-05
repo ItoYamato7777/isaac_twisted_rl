@@ -69,6 +69,12 @@ parser.add_argument("--max_minutes", type=float, default=0.0, help="search: wall
 parser.add_argument("--max_same", type=int, default=6, help="search: same-stage moves allowed along a line.")
 parser.add_argument("--restart_p", type=float, default=0.05, help="search: uniform restart probability p.")
 parser.add_argument("--no_mean_first", action="store_true", default=False, help="search: sample every candidate.")
+parser.add_argument(
+    "--rank",
+    choices=("value", "random"),
+    default="value",
+    help="search: order within a stage by the critic V(s) or uniformly at random (to check the critic helps).",
+)
 parser.add_argument("--std_scale", type=float, default=1.0, help="search/rollouts: scale of the policy std.")
 # shapes
 parser.add_argument(
@@ -459,6 +465,9 @@ def run_search(env, unwrapped, policy: Policy, settle: tuple[float, float], budg
     gen = torch.Generator(device=dev)
     gen.manual_seed(int(args_cli.seed or 0))
     search = bs.BeamSearch(cfg, root, dev, generator=gen)
+    # `--rank random` の順位付けは探索とは別の乱数列にする (他の乱数の引き方を V(s) の場合と揃えるため)。
+    rank_gen = torch.Generator(device=dev)
+    rank_gen.manual_seed(int(args_cli.seed or 0) + 1)
     print(
         f"[search] G={groups} problems in parallel x S={s} envs (M={cfg.beam_width}), {cfg.num_problems} problems, "
         f"budget {cfg.max_moves} moves/problem"
@@ -490,7 +499,10 @@ def run_search(env, unwrapped, policy: Policy, settle: tuple[float, float], budg
             knot, div, settled, child_stage = step_outcome(env, unwrapped, obs, *settle)
             parent_stage = search.store.stage[slot_node.clamp_min(0)]
             outcome = bs.classify(parent_stage, child_stage, knot, div, settled)
-            value = policy.value(obs)
+            if args_cli.rank == "value":
+                value = policy.value(obs)
+            else:
+                value = torch.rand(n, device=dev, generator=rank_gen)
             child_state = cloner.capture()
             child_state["obs"] = obs["policy"].clone()
             finished = search.commit_round(plan, outcome, child_stage, value, child_state, now=time.time() - t0)
@@ -526,6 +538,7 @@ def run_search(env, unwrapped, policy: Policy, settle: tuple[float, float], budg
             "max_same": cfg.max_same,
             "restart_random_prob": cfg.restart_random_prob,
             "mean_first": cfg.mean_first,
+            "rank": args_cli.rank,
             "std_scale": args_cli.std_scale,
             "max_minutes": args_cli.max_minutes,
         },

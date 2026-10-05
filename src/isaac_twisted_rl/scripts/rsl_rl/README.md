@@ -99,6 +99,7 @@ uv run python src/isaac_twisted_rl/scripts/rsl_rl/summarize_search.py v6s42=$C .
 4. 「上がった」と「同じ」から次のフロンティアを M 個選ぶ: **段の高い候補を先に取り、同じ段の中だけを
    その段の critic の V(s) で比べる** (値で並べてから段で安定ソート)。`StageGatedActorCritic` の critic は
    段ごとに別のネットワークで、尺度が揃っていないので、段が違う値どうしは比べない。
+   `--rank random` は同じ段の中の順位を一様乱数にする (critic が効いているかを比べるため。段の優先はそのまま)。
 5. フロンティアに入ったノードを到達木に足す (親・深さ・段・値・同じ段が続いた手数を持つ)。
 
 ### 線の打ち切りと再開

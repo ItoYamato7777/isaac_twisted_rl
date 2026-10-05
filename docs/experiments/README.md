@@ -2,7 +2,7 @@
 
 - 状態: 現行 (記録を足すたびに 1 行足す)
 - 読むべき状況: 過去の学習・評価・計測の結果を探すとき。数値の正本は各記録で、この一覧には数値を書かない
-- 最終更新: 2026-10-04
+- 最終更新: 2026-10-05
 
 各記録は凍結 (本文を書き換えない)。後で分かったことは、冒頭の引用ブロックの注記か新しい記録で足す。書き方は skill `experiment-record`。
 評価の定義は [`docs/system/evaluation.md`](../system/evaluation.md)、ログのフォルダ名・run 名・チェックポイントの意味は [`docs/system/logs.md`](../system/logs.md)。
@@ -23,5 +23,6 @@ run のフォルダは `logs/rsl_rl/` の下 (git の管理外)。日時付き�
 | 2026-10-01 | v4〜v7 の版の README にあった学習の結果の補足 | 凍結 | 上の比較の run のフォルダ名・最後のチェックポイント・評価 JSON の一覧と、報告書に無い値。v7 の結果は v6 + 上書きの run | 同上 | [2026-10-01_v4-v7_readme-notes.md](2026-10-01_v4-v7_readme-notes.md) |
 | 2026-10-02 | 紐のシミュレーションモデルの比較 (rope study) | 打ち切り中 | 実機の検証へ持っていく最有力は剛体鎖。XPBD は物理では最良だが学習の途中で方策が崩れる。発散の数値は過大の疑い (未確認) | `knot_tying_rs_*/` (無効な run は `INVALID.txt`) | [2026-10-02_rope_models.md](2026-10-02_rope_models.md) |
 | 2026-10-03 | 推論時探索の評価 (中間) | 打ち切り中 | 探索を入れても版の順位は変わらない (1 シードずつ)。今の設定のビーム探索は best-of-N をはっきりとは上回らない。評価は途中で停止 | `knot_tying_v4/`、`knot_tying_v5/`、`knot_tying_v6/`、`knot_tying_v6_ablation/` (`eval_search_*`) | [2026-10-03_inference_search.md](2026-10-03_inference_search.md) |
+| 2026-10-04 | v7 の確認の学習 (seed 43 / 44) と v6・v4 との比較 | 凍結 | iteration 100 の chain 評価で v7 の 2 シードとも v6・v4 を上回った。iteration 70 では差が見えない。v6 とシードと GPU の配置が揃っていない | `knot_tying_v7/` | [2026-10-04_v7_seeds.md](2026-10-04_v7_seeds.md) |
 
 記録から抜き出した設計の判断: [`0020`](../decisions/0020-v4-solver-iterations-and-steps-per-iteration.md) (v4 のソルバの反復 8・1 iteration 4 手)、[`0021`](../decisions/0021-measure-physics-changes-by-training.md) (物性の変更は学習と chain 評価で確かめる)。

@@ -28,7 +28,7 @@ v6 に 1 つずつ入れた (seed 42、4096 環境、GPU 1 枚に 2 本)。学�
 **ただし本番の指標 (chain 評価、iteration 70) では確かめられなかった。** (b) は 31.2% で、v6 の 2 シード
 (35.2% / 16.0%) の間、v4 (29.7%) と同程度。(b) は 18 手のあいだの発散を v4 と同じ 17% に戻すので、段 2 を
 学びやすくなった分と相殺している (発散しなかったエピソードに限ると (b)・v4・v6 s42 とも 36〜38%)。
-**v7 の確認の学習はまだ回していない。** 詳しくは [`docs/experiments/2026-10-01_v4-v6_overnight.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight.md) の追記。
+v7 のタスク ID での確認の学習 (2 シード、iteration 100) の結果は下の「結果」。詳しくは [`docs/experiments/2026-10-01_v4-v6_overnight.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight.md) の追記。
 
 ## v6 から何を・なぜ変えたか
 
@@ -59,11 +59,12 @@ v6 と同じ (`../v6/README.md` の「見るべき指標」)。特に:
 
 ## 結果
 
-**v7 としての学習はまだ無い** (2026-10-02 時点。`logs/rsl_rl/knot_tying_v7/` は無い)。v7 と同じ設定の run は v6 の切り分けの
-`logs/rsl_rl/knot_tying_v6_ablation/2026-10-02_12-33-35_abl_depB_s42` (v6 + Hydra の上書き、seed 42、iteration 70) だけ。
-その chain 評価は [`docs/experiments/2026-10-01_v4-v6_overnight.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight.md) の追記、run の一覧と保留した確認の学習の計画は
-[`docs/experiments/2026-10-01_v4-v7_readme-notes.md`](../../../../../../docs/experiments/2026-10-01_v4-v7_readme-notes.md)。
-次の候補 (シードを増やす、めり込み解消速度の中間値 0.6〜0.7 m/s など) は同じ報告書の「追記の後の次の候補」。
+v7 のタスク ID での確認の学習 (seed 43 / 44、iteration 100) と chain 評価は
+[`docs/experiments/2026-10-04_v7_seeds.md`](../../../../../../docs/experiments/2026-10-04_v7_seeds.md) (数値の正本)。iteration 100 では 2 シードとも v6 の 2 シードと
+v4 を上回り、iteration 70 では差がシード差に埋もれる。v6 とはシードと GPU の配置が揃っていない (同記録の「未確認」)。
+
+v7 seed 42 に当たる run は v6 の切り分けの `logs/rsl_rl/knot_tying_v6_ablation/2026-10-02_12-33-35_abl_depB_s42`
+(v6 + Hydra の上書き、iteration 70 まで)。その chain 評価は [`docs/experiments/2026-10-01_v4-v6_overnight.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight.md) の追記。
 
 ### 時間切れの罰則 (試して外したもの)
 

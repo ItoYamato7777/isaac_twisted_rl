@@ -6,8 +6,8 @@
 
 ## 要点
 
-- v7 を seed 43 / 44 で学習した。iteration 100 の chain 評価で 2 シードとも v6 (2 シード)・v4 を上回った。ただしシードと GPU の配置が v6 と揃っていない ([記録](experiments/2026-10-04_v7_seeds.md))。
-- 次の候補は、v6 seed 44 で揃えて比べることと、v7 を iteration 150〜200 まで延ばすこと。どれを回すかはユーザーが決める。
+- v8 (= v7 + PPO の対称性のデータ拡張、鏡像・逆順で 4 倍) を実装し、seed 43 を学習中 (GPU 1)。seed 44 は GPU 0 が空いたら起動する。比べる相手は v7 の seed 43 / 44 (iteration 70 / 100 の chain 評価)。
+- 学習の前の確認 (`scripts/rsl_rl/symmetry_check.py`) で、計算し直した観測は環境と一致した。物理は 1 手あたり数 cm 非対称 (同じ手どうしの約 5〜10 倍) だが、方策が受けている物理の揺れの範囲として進めた。数値は v8 の実験記録に書く (未作成)。
 - 研究の作業 (rope study・推論時探索の評価) は 2026-10-03 に打ち切った。ユーザーの指示があるまで再開しない。
 
 ## 版の状態
@@ -25,21 +25,29 @@
 | v5 | chain 評価 済み (seed 42 だけ) | 同上 |
 | v6 | chain 評価 済み (seed 42・43、GPU 1 枚に 2 本) | 同上 |
 | v7 | chain 評価 済み (seed 43・44 は iteration 100 まで、GPU 1 枚に 1 本。seed 42 に当たる `abl_depB` は iteration 70 まで) | [2026-10-04_v7_seeds](experiments/2026-10-04_v7_seeds.md) |
+| v8 | 学習中 (seed 43)。smoke test (`outputs/jobs/2026-10-05_12-50-39_smoke_v8`) は通った。判断の記録は [0022](decisions/0022-p2-one-version-each.md) | (未作成) |
 
 ## 走っているジョブ
 
-なし (2026-10-05 に `nvidia-smi` で確認)。
+自分が起動したもの (止めるときは job の pid に SIGTERM):
+
+| job のフォルダ (`outputs/jobs/`) | pid | GPU | run のフォルダ | 終わる見込み |
+|---|---|---|---|---|
+| `2026-10-05_12-58-41_v8_s43` | 1234899 | cuda:1 | `logs/rsl_rl/knot_tying_v8/*_v8_s43` | 10-05 19:00 頃 (1 iteration 約 3.3 分 × 101) |
+
+コマンド: `run_job.sh --name v8_s43 --timeout 10h --detach -- uv run train --task Isaac-Twisted-RL-Knot-v8 --headless --device cuda:1 --seed 43 --max_iterations 101 --run_name v8_s43 agent.device=cuda:1 agent.save_interval=10` (commit `979fbdb`)
+
+他のジョブ (触らない): PID 1224684 (`train --task Isaac-Twisted-RL-Knot-v7 --headless`、既定の引数、cuda:0、2026-10-05 12:43 起動、run は `logs/rsl_rl/knot_tying_v7/2026-10-05_12-43-46`)。
 
 ## 次の作業
 
-1. 次に何をするかはユーザーが決める。候補 (出典: [v7 の記録](experiments/2026-10-04_v7_seeds.md) の「次の作業」):
-   - v6 を seed 44 で学習し (できれば GPU 1 枚に 1 本)、v7 と同じシード 43 / 44 で chain 評価を比べる。仮説: v7 の優位 (iteration 100) はシードと GPU の配置を揃えても残る。約 6 時間 + 評価 15 分。
-   - v7 を `--resume` で iteration 150〜200 まで続け、10〜20 iteration ごとに chain 評価して頭打ちの位置を見る。
-   - 上の 2 つで差が保たれれば、v7 を次の版 (v8) の土台にする。
-2. その他の候補 (どれも未着手):
-   - めり込み解消速度の中間値 (0.6〜0.7 m/s)。学習の前に skill `physics-check` で発散と固結びを測る。出典: [overnight の記録](experiments/2026-10-01_v4-v6_overnight.md) の「追記の後の次の候補」。
-   - 評価を強くする (確率的な方策での chain 評価、10 iteration ごとの学習曲線、エピソード数・シードを増やす)。出典: 同上。
-   - 研究方針の提案 E0〜E7・S1 ([`paper/Discussion.md`](../paper/Discussion.md)、2026-10-01 時点の仮説の文書)。S1 (推論時の候補評価) は推論時探索で一部実施された。
+1. v8 seed 44 を、GPU 0 が空いたら同じコマンド (`--device cuda:0 --seed 44 --run_name v8_s44 agent.device=cuda:0`) で起動する (v7 と同じく GPU 1 枚に 1 本)。
+2. 学習が終わったら `exit.txt` (`signal:` が無い) と `model_100.pt` を確かめ、iteration 70 / 100 を chain 評価する (`Isaac-Twisted-RL-Knot-Play-v8`、512 環境、seed 7、Hydra の上書きなし)。v7 s43 / s44 の `eval_chain_it{70,100}.json` と比べる。仮説: 対称性のデータ拡張で段 2 -> 固結びの学習が速くなり、v7 との差が v7 のシード差 (iteration 100 で 6 ポイント) と標準誤差 (約 2 ポイント) を超える。
+3. skill `experiment-record` で v8 の記録を書く。学習の前の確認 (symmetry_check の結果 `outputs/symcheck4_v8_{policy_v7s43_it100,random}.json`、job は `outputs/jobs/2026-10-05_12-44-1*_symcheck4_*`) もそこに入れる。
+4. その他の候補 (どれも未着手):
+   - v6 を seed 44 で学習し、v7 と同じシード 43 / 44 で比べる。v7 を iteration 150〜200 まで延ばす。出典: [v7 の記録](experiments/2026-10-04_v7_seeds.md) の「次の作業」。
+   - P2 の残り (新しさの探索を位相のキーの訪問回数で、初期形状のランダム化)。順と条件は [0022](decisions/0022-p2-one-version-each.md)。
+   - めり込み解消速度の中間値 (0.6〜0.7 m/s)、評価を強くする。出典: [overnight の記録](experiments/2026-10-01_v4-v6_overnight.md) の「追記の後の次の候補」。
 
 ## 保留 (打ち切り中。再開するかはユーザーの判断待ち)
 
@@ -49,4 +57,4 @@
 | rope study (紐モデルの比較) | 最終報告まで書いた。評価と実装は 2026-10-03 13:00 に打ち切り | XPBD の段 0 の方策の崩れの切り分け (結論を変えうる最大の未解決) | [2026-10-02_rope_models](experiments/2026-10-02_rope_models.md) §12 |
 
 - rope study の発散の数値には、`rope_study/bench_physics.py:378` の数え方による過大の疑いがある (未確認。再開するときに確かめる)。
-- 推論時探索の記録の「V8」は、次の版 (v8) のことと読める (定義は記録に無い)。v8 の中身は未定。
+- 推論時探索の記録の「V8」は、2026-10-05 に作った v8 (対称性のデータ拡張) とは別に書かれたもので、中身の定義は無い。

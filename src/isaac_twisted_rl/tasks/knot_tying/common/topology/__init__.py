@@ -37,6 +37,7 @@ Isaac Sim を起動せずに `pytest` 単体で検証できる。Isaac Lab の
     knot_detect.py      固結びの判定と報酬ラダーの段・R2 除去 (テンソル層のみ)
     knot_graph.py       R1/R2/cross の位相グラフと固結びまでの BFS 距離 (v3、交差 4 個まで) と段 (v4)、最短の次の辺 (v6)
     next_edge.py        次にたどる辺のリンクマスク (v6。テンソル層)
+    symmetry.py         鏡像・逆順の対称変換を観測と行動にかける (v8 のデータ拡張)
 """
 
 from .intersections import (

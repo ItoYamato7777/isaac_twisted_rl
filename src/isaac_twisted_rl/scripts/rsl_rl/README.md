@@ -6,6 +6,7 @@
 | `eval_chain.py` | v4 以降の **chain 評価**: Play 環境でまっすぐなロープから 18 手以内に固結びを結べるか。各環境の最初の 1 エピソードを数える |
 | `eval_search.py` | **推論時探索の評価**: 同じチェックポイントに「探索ありの成功率」を付ける (この README の本題) |
 | `summarize_search.py` | `eval_chain.py` / `eval_search.py` の JSON から版ごとの比較表 (Markdown) を出す |
+| `symmetry_check.py` | v8 の対称性のデータ拡張の前提の確認: 計算し直した位相の観測が環境と一致するか、鏡像・逆順の手が物理で同じ結果になるか (同じ手どうしのずれと比べる) |
 
 結果のまとめは [`docs/experiments/2026-10-03_inference_search.md`](../../../../docs/experiments/2026-10-03_inference_search.md) (打ち切り中)。
 

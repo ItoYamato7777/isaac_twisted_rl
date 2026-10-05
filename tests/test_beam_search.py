@@ -276,3 +276,43 @@ def test_stop_all_marks_wall_clock():
     search.stop_all()
     assert search.done and len(search.finished) == 2
     assert all(p.stop_reason == "wall_clock" and not p.solved for p in search.finished)
+
+
+# ---------------------------------------------------------------- shape_rate_summary
+
+
+def test_shape_rate_summary_deterministic_shapes():
+    # 形で決まる: 半分の形は必ず成功、半分は必ず失敗 -> 成功の分散はすべて形の間
+    out = bs.shape_rate_summary([16] * 10 + [0] * 10, [16] * 20)
+    assert out["mean_rate"] == pytest.approx(0.5)
+    assert out["frac_zero"] == pytest.approx(0.5)
+    assert out["frac_one"] == pytest.approx(0.5)
+    assert out["frac_mid"] == 0.0
+    assert out["hist"] == [0] * 10
+    assert out["shape_share"] == pytest.approx(1.0)
+    assert out["homogeneous_frac_zero"] == pytest.approx(0.5**16)
+
+
+def test_shape_rate_summary_homogeneous_rate_has_small_share():
+    # どの形も同じ成功率 0.3 (試行ごとのばらつきだけ) -> 形の間の分散は 0 に近い
+    gen = torch.Generator().manual_seed(0)
+    n, m = 64, 400
+    succ = (torch.rand(m, n, generator=gen) < 0.3).sum(dim=1).tolist()
+    out = bs.shape_rate_summary(succ, [n] * m)
+    assert out["mean_rate"] == pytest.approx(0.3, abs=0.02)
+    assert out["shape_share"] < 0.02
+    assert out["frac_mid"] > 0.95
+    assert out["var_observed"] == pytest.approx(0.3 * 0.7 / n, rel=0.2)
+    assert sum(out["hist"]) + out["hist_exact_zero"] + out["hist_exact_one"] == m
+
+
+def test_shape_rate_summary_bins_and_errors():
+    out = bs.shape_rate_summary([0, 1, 5, 9, 10], [10] * 5)
+    assert out["hist_exact_zero"] == 1
+    assert out["hist_exact_one"] == 1
+    assert out["hist"] == [0, 1, 0, 0, 0, 1, 0, 0, 0, 1]
+    with pytest.raises(ValueError):
+        bs.shape_rate_summary([1], [1])
+    with pytest.raises(ValueError):
+        bs.shape_rate_summary([1, 2], [4])
+    assert bs.shape_rate_summary([], []) == {"shapes": 0}

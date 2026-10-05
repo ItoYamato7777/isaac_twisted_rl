@@ -15,6 +15,7 @@ chain 評価 (`eval_chain.py`) は方策を 1 回展開しただけの値で、�
 | `clone_test` | 状態の複製の検証。複製直後の観測・段が複製元と一致する割合と、同じ手を打ったときの結果の一致 |
 | `rollouts` | (a) 確率的な方策の chain 評価 (各環境の最初の 1 エピソード) と、(b) best-of-N (同じ手数の予算で確率的な展開を独立に繰り返す) の成功率の曲線 |
 | `search` | (c) ビーム探索 + 到達木からの再開 (`common/beam_search.py`) の成功率の曲線・解の手数・捨てた候補の割合 |
+| `shapes` | 段のアーカイブの形ごとに、同じ初期状態・同じ方策で R 回試した固結びの割合の分布 (段 2 の失敗が形で決まるか、試行ごとのばらつきか) |
 
     uv run python -u src/isaac_twisted_rl/scripts/rsl_rl/eval_search.py --task Isaac-Twisted-RL-Knot-Play-v6 \
         --mode search --num_envs 512 --headless --device cuda:0 --seed 7 \
@@ -33,7 +34,7 @@ Play 環境は固結び・発散・18 手で自動 reset される。`clone_test
 * 毎ラウンド、使う環境すべてにノードの状態を書き込み直す (`mdp/state_clone.py`)。前のラウンドの
   状態や reset の後の状態は残らない。
 
-`rollouts` は Play 環境のまま (18 手で時間切れ) 回す。
+`rollouts` と `shapes` は Play 環境のまま (18 手で時間切れ) 回す。
 """
 
 import argparse
@@ -50,13 +51,15 @@ parser.add_argument(
     "--agent", type=str, default="rsl_rl_cfg_entry_point", help="Name of the RL agent configuration entry point."
 )
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment and the search.")
-parser.add_argument("--mode", choices=("clone_test", "rollouts", "search"), default="search")
+parser.add_argument("--mode", choices=("clone_test", "rollouts", "search", "shapes"), default="search")
 parser.add_argument("--out", type=str, default=None, help="Output JSON (default: next to the checkpoint).")
 parser.add_argument("--tag", type=str, default=None, help="Suffix of the default output name.")
 parser.add_argument("--budgets", type=str, default="32,64,128,256,512,1024,2048", help="Move budgets for curves.")
 # rollouts
 parser.add_argument("--episodes_per_env", type=int, default=2, help="rollouts: episodes counted per env.")
-parser.add_argument("--deterministic", action="store_true", default=False, help="rollouts: use the mean action.")
+parser.add_argument(
+    "--deterministic", action="store_true", default=False, help="rollouts / shapes: use the mean action."
+)
 # search
 parser.add_argument("--problems", type=int, default=64, help="search: number of problems (search seeds).")
 parser.add_argument("--beam", type=int, default=4, help="search: frontier size M.")
@@ -67,6 +70,14 @@ parser.add_argument("--max_same", type=int, default=6, help="search: same-stage 
 parser.add_argument("--restart_p", type=float, default=0.05, help="search: uniform restart probability p.")
 parser.add_argument("--no_mean_first", action="store_true", default=False, help="search: sample every candidate.")
 parser.add_argument("--std_scale", type=float, default=1.0, help="search/rollouts: scale of the policy std.")
+# shapes
+parser.add_argument(
+    "--shape_archive", type=str, default=None, help="shapes: archive file (default: archive.pt next to the checkpoint)."
+)
+parser.add_argument("--shape_stage", type=int, default=2, help="shapes: archive stage the shapes are taken from.")
+parser.add_argument("--shapes", type=int, default=128, help="shapes: number of shapes (0 = all in the stage).")
+parser.add_argument("--shape_reps", type=int, default=64, help="shapes: tries per shape (envs per shape).")
+parser.add_argument("--shape_moves", type=int, default=6, help="shapes: moves per try (6 = one training transition).")
 # clone_test
 parser.add_argument("--replicas", type=int, default=8, help="clone_test: envs per source (source included).")
 parser.add_argument("--warmup", type=int, default=3, help="clone_test: stochastic moves before each check.")
@@ -101,7 +112,10 @@ from isaaclab_rl.rsl_rl import RslRlBaseRunnerCfg, RslRlVecEnvWrapper
 import isaaclab_tasks  # noqa: F401
 import isaac_twisted_rl.tasks  # noqa: F401
 from isaac_twisted_rl.tasks.knot_tying.common import beam_search as bs
+from isaac_twisted_rl.tasks.knot_tying.common import state_archive as sa
+from isaac_twisted_rl.tasks.knot_tying.common import topology as tp
 from isaac_twisted_rl.tasks.knot_tying.common.mdp import rope_zmax
+from isaac_twisted_rl.tasks.knot_tying.common.mdp.observations import get_extractor, invalidate_extractor
 from isaac_twisted_rl.tasks.knot_tying.common.mdp.state_clone import PARTS, EnvStateCloner
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
@@ -543,6 +557,151 @@ def run_search(env, unwrapped, policy: Policy, settle: tuple[float, float], budg
     }
 
 
+# ================================================================ shapes (段 2 の切り分け)
+
+
+def _key_names() -> dict[int, str]:
+    """BFS の表の p-data のキー -> 文字列 (表に無いキーは呼び出し側で数字のまま出す)。"""
+    return {tp.p_data_key(pd): pd for pd in tp.potential_table()}
+
+
+def run_shapes(env, unwrapped, policy: Policy, settle: tuple[float, float]) -> dict:
+    """段のアーカイブの形ごとに、同じ初期状態から同じ方策で R 回試し、固結びの割合を形ごとに出す。
+
+    推論時探索の記録 (`docs/experiments/2026-10-03_inference_search.md` §3.1) では、同じ状態・同じ手でも手の後の
+    段が約 3 割変わった。段 2 -> 固結びの失敗が「形 (初期状態) で決まる」のか「試行ごとのばらつき」なのかを
+    分けるため、形ごとの成功率の分布を見る (0 か 1 に分かれれば形、平均の付近に集まればばらつき)。
+
+    * 初期状態はアーカイブのファイル (学習の `archive.pt` か、台本の初期アーカイブ) の `--shape_stage` の段の
+      形。`ResetToStage` と同じ書き方 (重心を env 原点へ、速度 0) で、**yaw は 0** に揃える (同じ形の R 個の
+      試行を同じ初期状態にするため)。
+    * 1 バッチ = `num_envs // R` 個の形 x R 環境。`env.reset()` (グリッパー・手・辺の選択を初期化) の後に
+      ロープの状態を書き込み、観測を計算し直す。書き込んだ後の段が `--shape_stage` と違う形は集計から外す
+      (アーカイブの復元の不一致。`ResetToStage` の `restore_mismatch` と同じもの)。
+    * Play 環境 (chain モード) のまま `--shape_moves` 手打つ。段が下がっても続く (chain 評価と同じ)。
+      各環境の最初のエピソードだけを数え、固結び・発散で reset された後は数えない。
+      `knot` は M 手以内の固結び、`knot_no_drop` はその中で一度も段が下がらなかったもの
+      (学習の 1 遷移の成功 `success_s2` に近い定義。学習では段が下がると終わる)。
+    """
+    n = unwrapped.num_envs
+    dev = unwrapped.device
+    r = args_cli.shape_reps
+    moves = args_cli.shape_moves
+    per_batch = n // r
+    if per_batch < 1:
+        raise ValueError(f"--num_envs ({n}) は --shape_reps ({r}) 以上にする")
+    if moves > int(unwrapped.max_episode_length):
+        raise ValueError(
+            f"--shape_moves ({moves}) は Play のエピソード長 ({int(unwrapped.max_episode_length)} 手) 以下にする"
+        )
+    path = args_cli.shape_archive
+    data = torch.load(path, map_location="cpu")
+    entries = data["entries"].get(args_cli.shape_stage)
+    if entries is None:
+        raise ValueError(f"{path} に段 {args_cli.shape_stage} の形が無い (ある段: {sorted(data['entries'])})")
+    total = int(entries["root_pose"].shape[0])
+    k = total if args_cli.shapes <= 0 else min(args_cli.shapes, total)
+    gen = torch.Generator().manual_seed(int(args_cli.seed or 0))
+    picked = torch.arange(total) if k == total else torch.randperm(total, generator=gen)[:k].sort().values
+    print(f"[shapes] {path}: stage {args_cli.shape_stage} has {total} shapes, using {k} x {r} tries, {moves} moves")
+
+    rope = unwrapped.scene["rope"]
+    names = _key_names()
+    mean_mask = torch.ones(n, dtype=torch.bool, device=dev) if args_cli.deterministic else None
+    shapes: list[dict] = []
+    t0 = time.time()
+    for b0 in range(0, k, per_batch):
+        bidx = picked[b0 : b0 + per_batch]
+        m = int(bidx.numel())
+        ids = torch.arange(m * r, device=dev)
+        shape_of = ids // r
+        env.reset()
+        rel = entries["root_pose"][bidx].to(dev)[shape_of]
+        joints = entries["joint_pos"][bidx].to(dev)[shape_of]
+        pose = sa.place_at_origin(rel, unwrapped.scene.env_origins[ids], torch.zeros(ids.numel(), device=dev))
+        rope.write_root_pose_to_sim(pose, env_ids=ids)
+        rope.write_root_velocity_to_sim(torch.zeros(ids.numel(), 6, device=dev), env_ids=ids)
+        rope.write_joint_state_to_sim(joints, torch.zeros_like(joints), env_ids=ids)
+        invalidate_extractor(unwrapped)
+        obs = env.get_observations()
+        start = obs_stage(obs)
+        keys = tp.batch_keys(get_extractor(unwrapped).batch)
+
+        alive = torch.zeros(n, dtype=torch.bool, device=dev)
+        alive[ids] = True
+        knot_at = torch.full((n,), -1, dtype=torch.long, device=dev)
+        div_at = torch.full((n,), -1, dtype=torch.long, device=dev)
+        drop_at = torch.full((n,), -1, dtype=torch.long, device=dev)
+        with torch.inference_mode():
+            for t in range(1, moves + 1):
+                obs, _, _, _ = env.step(policy.act(obs, mean_mask))
+                knot, div, _, stage_after = step_outcome(env, unwrapped, obs, *settle)
+                knot_at[alive & knot] = t
+                div_at[alive & div & ~knot] = t
+                drop_at[alive & ~knot & ~div & (stage_after < start) & (drop_at < 0)] = t
+                alive &= ~(knot | div)
+
+        for j in range(m):
+            sl = slice(j * r, (j + 1) * r)
+            st = start[sl]
+            ka, da, dr = knot_at[sl], div_at[sl], drop_at[sl]
+            key = int(keys[j * r])
+            shapes.append(
+                {
+                    "index": int(bidx[j]),
+                    "start_stage": int(st[0]),
+                    "start_stage_agree": float((st == st[0]).float().mean()),
+                    "key": key,
+                    "p_data": names.get(key, str(key)),
+                    "tries": r,
+                    "knot": int((ka > 0).sum()),
+                    "knot_no_drop": int(((ka > 0) & (dr < 0)).sum()),
+                    "diverged": int((da > 0).sum()),
+                    "dropped": int((dr > 0).sum()),
+                    "knot_by_move": [int(((ka > 0) & (ka <= t)).sum()) for t in range(1, moves + 1)],
+                }
+            )
+        print(
+            f"[shapes] batch {b0 // per_batch + 1}/{math.ceil(k / per_batch)} ({time.time() - t0:.0f} s): "
+            f"knot {[s['knot'] for s in shapes[-m:]]} / {r}"
+        )
+
+    valid = [s for s in shapes if s["start_stage"] == args_cli.shape_stage]
+    by_key: dict[str, list[dict]] = {}
+    for s in valid:
+        by_key.setdefault(s["p_data"], []).append(s)
+    tries = [s["tries"] for s in valid]
+    return {
+        "config": {
+            "archive": path,
+            "stage": args_cli.shape_stage,
+            "archive_size": total,
+            "shapes": k,
+            "reps": r,
+            "moves": moves,
+            "deterministic": args_cli.deterministic,
+            "yaw": 0.0,
+        },
+        "summary": {
+            "shapes_excluded_stage_mismatch": len(shapes) - len(valid),
+            "knot": bs.shape_rate_summary([s["knot"] for s in valid], tries),
+            "knot_no_drop": bs.shape_rate_summary([s["knot_no_drop"] for s in valid], tries),
+            "diverged_frac": sum(s["diverged"] for s in valid) / max(sum(tries), 1),
+            "dropped_frac": sum(s["dropped"] for s in valid) / max(sum(tries), 1),
+            "knot_by_move": [sum(s["knot_by_move"][t] for s in valid) / max(sum(tries), 1) for t in range(moves)],
+            "by_p_data": {
+                pd: {
+                    "shapes": len(g),
+                    "knot": sum(s["knot"] for s in g) / sum(s["tries"] for s in g),
+                    "shape_rates": sorted(s["knot"] / s["tries"] for s in g),
+                }
+                for pd, g in sorted(by_key.items(), key=lambda kv: -len(kv[1]))
+            },
+        },
+        "shapes_detail": shapes,
+    }
+
+
 # ================================================================ main
 
 
@@ -560,6 +719,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     # Play の p-data 表示と初期アーカイブの読み込みは評価に要らない (表示は毎手出て遅い)。
     env_cfg.rewards.topology_stats.params["print_envs"] = 0
     env_cfg.events.reset_to_stage.params["load_paths"] = ()
+    if args_cli.mode == "shapes" and args_cli.shape_archive is None:
+        args_cli.shape_archive = os.path.join(os.path.dirname(resume_path), "archive.pt")
     if args_cli.mode in ("clone_test", "search"):
         env_cfg.episode_length_s = _NO_TIME_OUT_S
     settle_params = env_cfg.terminations.stage_up.params
@@ -579,6 +740,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
         result = run_clone_test(env, unwrapped, policy, settle)
     elif args_cli.mode == "rollouts":
         result = run_rollouts(env, unwrapped, policy, budgets)
+    elif args_cli.mode == "shapes":
+        result = run_shapes(env, unwrapped, policy, settle)
     else:
         result = run_search(env, unwrapped, policy, settle, budgets)
     summary = {
@@ -589,13 +752,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
         "seed": args_cli.seed,
         "hydra_overrides": hydra_args,
         "std_scale": args_cli.std_scale,
-        "deterministic": args_cli.deterministic if args_cli.mode == "rollouts" else None,
+        "deterministic": args_cli.deterministic if args_cli.mode in ("rollouts", "shapes") else None,
         "wall_seconds": time.time() - t0,
         **result,
     }
     print(f"\n=== eval_search ({args_cli.mode}) ===")
     for k, v in summary.items():
-        if k in ("episodes", "problems_detail"):
+        if k in ("episodes", "problems_detail", "shapes_detail"):
             continue
         print(f"{k}: {v}")
     out = args_cli.out or default_out(resume_path, args_cli.mode, args_cli.tag)

@@ -60,6 +60,10 @@ uv run python -u src/isaac_twisted_rl/scripts/rsl_rl/eval_search.py --task Isaac
 uv run python -u src/isaac_twisted_rl/scripts/rsl_rl/eval_search.py --task Isaac-Twisted-RL-Knot-Play-v6 \
     --mode search --slots 16 --beam 4 --problems 128 --max_moves 1024 --num_envs 512 \
     --budgets 16,32,64,128,256,512,1024 --headless --device cuda:0 --seed 7 --checkpoint $C agent.device=cuda:0
+# 段 2 の形ごとの固結びの割合 (下の「形ごとの切り分け」。128 形 x 64 回、6 手、決定論的な方策)
+uv run python -u src/isaac_twisted_rl/scripts/rsl_rl/eval_search.py --task Isaac-Twisted-RL-Knot-Play-v6 \
+    --mode shapes --shape_stage 2 --shapes 128 --shape_reps 64 --shape_moves 6 --deterministic --num_envs 512 \
+    --headless --device cuda:0 --seed 7 --checkpoint $C agent.device=cuda:0
 # 比較表
 uv run python src/isaac_twisted_rl/scripts/rsl_rl/summarize_search.py v6s42=$C ...
 ```
@@ -188,6 +192,20 @@ PhysX の内部状態 (接触のキャッシュ・ソルバのウォームスタ
   1 手 = 759 物理ステップの間に小さな差が育つ) と読める (解釈)。探索の側から見ると、同じノード・同じ手でも
   候補が分かれる。
 
+## 形ごとの切り分け (`--mode shapes`)
+
+段 2 -> 固結びの失敗が「初期の形で決まる」のか「試行ごとのばらつき (物理の非決定性・方策のサンプル)」なのかを分ける。
+段のアーカイブ (`--shape_archive`。既定はチェックポイントの隣の `archive.pt` = 学習中に到達した形。台本の初期アーカイブは
+`outputs/archive_seed/overhand_28links.pt`) から `--shape_stage` の段の形を `--shapes` 個選び、それぞれを R = `--shape_reps`
+個の環境に**同じ初期状態** (重心を原点へ、速度 0、yaw 0) で書き込んで、同じ方策で `--shape_moves` 手打つ。
+
+* 環境は Play (chain モード) のまま。段が下がっても続ける。各環境の最初のエピソードだけを数える。
+* `--deterministic` (平均の行動) なら、試行の違いは物理の非決定性だけになる。付けなければ方策のサンプルも入る。
+* 書き込んだ後の段が `--shape_stage` と違う形 (アーカイブの復元の不一致) は集計から外し、件数を出す。
+* 形ごとの成功率が 0 と 1 に分かれれば形で決まり、全体の平均の付近に集まればばらつき。`shape_share` (級内相関) は、
+  成功の分散のうち形の間の成功率の違いで説明できる割合 (0 = どの形も同じ、1 = 形ごとに必ず成功か必ず失敗)。
+  集計は `common/beam_search.shape_rate_summary` (単体テストあり)。
+
 ## 出力 (JSON の主な key)
 
 | モード | key | 意味 |
@@ -203,3 +221,7 @@ PhysX の内部状態 (接触のキャッシュ・ソルバのウォームスタ
 | | `clone_check` | 複製直後の観測・段の不一致 (項ごとの最大の差も) |
 | | `problems_detail` | 問題ごとの記録 |
 | `clone_test` | `clone_check` / `same_action` | 上の「検証」 |
+| `shapes` | `summary.knot` / `summary.knot_no_drop` | `shape_rate_summary` の結果。`knot` は M 手以内の固結び、`knot_no_drop` はその中で一度も段が下がらなかったもの (学習の 1 遷移の成功に近い) |
+| | `summary.knot_by_move` | 手数ごとの固結びの割合 (全試行) |
+| | `summary.by_p_data` | 初期の形の p-data (R2 除去前) ごとの形の数・成功率 |
+| | `shapes_detail` | 形ごとの記録 (アーカイブの添字・初期の段・p-data・成功数・発散・段が下がった数) |

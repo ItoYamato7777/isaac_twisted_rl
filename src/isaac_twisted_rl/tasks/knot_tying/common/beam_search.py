@@ -187,6 +187,72 @@ def expected_moves_best_of_n(lengths: list[int], success: list[bool]) -> float |
     return (sum(lengths) / len(lengths)) / (k / len(lengths))
 
 
+# ================================================================ 形ごとの成功率 (段 2 の切り分け)
+
+SHAPE_RATE_BINS = (0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
+"""`shape_rate_summary` の度数分布の区切り。0 と 1 ちょうどは別に数える。"""
+
+
+def shape_rate_summary(successes: list[int], trials: list[int]) -> dict:
+    """同じ初期形状から同じ方策で n_i 回試した成功数 s_i (形 i ごと) の分布をまとめる。
+
+    `eval_search.py --mode shapes` の集計。成功の揺れが「形で決まる」のか「試行ごとのばらつき (物理・
+    方策のサンプル)」なのかを、次の 2 つで見る:
+
+    * 形ごとの成功率 p_i の度数分布。0 と 1 に分かれれば形で決まり、全体の平均の付近に集まればばらつき。
+      比べる基準として、全部の形が同じ成功率 p̄ だったときに 0 回・全回成功になる形の割合の期待値も返す。
+    * `shape_share`: 成功の分散 p̄ (1 − p̄) のうち、形の間の真の成功率の違いで説明できる割合 (級内相関)。
+      p_i の観測した分散から、二項の標本の分散 (p_i (1 − p_i) / (n_i − 1) の平均。不偏) を引いて
+      形の間の分散を推定する。0 = どの形も同じ成功率、1 = 形ごとに必ず成功か必ず失敗。
+
+    Args:
+        successes: 形ごとの成功数。
+        trials: 形ごとの試行数 (2 以上)。
+
+    Returns:
+        `shapes`・`mean_rate` (形で平均した成功率)・`pooled_rate`・`frac_zero` / `frac_one` と、
+        同じ成功率を仮定したときの期待値 `homogeneous_frac_zero` / `homogeneous_frac_one`・
+        `frac_mid` (0.2 以上 0.8 以下)・`hist` (区切りは `SHAPE_RATE_BINS`)・`var_observed`・
+        `var_sampling`・`var_between`・`shape_share`。
+    """
+    if len(successes) != len(trials):
+        raise ValueError("successes と trials の長さが違う")
+    if any(n < 2 for n in trials):
+        raise ValueError("試行数は 2 以上にする (二項の標本の分散を推定するため)")
+    m = len(successes)
+    if m == 0:
+        return {"shapes": 0}
+    rates = [s / n for s, n in zip(successes, trials, strict=True)]
+    mean = sum(rates) / m
+    pooled = sum(successes) / sum(trials)
+    var_obs = sum((p - mean) ** 2 for p in rates) / (m - 1) if m > 1 else 0.0
+    var_samp = sum(p * (1.0 - p) / (n - 1) for p, n in zip(rates, trials, strict=True)) / m
+    var_between = max(var_obs - var_samp, 0.0)
+    total = mean * (1.0 - mean)
+    hist = [0] * (len(SHAPE_RATE_BINS) - 1)
+    for p in rates:
+        if 0.0 < p < 1.0:
+            hist[min(int(p * (len(SHAPE_RATE_BINS) - 1)), len(hist) - 1)] += 1
+    return {
+        "shapes": m,
+        "mean_rate": mean,
+        "pooled_rate": pooled,
+        "frac_zero": sum(p == 0.0 for p in rates) / m,
+        "frac_one": sum(p == 1.0 for p in rates) / m,
+        "frac_mid": sum(0.2 <= p <= 0.8 for p in rates) / m,
+        "homogeneous_frac_zero": sum((1.0 - mean) ** n for n in trials) / m,
+        "homogeneous_frac_one": sum(mean**n for n in trials) / m,
+        "hist_bins": list(SHAPE_RATE_BINS),
+        "hist_exact_zero": sum(p == 0.0 for p in rates),
+        "hist": hist,
+        "hist_exact_one": sum(p == 1.0 for p in rates),
+        "var_observed": var_obs,
+        "var_sampling": var_samp,
+        "var_between": var_between,
+        "shape_share": (min(var_between / total, 1.0) if total > 0 else None),
+    }
+
+
 # ================================================================ ノードの保存
 
 

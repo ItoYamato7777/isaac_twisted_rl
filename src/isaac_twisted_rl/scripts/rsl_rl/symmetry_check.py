@@ -15,9 +15,16 @@
    `crossing_feats`・`knot_class`) を計算し直し、環境が出した値と比べる (`common/topology/symmetry.py`
    は環境の観測の項の計算を写しているので、ずれていないかを見る)。
 2. **物理の対称性**: 環境を 4 つずつの組にし、全部まっすぐなロープ (env 原点を通る x 軸上。自分自身の鏡像) から
-   始める。組の先頭に手 a、2 番目に同じ手 a、3 番目に鏡像の手 M a、4 番目に逆順の手 R a を打ち、それを
-   `--moves` 手続ける。手の後に、先頭と比べた段の一致率と、ロープの形のずれ (変換を戻したリンク位置の
-   平均距離) を出す。**同じ手どうし (2 番目) のずれが物理の非決定性の基準** で、鏡像・逆順のずれがこれと同程度
+   始める。組の先頭に手 a、2 番目に同じ手 a、3 番目に鏡像の手 M a、4 番目に「逆順 + ロープの中心を通る
+   鉛直軸まわりの 180° 回転」の手 T a を打ち、それを `--moves` 手続ける。手の後に、先頭と比べた段の一致率と、ロープの形の
+   ずれ (変換を戻したリンク位置の平均距離) を出す。
+
+   逆順 R はロープの番号の付け替えなので、まっすぐなロープ s0 は R で s0 に戻らない (R s0 は s0 を中心まわりに
+   180° 回した位置に並ぶ)。s0 を固定するのは T = (中心まわりの 180° 回転)∘R で、T s0 = s0。ロープの root は
+   env 原点にあり、ロープは +x 側へ延びるので、回転の中心は env 原点ではなく初期のロープの中心にする。
+   鉛直軸まわりの回転は物理の対称性 (床は平ら。発散の判定の 3 m の円は中心がずれるが届かない) なので、
+   T で物理が合えば R でも合う。行動の 180° 回転は置き先 xy の反転と yaw の
+   +π (`_rotate_pi_actions`)。**同じ手どうし (2 番目) のずれが物理の非決定性の基準** で、鏡像・逆順のずれがこれと同程度
    なら、データ拡張の変換は物理と合っている。グリッパーの形が左右・前後で非対称なら、鏡像・逆順のほうが
    大きくずれる。
 
@@ -42,6 +49,7 @@ parser.add_argument(
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
 parser.add_argument("--moves", type=int, default=6, help="Moves per group.")
 parser.add_argument("--out", type=str, default=None, help="Write the summary as JSON here.")
+parser.add_argument("--dump", type=str, default=None, help="Save link positions / actions per move (.pt).")
 cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 args_cli, hydra_args = parser.parse_known_args()
@@ -73,10 +81,25 @@ _STAGE_DIMS = 4
 """観測の末尾にある段の one-hot の次元 (段 0〜3)。"""
 
 _ROLES = ("same", "mirror", "reverse")
-"""組の 2〜4 番目に打つ手 (先頭の手と同じ・鏡像・逆順)。"""
+"""組の 2〜4 番目に打つ手 (先頭の手と同じ・鏡像・逆順 + 180° 回転)。"""
 
 _TOL = 1e-4
 """観測の照合で一致とみなす最大の差。"""
+
+
+def _rotate_pi_actions(actions: torch.Tensor) -> torch.Tensor:
+    """鉛直軸まわりの 180° 回転を行動にかける: 置き先 xy (ch2 / ch3。リンクからの変位) を反転し、yaw (ch5) を +π。"""
+    out = actions.clone()
+    out[:, 2:4] = -out[:, 2:4]
+    out[:, 5] = torch.remainder(out[:, 5].clamp(-1.0, 1.0) + 2.0, 2.0) - 1.0
+    return out
+
+
+def _rotate_pi_links(link_pos: torch.Tensor, center_xy: torch.Tensor) -> torch.Tensor:
+    """リンク位置 `(..., N, 3)` を、xy の点 `center_xy` を通る鉛直軸まわりに 180° 回す。"""
+    out = link_pos.clone()
+    out[..., :2] = 2.0 * center_xy - out[..., :2]
+    return out
 
 
 def _split(pobs: torch.Tensor, layout) -> dict[str, torch.Tensor]:
@@ -126,14 +149,18 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     obs = env.get_observations()
     pobs = obs["policy"]
     link0 = _split(pobs, layout)["rope_link_pos"].reshape(n, -1, 3)
+    center_xy = link0[0, :, :2].mean(dim=0)
+    """初期のまっすぐなロープの中心 (全環境で同じ)。逆順 + 180° 回転の中心。"""
     init = {
         "max_abs_y": float(link0[..., 1].abs().max()),
         "max_spread_between_envs": float((link0 - link0[:1]).abs().max()),
+        "center_xy": center_xy.tolist(),
     }
 
     obs_check = {name: [0, 0] for name, _, _ in layout if name in sym._RECOMPUTED_TERMS}
     alive = torch.ones(groups, dtype=torch.bool, device=dev)
     per_move = []
+    dumps = []
 
     def check_obs(pobs: torch.Tensor) -> None:
         parts = _split(pobs, layout)
@@ -155,7 +182,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
             actions[leader] = a
             actions[leader + 1] = a
             actions[leader + 2] = sym.transform_actions(a, True, False)
-            actions[leader + 3] = sym.transform_actions(a, False, True)
+            actions[leader + 3] = _rotate_pi_actions(sym.transform_actions(a, False, True))
 
             prev_stage = obs["policy"][:, -_STAGE_DIMS:].argmax(dim=-1)
             obs, _, dones, _ = env.step(actions)
@@ -185,13 +212,17 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
             back = {
                 "same": link[:, 1],
                 "mirror": sym.transform_link_pos(link[:, 2], True, False),
-                "reverse": sym.transform_link_pos(link[:, 3], False, True),
+                "reverse": sym.transform_link_pos(_rotate_pi_links(link[:, 3], center_xy), False, True),
             }
             for j, role in enumerate(_ROLES, start=1):
                 dist = (back[role] - ref).norm(dim=-1).mean(dim=-1)  # (G,) リンクの平均距離 [m]
                 row[f"{role}_dist_m"] = _quantiles(dist[alive])
                 row[f"{role}_stage_agree"] = (
                     float((stage[:, j] == stage[:, 0])[alive].float().mean()) if bool(alive.any()) else None
+                )
+            if args_cli.dump:
+                dumps.append(
+                    {"link": link.cpu(), "actions": actions.reshape(groups, 4, -1).cpu(), "alive": alive.cpu()}
                 )
             moved = (stage[:, 0] != prev_stage[leader]) & alive
             row["leader_stage_changed"] = int(moved.sum())
@@ -210,6 +241,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     }
     print("\n=== symmetry check ===")
     print(json.dumps(summary, indent=2))
+    if args_cli.dump:
+        torch.save({"init_link": link0.cpu(), "moves": dumps}, args_cli.dump)
     if args_cli.out:
         with open(args_cli.out, "w") as f:
             json.dump(summary, f, indent=2)

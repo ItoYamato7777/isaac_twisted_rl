@@ -39,13 +39,12 @@
 コマンド (s44 は `--device cuda:0 --seed 44 --run_name v8_s44 agent.device=cuda:0`):
 `run_job.sh --name v8_s43 --timeout 10h --detach -- uv run train --task Isaac-Twisted-RL-Knot-v8 --headless --device cuda:1 --seed 43 --max_iterations 101 --run_name v8_s43 agent.device=cuda:1 agent.save_interval=10`
 
-- 無効にした run: `logs/rsl_rl/knot_tying_v8/2026-10-05_12-58-46_v8_s43` (job `2026-10-05_12-58-41_v8_s43`)。PC の電源断で iteration 15 で止まった (`exit.txt` 無し、`model_10.pt` まで)。到達状態のアーカイブ (50 iteration ごとに保存) が失われるので `--resume` せず、最初から回し直した。
-- 同じ電源断で、自分が起動していない v7 の学習 (PID 1224684、run `logs/rsl_rl/knot_tying_v7/2026-10-05_12-43-46`) も止まった。再起動していない。
+- 電源断で止まった、自分が起動していない v7 の学習 (PID 1224684、run `logs/rsl_rl/knot_tying_v7/2026-10-05_12-43-46`) も止まった。再起動していない。
 
 ## 次の作業
 
 1. 学習が終わったら `exit.txt` (`signal:` が無い) と `model_100.pt` を確かめ、iteration 70 / 100 を chain 評価する (`Isaac-Twisted-RL-Knot-Play-v8`、512 環境、seed 7、Hydra の上書きなし)。v7 s43 / s44 の `eval_chain_it{70,100}.json` と比べる。仮説: 対称性のデータ拡張で段 2 -> 固結びの学習が速くなり、v7 との差が v7 のシード差 (iteration 100 で 6 ポイント) と標準誤差 (約 2 ポイント) を超える。
-2. skill `experiment-record` で v8 の記録を書く (電源断で無効にした run も書く)。学習の前の確認 (symmetry_check の結果 `outputs/symcheck4_v8_{policy_v7s43_it100,random}.json`、job は `outputs/jobs/2026-10-05_12-44-1*_symcheck4_*`) もそこに入れる。
+2. skill `experiment-record` で v8 の記録を書く。学習の前の確認 (symmetry_check の結果 `outputs/symcheck4_v8_{policy_v7s43_it100,random}.json`、job は `outputs/jobs/2026-10-05_12-44-1*_symcheck4_*`) もそこに入れる。
 3. その他の候補 (どれも未着手):
    - v6 を seed 44 で学習し、v7 と同じシード 43 / 44 で比べる。v7 を iteration 150〜200 まで延ばす。出典: [v7 の記録](experiments/2026-10-04_v7_seeds.md) の「次の作業」。
    - P2 の残り (新しさの探索を位相のキーの訪問回数で、初期形状のランダム化)。順と条件は [0022](decisions/0022-p2-one-version-each.md)。

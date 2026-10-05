@@ -34,6 +34,12 @@ parser.add_argument(
     help="Use the pre-trained checkpoint from Nucleus.",
 )
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
+parser.add_argument(
+    "--no_stage_colors",
+    action="store_true",
+    default=False,
+    help="Do not color the gripper by the stage of the policy in use (stage_colors.py).",
+)
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -75,6 +81,7 @@ from isaaclab_rl.rsl_rl import RslRlBaseRunnerCfg, RslRlVecEnvWrapper, export_po
 
 import isaaclab_tasks  # noqa: F401
 import isaac_twisted_rl.tasks  # noqa: F401
+from isaac_twisted_rl.scripts.rsl_rl.stage_colors import GripperStageColorizer
 from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
@@ -175,6 +182,11 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     dt = env.unwrapped.step_dt
 
+    # 段ごとの方策なら、いま使っている段をグリッパの色で見せる (描画があるときだけ)
+    colorizer = None
+    if not args_cli.no_stage_colors and (env.unwrapped.sim.has_gui() or args_cli.video):
+        colorizer = GripperStageColorizer(env.unwrapped, policy_nn)
+
     # reset environment
     obs = env.get_observations()
     timestep = 0
@@ -185,8 +197,12 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         with torch.inference_mode():
             # agent stepping
             actions = policy(obs)
+            if colorizer is not None:
+                colorizer.before_step(obs)
             # env stepping
-            obs, _, _, _ = env.step(actions)
+            obs, _, dones, _ = env.step(actions)
+            if colorizer is not None:
+                colorizer.after_step(dones)
         if args_cli.video:
             timestep += 1
             # Exit the play loop after recording one video

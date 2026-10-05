@@ -6,7 +6,21 @@
 | `eval_chain.py` | v4 以降の **chain 評価**: Play 環境でまっすぐなロープから 18 手以内に固結びを結べるか。各環境の最初の 1 エピソードを数える |
 | `eval_search.py` | **推論時探索の評価**: 同じチェックポイントに「探索ありの成功率」を付ける (この README の本題) |
 | `summarize_search.py` | `eval_chain.py` / `eval_search.py` の JSON から版ごとの比較表 (Markdown) を出す |
+| `stage_colors.py` | `play.py` が使う: 段ごとの方策 (v4 以降) で、各環境がいま使っている段の方策をグリッパの色で見せる (下の「Play のグリッパの色」) |
 | `symmetry_check.py` | v8 の対称性のデータ拡張の前提の確認: 計算し直した位相の観測が環境と一致するか、鏡像・逆順の手が物理で同じ結果になるか (同じ手どうしのずれと比べる) |
+
+## Play のグリッパの色
+
+`uv run play` は、段ごとの方策 (`StageGatedActorCritic`、v4 以降) のとき、各環境のグリッパを **この手を打つ方策の段** の色に塗る
+(描画のあるときだけ。`--no_stage_colors` で切る)。段は方策が振り分けに使う `GatedMLP.stage_index` で取るので、色と
+実際に使われたヘッドは一致する。
+
+| 色 | 意味 |
+|---|---|
+| 青 / 黄 / 赤 | 段 0 / 1 / 2 の方策 |
+| 白 | 固結びに達した (reset の後も 3 手のあいだ残す) |
+
+色は USD の `displayColor` だけを書き換え、物理・観測・環境の設定には触れない。ロープは紐モデルごとに描き方が違うので塗らない。
 
 結果のまとめは [`docs/experiments/2026-10-03_inference_search.md`](../../../../docs/experiments/2026-10-03_inference_search.md) (打ち切り中)。
 

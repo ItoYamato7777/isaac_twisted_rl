@@ -26,3 +26,4 @@ run のフォルダは `logs/rsl_rl/` の下 (git の管理外)。日時付き�
 | 2026-10-04 | v7 の確認の学習 (seed 43 / 44) と v6・v4 との比較 | 凍結 | iteration 100 の chain 評価で v7 の 2 シードとも v6・v4 を上回った。iteration 70 では差が見えない。v6 とシードと GPU の配置が揃っていない | `knot_tying_v7/` | [2026-10-04_v7_seeds.md](2026-10-04_v7_seeds.md) |
 
 記録から抜き出した設計の判断: [`0020`](../decisions/0020-v4-solver-iterations-and-steps-per-iteration.md) (v4 のソルバの反復 8・1 iteration 4 手)、[`0021`](../decisions/0021-measure-physics-changes-by-training.md) (物性の変更は学習と chain 評価で確かめる)。
+| 2026-10-05 | v8 (v7 + 対称性のデータ拡張) の学習 (seed 43 / 44) と v7 との chain 評価の比較 | 凍結 | v8 は v7 を大きく下回った (iteration 100 で 2 シードとも v7 の低いほうより下)。原因は未確認。拡張の重要度比が方策の非対称で成り立たない可能性 (推測) | `knot_tying_v8/` | [2026-10-05_v8_symmetry.md](2026-10-05_v8_symmetry.md) |

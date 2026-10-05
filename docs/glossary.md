@@ -42,7 +42,7 @@
 | 紐のバックエンド (kind) | ロープのシミュレーションの実体と、それを PhysX の Articulation と同じ読み書き口に見せるアダプタ。kind は `articulation` / `articulation_resampled` / `xpbd` / `fem` の 4 つ。観測・行動・位相は「仮想リンク」(弧長で等分した点、既定 28 本) で読む | `common/rope_backends/`、`RopeBackendCfg(kind, num_virtual_links=28, …)` (`kt/common/rope_backends/backend_cfg.py:8-22`)、`cfg.rope_backend`、`RopeStudyEnv`、`XpbdRope` / `FemRope` / `ResampledArticulationRope` | 紐モデル (kind + パラメータ + 摩擦) とは別の語。Hydra の上書きパス `env.rope_backend.xpbd_params.*` が文書のコマンドに出る。pyproject の `build-backend` とは無関係。 |
 | 表現 | 2 つの意味がある。(1) **紐の表現**: rope study でロープのシミュレーションの離散化・ソルバ・接触の解き方 (= バックエンドの kind) (2) **位相の表現**: `topology/representation.py` の位相状態のデータ構造 (半辺構造・p-data) | (1) `RopeModel.kind` (2) `representation.py`、`AbstractState` | どちらか分かるように「紐の」「位相の」を付ける。 |
 | モデル | 多義。(1) **紐モデル** (`RopeModel`) (2) `common/rope_model/` = **剛体鎖のロープの資産と設定** (USD の生成と ArticulationCfg。rope study より前からある) (3) XPBD の `"model"` = **棒の種類** (`cosserat` / `mass_spring`) (4) `model_<it>.pt` = **チェックポイント** (5) 方策のネットワーク | (1) `RopeModel` (2) `common/rope_model/{rope_cfg,rope_specs,generate_rope_usd}.py` (3) `_xpbd(model=…)`、`bench_physics --model` (4) `model_<it>.pt` | 「モデル」単独では書かない。 |
-| 剛体鎖 | D6 関節でつないだカプセル剛体の鎖 (PhysX Articulation) のロープ。v0〜v7 のロープはすべてこれ。rope study の `Art` 系 | `articulation`、`common/rope_model/` | 「chain 評価」の chain とは無関係。 |
+| 剛体鎖 | D6 関節でつないだカプセル剛体の鎖 (PhysX Articulation) のロープ。v0〜v9 のロープはすべてこれ。rope study の `Art` 系 | `articulation`、`common/rope_model/` | 「chain 評価」の chain とは無関係。 |
 | `LowMu` | **LowMu (実物の範囲の摩擦)**。ロープどうし・ロープと床 0.5、指 1.0 にした変種。既定 (2.0 / 2.0 / 4.0) が非現実的に高いので、「Low」は既定に対する相対 | `LOW_MU` (`kt/rope_study/models.py:38-40`)、剛体鎖は `RopeModel.rope_friction` / `ground_friction` / `finger_friction`、XPBD は `friction_ground` / `friction_self` / `friction_finger` | 剛体鎖と XPBD では効かせるパラメータが違う。初出では 3 つの値を書く。 |
 | 指の接触 (方式 1 / 2) | XPBD の指とロープの接触の解き方。方式 2 (今の既定) は挟む力の分だけ compliance で残りを剛にし、指の前後の面にも接触を持たせ、1 物理ステップで 2 cm より大きく動いた手を瞬間移動として扱う。方式 1 は全部の面が compliance で、挟む面と底面だけ | `XPBD_FINGER_V2` (`kt/rope_study/models.py:65-79`)、`finger_rigid_outside`・`finger_x_faces`・`finger_x_face_margin`・`hand_teleport_distance` | rope study の文書は方式を「v1 / v2」と書く (例 `docs/experiments/2026-10-02_rope_models.md:483` の「以下、XPBD の学習・評価はすべて v2」は方式 2 の意味で、MDP は v4)。MDP の版 vN と混同しない。 |
 | 物理試験の回 | rope study の `run_physics_suite.sh` を回した回。文書では「第 n 回」か日付で呼ぶ | `kt/rope_study/run_physics_suite.sh`、出力 `outputs/rope_study/logs_suite_v{2,3}_gpu*.txt` | rope study の文書は「物理試験 v2 / v3」と書く (`docs/history/rope_study_HANDOFF.md:82`、`:98`)。MDP の版ではない。 |
@@ -96,7 +96,7 @@
 | 版 | NaN | 高さ | 水平距離 | リンク速度 (手の終わり) | 根拠 |
 |---|---|---|---|---|---|
 | v0〜v2 | あり | 5 m 超 | 見ない | 見ない | `kt/common/env_cfg_base.py:112` (`rope_diverged` の既定) |
-| v2-R2〜v7・rope study | あり | 5 m 超 | 3 m 超 | 20 m/s 超 | `kt/versions/v2_r2/env_cfg.py:48-52`、`:197-200`。v3 (`TerminationsCfg(V2R2TerminationsCfg)`)・v4 (`V3TerminationsCfg`)・v5〜v7 と rope study (v4 の設定を継承) はそのまま引き継ぐ |
+| v2-R2〜v9・rope study | あり | 5 m 超 | 3 m 超 | 20 m/s 超 | `kt/versions/v2_r2/env_cfg.py:48-52`、`:197-200`。v3 (`TerminationsCfg(V2R2TerminationsCfg)`)・v4 (`V3TerminationsCfg`)・v5〜v9 と rope study (v4 の設定を継承) はそのまま引き継ぐ |
 
 注意: v2-R2 以降は報酬・ログの項にも `diverged_term="diverged"` を渡すので (1) で数える (`kt/versions/v2_r2/env_cfg.py:166`、`:184`)。v2 以前の `div_cls` 相当の数字 (`diverged_by_class`) は (2) なので、版をまたぐ発散率の比較では定義がずれる。
 
@@ -104,8 +104,8 @@
 
 | 用語 | 正式名称と意味 | コード上の識別子 | 注意 |
 |---|---|---|---|
-| 版 (vN) | **MDP の版**だけを指す: v0・v1・v2・v2-R2・v3・v4・v5・v6・v7。1 版 = `kt/versions/vN/` の 1 フォルダ (`v2-R2` は `v2_r2/`) | `_VERSIONS` (`kt/__init__.py:40`)、`_version_package`、`KnotTyingV{N}EnvCfg`、ログ名 `knot_tying_vN` | XPBD の指の接触は「方式 1 / 2」、物理試験は「第 n 回」、パッケージの版は「パッケージ版 1.2.0」(`pyproject.toml:3`) と呼び、vN を使わない。rope study は版ではなく紐モデルの軸 (タスク ID の末尾 `-v4` は MDP が v4 という意味)。版の番号は使い直さない (§3.4)。 |
-| タスク ID | Gym に登録した環境の名前。規則は §3.1。版 150 本 + rope study 16 本 = 166 本 | `gym.register` (`kt/__init__.py:97-119`、`kt/rope_study/__init__.py:18-28`) | プリセットはタスク ID にしか現れない (ログ名・run 名・チェックポイントに無い)。 |
+| 版 (vN) | **MDP の版**だけを指す: v0・v1・v2・v2-R2・v3・v4・v5・v6・v7・v8・v9。1 版 = `kt/versions/vN/` の 1 フォルダ (`v2-R2` は `v2_r2/`) | `_VERSIONS` (`kt/__init__.py:40`)、`_version_package`、`KnotTyingV{N}EnvCfg`、ログ名 `knot_tying_vN` | XPBD の指の接触は「方式 1 / 2」、物理試験は「第 n 回」、パッケージの版は「パッケージ版 1.2.0」(`pyproject.toml:3`) と呼び、vN を使わない。rope study は版ではなく紐モデルの軸 (タスク ID の末尾 `-v4` は MDP が v4 という意味)。版の番号は使い直さない (§3.4)。 |
+| タスク ID | Gym に登録した環境の名前。規則は §3.1。版 170 本 + rope study 16 本 = 186 本 | `gym.register` (`kt/__init__.py:97-119`、`kt/rope_study/__init__.py:18-28`) | プリセットはタスク ID にしか現れない (ログ名・run 名・チェックポイントに無い)。 |
 | Play タスク | タスク ID に `-Play` の付いた環境。中身は版で違う: **v0〜v2-R2** = 推論の様子を GUI で見る環境 (環境 9 個、描画を 8 物理ステップごと。v2-R2 は毎手 p-data を表示)、**v3** = それに加えて常にまっすぐなロープから始める、**v4 以降と rope study** = **chain 評価の環境** (chain モード、18 手) | `{Preset}PlayEnvCfg`、`{Model}PlayEnvCfg`、`play_post_init`、`_PLAY_NUM_ENVS`、`_PLAY_RENDER_STEPS` (`kt/common/rope_task_cfg.py:145-161`、`:221-227`)、`_PLAY_ACTIONS` (`kt/versions/v4/env_cfg.py:213-226`) | v4 以降は「Play タスク (chain 評価用)」と書く。v3 までと v4 以降の Play の数字を比べない。詳細は [`system/evaluation.md`](system/evaluation.md) §3。 |
 | chain 評価 | `eval_chain.py` の評価だけを指す固有名。Play タスクでまっすぐなロープから 18 手以内に固結びに達した割合 (各環境の最初の 1 エピソード、決定論的方策)。定義と標準の条件は [`system/evaluation.md`](system/evaluation.md) §1 | `scripts/rsl_rl/eval_chain.py`、出力 `eval_chain_it{N}.json`、キー `knot` / `diverged` / `time_out` / `max_stage_ge{k}` / `mean_actions_to_knot` | chain は次のものにも使われているので区別する: **chain モード** (v4 以降の Play の終了条件。段をつなぎ、固結び・発散・18 手でだけ終わる: `stage_changed(chain=True)`)、**chain の見積り** (`Curriculum/stage_log/chain_est` = 段ごとの成功率の積。学習ログの粗い見積りで chain 評価ではない: `kt/common/mdp/archive.py:400-420`)、**剛体鎖** (Art 系のロープ)、**学習キュー** (`kt/rope_study/run_train_chain.sh` = 学習ジョブを 1 本ずつ順に回すスクリプト)。新しく chain の付く名前を作らない。 |
 | ゲート 1 | **ゲート 1 (台本の固結び試験)**: 学習の前に、台本 (`kt/demos/overhand_script.py`) で固結びが結べるかを確かめる関門。ロープ `Knot` で 2026-09-27 に通過 (`docs/history/next_action.md:465-470`)。rope study では同じ台本を紐モデルごとに回す試験の名前でもある (遅い尺 `gate1/`、学習の尺 `gate1_fast/`) | `kt/rope_study/run_physics_suite.sh` の `gate1` / `gate1_fast` | 番号付きだがゲート 2 以降は無い。将来の関門には別の名前を付ける。`StageGatedActorCritic` の gating、LSTM のゲートとは無関係。手順は skill `physics-check`。 |
@@ -137,7 +137,7 @@
 
 | 対象 | 規則 | 数 | 登録 |
 |---|---|---|---|
-| 版のタスク | `Isaac-Twisted-RL-{プリセット}[-Play]-vN[-RNN\|-LSTM]`。プリセットは `Twist` / `Simple` / `Stiff` / `Fine` / `Knot`、vN は `v0`〜`v7` と `v2-R2`。`-RNN` (GRU) / `-LSTM` は v2・v2-R2・v3 だけ | 150 本 (版 9 × プリセット 5 × 学習/Play 2 = 90 に、v2・v2-R2・v3 の `-RNN` 30 本と `-LSTM` 30 本) | [`kt/__init__.py`](../src/isaac_twisted_rl/tasks/knot_tying/__init__.py) (`:97-119`) |
+| 版のタスク | `Isaac-Twisted-RL-{プリセット}[-Play]-vN[-RNN\|-LSTM]`。プリセットは `Twist` / `Simple` / `Stiff` / `Fine` / `Knot`、vN は `v0`〜`v9` と `v2-R2`。`-RNN` (GRU) / `-LSTM` は v2・v2-R2・v3 だけ | 170 本 (版 11 × プリセット 5 × 学習/Play 2 = 110 に、v2・v2-R2・v3 の `-RNN` 30 本と `-LSTM` 30 本) | [`kt/__init__.py`](../src/isaac_twisted_rl/tasks/knot_tying/__init__.py) (`:97-119`) |
 | rope study のタスク | `Isaac-Twisted-RL-RS-<紐モデル>[-Play]-v4`。紐モデルは §1.2 の 8 個 (元の大文字小文字)。末尾の `-v4` は MDP が v4 という意味 | 16 本 (紐モデル 8 × 学習/Play 2) | [`kt/rope_study/__init__.py`](../src/isaac_twisted_rl/tasks/knot_tying/rope_study/__init__.py) (`:18-28`) |
 
 合計 166 本、うち `-Play` は 83 本。`-Play` は版の前に入る (`…-Knot-Play-v4`、`…-RS-XpbdC28-Play-v4`)。変種の接尾辞は版の後ろに付く (`…-Twist-v2-RNN`)。全一覧は持たない。登録モジュールを `gymnasium` のスタブの下で実行すれば出せる (スクリプトは `docs/history/refactor/audit/C.md` の付録 B)。
@@ -170,7 +170,9 @@
 | `knot_tying_v5` | v5 | `*-v5` | あり |
 | `knot_tying_v6` | v6 | `*-v6` | あり |
 | `knot_tying_v6_ablation` | v6 の切り分け (コードに無い名前)。旧 v7 の run と、今の v7 と同じ設定の参照 run `abl_depB_s42` を含む | (後から手で移した) | あり |
-| `knot_tying_v7` | v7 | `*-v7` | なし (v7 は未学習) |
+| `knot_tying_v7` | v7 | `*-v7` | あり |
+| `knot_tying_v8` | v8 | `*-v8` | あり |
+| `knot_tying_v9` | v9 | `*-v9` | なし (v9 は未学習) |
 | `knot_tying_rs_art28` | `Art28` | `RS-Art28[-Play]-v4` | あり |
 | `knot_tying_rs_art28lowmu` | `Art28LowMu` | `RS-Art28LowMu[-Play]-v4` | あり |
 | `knot_tying_rs_art56` | `Art56` | `RS-Art56[-Play]-v4` | なし |

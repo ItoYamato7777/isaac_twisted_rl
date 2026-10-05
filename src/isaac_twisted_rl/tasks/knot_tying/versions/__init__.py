@@ -13,6 +13,7 @@
     v6/     v5 + 次にたどる位相の辺のリンクマスクを観測に
     v7/     v6 + ロープのめり込み解消速度を v4 の既定 (0.96 m/s) に戻す
     v8/     v7 + PPO の更新に対称性のデータ拡張 (鏡像・逆順。環境は v7 のまま)
+    v9/     v7 + 学習の初期状態で段 2 を選ぶ重みを 2 倍に (v8 は継承しない)
 
 バージョンの増やし方は skill `add-version` (`.claude/skills/add-version/SKILL.md`)。この一覧は
 `tests/test_docs.py` が `versions/` のフォルダと `_VERSIONS` に照らして検査する。

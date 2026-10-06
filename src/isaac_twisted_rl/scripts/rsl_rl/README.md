@@ -7,6 +7,7 @@
 | `eval_search.py` | **推論時探索の評価**: 同じチェックポイントに「探索ありの成功率」を付ける (この README の本題) |
 | `summarize_search.py` | `eval_chain.py` / `eval_search.py` の JSON から版ごとの比較表 (Markdown) を出す |
 | `stage_colors.py` | `play.py` が使う: 段ごとの方策 (v4 以降) で、各環境がいま使っている段の方策をグリッパの色で見せる (下の「Play のグリッパの色」) |
+| `view_archive.py` | 段ごとのアーカイブ (`archive.pt`) の形を GUI で並べて見る。床板の色が段、コンソールに形ごとの位相の表 (下の「アーカイブの形を見る」)。`archive_view.py` は形の選び方 |
 | `symmetry_check.py` | v8 の対称性のデータ拡張の前提の確認: 計算し直した位相の観測が環境と一致するか、鏡像・逆順の手が物理で同じ結果になるか (同じ手どうしのずれと比べる) |
 
 ## Play のグリッパの色
@@ -23,6 +24,18 @@
 色は USD の `displayColor` だけを書き換え、物理・観測・環境の設定には触れない。ロープは紐モデルごとに描き方が違うので塗らない。
 
 結果のまとめは [`docs/experiments/2026-10-03_inference_search.md`](../../../../docs/experiments/2026-10-03_inference_search.md) (打ち切り中)。
+
+## アーカイブの形を見る
+
+```bash
+uv run python src/isaac_twisted_rl/scripts/rsl_rl/view_archive.py --device cuda:0 --per_stage 8 \
+    --archive logs/rsl_rl/knot_tying_v7/<run>/archive.pt
+```
+
+段ごとに `--per_stage` 個の形を乱数 (`--seed`) で選び、物理を止めたまま並べる。各環境の床板の色は
+**アーカイブの段** (青 / 黄 / 赤 = 段 0 / 1 / 2。グリッパの色と同じ並び)。コンソールには環境ごとに、アーカイブの段・
+書き込んだ後に計算し直した段・交差の数 (R2 除去後)・「たどる辺」(観測 `next_edge`) の有無・p-data を出す。
+`--headless` なら表だけ出して終わる。ロープのプリセットが `Knot` 以外のアーカイブは、そのプリセットの Play の `--task` を付ける。
 
 ## なぜ推論時探索を測るか
 

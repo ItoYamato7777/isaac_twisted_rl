@@ -2,7 +2,7 @@
 
 - 状態: 現行 (記録を足すたびに 1 行足す)
 - 読むべき状況: 過去の学習・評価・計測の結果を探すとき。数値の正本は各記録で、この一覧には数値を書かない
-- 最終更新: 2026-10-05
+- 最終更新: 2026-10-06
 
 各記録は凍結 (本文を書き換えない)。後で分かったことは、冒頭の引用ブロックの注記か新しい記録で足す。書き方は skill `experiment-record`。
 評価の定義は [`docs/system/evaluation.md`](../system/evaluation.md)、ログのフォルダ名・run 名・チェックポイントの意味は [`docs/system/logs.md`](../system/logs.md)。
@@ -27,3 +27,5 @@ run のフォルダは `logs/rsl_rl/` の下 (git の管理外)。日時付き�
 
 記録から抜き出した設計の判断: [`0020`](../decisions/0020-v4-solver-iterations-and-steps-per-iteration.md) (v4 のソルバの反復 8・1 iteration 4 手)、[`0021`](../decisions/0021-measure-physics-changes-by-training.md) (物性の変更は学習と chain 評価で確かめる)。
 | 2026-10-05 | v8 (v7 + 対称性のデータ拡張) の学習 (seed 43 / 44) と v7 との chain 評価の比較 | 凍結 | v8 は v7 を大きく下回った (iteration 100 で 2 シードとも v7 の低いほうより下)。原因は未確認。拡張の重要度比が方策の非対称で成り立たない可能性 (推測) | `knot_tying_v8/` | [2026-10-05_v8_symmetry.md](2026-10-05_v8_symmetry.md) |
+| 2026-10-05 | v9 (v7 + 段 2 から始める重みを 2 倍) の学習 (seed 43 / 44) と v7 との chain 評価の比較 | 凍結 | v9 は最後のチェックポイントで v7 を上回らなかった。学習ログの段 2 の成功の差は chain 評価に出なかった。seed 44 は timeout で iteration 90 まで | `knot_tying_v9/` | [2026-10-05_v9_stage2-weight.md](2026-10-05_v9_stage2-weight.md) |
+| 2026-10-06 | v7 の推論時探索 (best-of-N・ビーム探索) と段 2 の形ごとの切り分け | 凍結 | 探索を付けると v7 はほぼ確実に固結びに届く。学習中に段 2 に着いた形は成功率が形で大きく違い (分散の約半分)、台本の形よりずっと難しい。同じ p-data でも違うので幾何が効く | `knot_tying_v7/` (`eval_search_*_it100*`) | [2026-10-06_inference_search_v7.md](2026-10-06_inference_search_v7.md) |

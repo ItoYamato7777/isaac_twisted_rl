@@ -398,14 +398,14 @@ PPO の対数尤度はクリップ前の値で計算されるので、勾配も�
 | P1-3 | ポテンシャルを p-data グラフ上の距離にする | ✅ 実装済み | **v3** (v4 が再利用) | `common/topology/knot_graph.py`: R1/R2/Cross を辺とする BFS を起動時に 1 回実行し、交差 4 個までの 8541 状態の最短距離表を事前計算 (約 20 秒)。Φ = max(1 − dist/3, R2 除去後ラダー class/3) という「BFS 距離と旧ラダーの併用」で実装 (純粋な BFS 距離のみでは実運用上うまくいかなかったため、v3 README に経緯の記載あり)。v4 は `BfsPotential.stage = round(3·Φ)` としてそのまま 4 段の定義に再利用 |
 | P1-4 | §6.3 (gap=1 交差の事前除外) / §6.4 (C1 定義統一) の修正 | ✅ 実装済み | 共有層 (§6.3)、**v3** (§6.4) | §6.3: `common/topology/knot_detect.py` の `MAX_CROSSINGS_CONSIDERED = 8` (80 行目付近) 周辺に「8 スロット打ち切りの前に gap=1 の交差を後方へ回す」修正を追加 (docstring に「2026-09-28 修正、全バージョンに効く」と明記)。全バージョン共通の `common/` 層なので v2-R2 以降すべてに適用される。<br>§6.4: `topology_class` (`knot_detect.py:233-244`) が class 1 の定義を `count == 1` に統一。v3 の段判定は `topology_class` に一本化され、旧 `crossing_achieved` (`success_c1`、`count >= 1`) との不一致は解消済み (関数自体は rewards.py に残るが、段判定には使われていない) |
 
-### 9.3 P2: 探索と汎化を強くする — **0/4 未着手**
+### 9.3 P2: 探索と汎化を強くする — **2/4 着手 (P2-1 は v8、P2-4 は評価の道具)、2/4 未着手** (2026-10-06 に P2-1・P2-4 の行を更新)
 
 | # | 提案 | 状況 | 備考 |
 |---|---|---|---|
-| P2-1 | 対称性のデータ拡張 (`RslRlPpoAlgorithmCfg.symmetry_cfg`) | ❌ 未実装 | `symmetry_cfg` という文字列はドキュメント・解説 HTML (`versions/v3/HTML/v3-vs-papers.html`) と v4 README の「この版で解決しないこと」節にのみ現れ、コードでの使用は無い |
+| P2-1 | 対称性のデータ拡張 (`RslRlPpoAlgorithmCfg.symmetry_cfg`) | ✅ 実装 (v8) | v8 = v7 + 鏡像・逆順で 4 倍 (`versions/v8/`)。chain 評価で v7 を大きく下回った (`docs/experiments/2026-10-05_v8_symmetry.md`) |
 | P2-2 | RND による好奇心探索 (`RslRlOnPolicyRunnerCfg.rnd_cfg`) | ❌ 未実装 | リポジトリ内に `rnd_cfg` の使用例なし |
 | P2-3 | 初期形状のランダム化 (直線以外) | ❌ 未実装 | `common/env_cfg_base.py` のリセットは引き続き直線ロープのみ。v4 のアーカイブ初期化は「到達済み形状から選ぶ」機能であり、提案の「交差の無い曲線をランダム生成する」こととは別物 |
-| P2-4 | 推論時の探索 (候補の並列展開 + 木探索) | ❌ 未実装 | `demos/` 以下の play 系スクリプトに候補展開・木探索のロジックは無い。v4 README の「この版で解決しないこと」に明記 |
+| P2-4 | 推論時の探索 (候補の並列展開 + 木探索) | ✅ 評価の道具として実装 (版にはしない。`docs/decisions/0011-success-rate-without-search.md`) | `scripts/rsl_rl/eval_search.py` (best-of-N・ビーム探索・段の形ごとの切り分け)。v7 (iteration 100、2 シード) は予算 128 手で 92〜99%、1024 手でビーム探索が全 128 問題を解いた (`docs/experiments/2026-10-06_inference_search_v7.md`)。探索の設定の比較は未着手 |
 
 ### 9.4 P3: 行動空間と定式化の見直し — **1/5 実装済み、2/5 部分実装、2/5 未着手**
 

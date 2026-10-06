@@ -1,3 +1,4 @@
+> **2026-10-06 の注記**: v7 (v7 のタスク ID で学習した seed 43 / 44、iteration 100) の rollouts / search と、段 2 の形ごとの切り分けは [`2026-10-06_inference_search_v7.md`](2026-10-06_inference_search_v7.md) に書いた。v6 s43・v6 s42・v5 の未完の評価は止めたまま。
 > **状態: 打ち切り中 (2026-10-03)** (評価を途中で止めた中間の報告。予定 10 本のうち最後まで終わったのは 4 本: §2.3)。移動前のパス: `paper/Report_Search.md` (commit 62b251b で移動。本文は変えていない)。
 > 読むべき状況: 推論時探索 (best-of-N・ビーム探索・状態の複製) の評価を再開するとき、`eval_search.py` の結果 JSON を読むとき。
 > **文中の「V8」には定義がない** (次の版を指すと読めるが、どこにも定義されていない。`docs/history/refactor/audit/A.md` の A-15)。

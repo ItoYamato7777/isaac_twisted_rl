@@ -80,9 +80,15 @@ def spawn_floor_tiles(unwrapped, stage_of_env: list[int]) -> None:
         )
         for c in STAGE_COLORS
     ]
-    for env_path, s in zip(unwrapped.scene.env_prim_paths, stage_of_env):
+    # 板は env の prim (`/World/envs/env_N`) の下に置かない。env_0 の下に足した子 prim は他の env にも
+    # 現れる (env_0 に 1 枚足しただけで env_1, env_2 にも `ArchiveStageFloor` ができる) ので、2 枚目以降が
+    # 「prim が既にある」で落ち、環境ごとに色も変えられない。env の外に、env の原点の位置で置く。
+    root = "/World/ArchiveStageFloors"
+    unwrapped.scene.stage.DefinePrim(root, "Xform")
+    origins = unwrapped.scene.env_origins.cpu().tolist()
+    for e, s in enumerate(stage_of_env):
         cfg = cfgs[min(s, len(cfgs) - 1)]
-        cfg.func(f"{env_path}/ArchiveStageFloor", cfg, translation=(0.0, 0.0, 0.0))
+        cfg.func(f"{root}/tile_{e}", cfg, translation=tuple(origins[e]))
 
 
 def look_at_all(unwrapped) -> None:

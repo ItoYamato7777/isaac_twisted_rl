@@ -37,9 +37,16 @@ int64 キーを、`p_data_key` で並べた表から `searchsorted` で引く。
 * `tail_end`: 尻尾の端 (リンク番号の大きい側。台本の「先端」) を使う候補を優先する (同点の崩し方は同じ)。
 * `first`: 列挙順の最初 (比較用)。
 * `random`: 候補から一様に選ぶ (比較用)。
+
+## 段の定義との関係 (v10)
+
+v10 (段の定義 `path`、`path_stages.py`) では、候補を「子が正規の経路の上にある辺」に絞り、経路の上に
+無い状態には辺を渡さない (`get_next_edge_table(device, "path")`)。表の形 (観測の次元) は変わらない。
 """
 
 from __future__ import annotations
+
+from collections.abc import Collection, Mapping
 
 import torch
 
@@ -54,6 +61,7 @@ from .knot_graph import (
     p_data_key,
 )
 from .knot_graph import shortest_edges as _shortest_edges
+from .path_stages import STAGE_DEFINITIONS, path_children
 
 RULES = ("short_end", "long_end", "tail_end", "first", "random")
 """`NextEdgeTable.select` の選択規則。"""
@@ -96,17 +104,25 @@ class NextEdgeTable:
     """p-data ごとの最短の次の辺 (`knot_graph.shortest_edges`) を GPU 上の表にしたもの。
 
     表の行は `p_data_key` の昇順、列は候補 (`shortest_edges` の並び、足りない分は種類 −1)。
+
+    Args:
+        allowed_children: p-data -> たどってよい子の p-data。与えると、候補を子がこの中にあるものに絞り、
+            ここに無い p-data の行は候補なしにする (行は残すので `lookup` は見つかり、`select` が −1 を返す)。
+            None (既定) は絞らない (v6〜v9)。
     """
 
     def __init__(
         self,
         device: torch.device | str = "cpu",
         max_crossings: int = MAX_GRAPH_CROSSINGS,
+        allowed_children: Mapping[str, Collection[str]] | None = None,
     ):
         table = _shortest_edges(max_crossings)
+        if allowed_children is not None:
+            table = {pd: [e for e in edges if e.child in allowed_children.get(pd, ())] for pd, edges in table.items()}
         items = sorted((p_data_key(pd), edges) for pd, edges in table.items())
         num_rows = len(items)
-        num_cands = max(len(edges) for _, edges in items)
+        num_cands = max(max(len(edges) for _, edges in items), 1)
         self.num_cands = num_cands
 
         def full(value: int) -> list[list[int]]:
@@ -266,12 +282,18 @@ _NO_END = 1 << 20
 """`_end_lengths` で「端を使わない」を表す値 (リンク数より十分大きい)。"""
 
 
-_TABLE_CACHE: dict[str, NextEdgeTable] = {}
+_TABLE_CACHE: dict[tuple[str, str], NextEdgeTable] = {}
 
 
-def get_next_edge_table(device: torch.device | str) -> NextEdgeTable:
-    """デバイスごとに 1 つだけ作って使い回す (グラフの列挙は `lru_cache` 済み)。"""
-    key = str(device)
+def get_next_edge_table(device: torch.device | str, stage_definition: str = "bfs") -> NextEdgeTable:
+    """段の定義 (`path_stages.STAGE_DEFINITIONS`) とデバイスごとに 1 つだけ作って使い回す。
+
+    `bfs` (既定、v6〜v9) は絞らない表、`path` (v10) は候補を正規の経路の上に絞った表。
+    """
+    if stage_definition not in STAGE_DEFINITIONS:
+        raise ValueError(f"stage_definition は {STAGE_DEFINITIONS} のどれか (got {stage_definition!r})")
+    key = (str(device), stage_definition)
     if key not in _TABLE_CACHE:
-        _TABLE_CACHE[key] = NextEdgeTable(device)
+        allowed = path_children() if stage_definition == "path" else None
+        _TABLE_CACHE[key] = NextEdgeTable(device, allowed_children=allowed)
     return _TABLE_CACHE[key]

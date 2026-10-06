@@ -44,7 +44,7 @@ import torch
 from isaaclab.managers import SceneEntityCfg
 
 from .. import topology as tp
-from .observations import get_extractor, rope_zmax
+from .observations import get_extractor, rope_zmax, stage_function
 from .terminations import diverged_now
 
 if TYPE_CHECKING:
@@ -54,9 +54,9 @@ _CACHE_ATTR = "_knot_tying_stage_transition"
 
 
 def current_stage(env: ManagerBasedRLEnv, rope_cfg: SceneEntityCfg = SceneEntityCfg("rope")) -> torch.Tensor:
-    """いまのロープの段 `(num_envs,)` int64 (0〜`STAGE_GOAL`)。"""
+    """いまのロープの段 `(num_envs,)` int64 (0〜`STAGE_GOAL`。v10 の段の定義では道から外れた形が −1)。"""
     extractor = get_extractor(env, rope_cfg.name)
-    return tp.get_bfs_potential(env.device).stage(extractor.batch, extractor.reduced_batch)
+    return stage_function(env).stage(extractor.batch, extractor.reduced_batch)
 
 
 def stage_transition(
@@ -74,7 +74,7 @@ def stage_transition(
     cached = getattr(env, _CACHE_ATTR, None)
     if cached is not None and cached[0] == env.common_step_counter and cached[1] is batch:
         return cached[2]
-    pot = tp.get_bfs_potential(env.device)
+    pot = stage_function(env)
     term = env.action_manager.get_term(action_name)
     raw_before = term.batch_at_action_start
     after = pot.stage(batch, extractor.reduced_batch)
@@ -89,6 +89,19 @@ def stage_transition(
     return out
 
 
+def last_stage_transition(env: ManagerBasedRLEnv) -> dict[str, torch.Tensor] | None:
+    """直近の env ステップで `stage_transition` が計算した値 (無ければ None)。v10 で追加。
+
+    `env.step()` から返った後に読むと、終了した env も **reset の前** の値が入っている (終了判定 -> 報酬で
+    計算し、観測は `current_stage` で引くのでキャッシュを書き換えない)。chain 評価 (`eval_chain.py`) が、
+    固結びで終わったエピソードの手の後の p-data のキー (`key_after`) を読むのに使う。
+    """
+    cached = getattr(env, _CACHE_ATTR, None)
+    if cached is None or cached[0] != env.common_step_counter:
+        return None
+    return cached[2]
+
+
 def _outcome(
     env: ManagerBasedRLEnv,
     strict_topology: bool,
@@ -98,7 +111,10 @@ def _outcome(
     action_name: str,
     rope_cfg: SceneEntityCfg,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-    """`(up, down, diverged, after)`。up / down は床に落ちていて発散していない手だけ。"""
+    """`(up, down, diverged, after)`。up / down は床に落ちていて発散していない手だけ。
+
+    v10 の道から外れた形 (段 −1) は、手の前の段 (0〜2) より小さいので down に入る (−1 で終了)。
+    """
     tr = stage_transition(env, action_name, rope_cfg)
     before, after = tr["before"], tr["after"]
     diverged = (
@@ -120,8 +136,11 @@ def knot_stage_one_hot(env: ManagerBasedRLEnv, rope_cfg: SceneEntityCfg = SceneE
 
     `StageGatedActorCritic` はこの列の argmax でエージェントを選ぶので、**観測グループの
     最後の項** にすること。
+
+    道から外れた形 (v10 の段 −1) は段 0 にする。学習では外れた手でエピソードが終わるので、
+    これが効くのは chain 評価だけ (外れている間は段 0 の方策に打たせる。`docs/decisions/0023-v10-path-stages.md`)。
     """
-    stage = current_stage(env, rope_cfg)
+    stage = current_stage(env, rope_cfg).clamp_min(0)
     return torch.nn.functional.one_hot(stage, num_classes=tp.STAGE_GOAL + 1).float()
 
 

@@ -27,6 +27,7 @@ from .rewards import *  # noqa: F401, F403
 from .stages import (  # noqa: F401
     current_stage,
     knot_stage_one_hot,
+    last_stage_transition,
     stage_changed,
     stage_transition,
     stage_transition_reward,

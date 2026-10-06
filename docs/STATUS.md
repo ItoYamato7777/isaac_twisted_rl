@@ -30,7 +30,7 @@
 | v7 | chain 評価 済み (seed 43・44 は iteration 100 まで、GPU 1 枚に 1 本。seed 42 に当たる `abl_depB` は iteration 70 まで) | [2026-10-04_v7_seeds](experiments/2026-10-04_v7_seeds.md) |
 | v8 | chain 評価 済み (seed 43・44、iteration 70 / 100、GPU 1 枚に 1 本)。v7 を下回った | [2026-10-05_v8_symmetry](experiments/2026-10-05_v8_symmetry.md)、判断は [0022](decisions/0022-p2-one-version-each.md) |
 | v9 | seed 43 は iteration 100 まで学習済み (chain 評価はまだ)、seed 44 は学習中。継承元 v7、差は `stage_weights` だけ | [versions/v9/README.md](../src/isaac_twisted_rl/tasks/knot_tying/versions/v9/README.md) |
-| v10 | **未実装**。仕様は決定済み (継承元 v7、差は段の定義だけ) | [0023](decisions/0023-v10-path-stages.md) |
+| v10 | 実装した (2026-10-06)。初期アーカイブの作成・学習はまだ。継承元 v7、差は段の定義だけ (段 3 は v7 と同じ判定) | [versions/v10/README.md](../src/isaac_twisted_rl/tasks/knot_tying/versions/v10/README.md)、[0023](decisions/0023-v10-path-stages.md) |
 
 ## 走っているジョブ
 
@@ -54,11 +54,10 @@
 
 仕様・理由・実装の見通しは [0023](decisions/0023-v10-path-stages.md)。v7 との差は段の定義だけ (`stage_weights` 1:1:1)。
 
-1. 0023 の「未決」(許していない固結びに着いた手を −1 にするか) をユーザーに確かめる。
-2. skill `add-version` で v10 を作る。段の関数 (`common/topology/`、Isaac Sim なし) と経路の単体テストから。段を差し替える口は、既定のままなら v4〜v9 の挙動が変わらないことをテストで確かめる。
-3. 初期アーカイブの扱いを決めて実装する (新しい定義に入るのは段 0 の 128 形・段 1 の 264 形・段 2 の 18 形。`outputs/archive_seed/` は上書きしない)。
-   形の p-data は `src/isaac_twisted_rl/scripts/rsl_rl/view_archive.py --headless` で出せる。
-4. commit してから、skill `train-eval` でスモークテスト -> seed 43 / 44 の学習 -> chain 評価 (v7 の seed 43 / 44 の iteration 70 / 100 と比べる)。
+1. ~~0023 の「未決」~~ 済み (2026-10-06、ユーザーの判断): 段 3 は v7 と同じ判定 (どの固結びも +1)。0023 に反映した。
+2. ~~v10 を作る~~ 済み。`common/topology/path_stages.py`・`common/mdp/observations.py` の `stage_function`・`versions/v10/`。テストは `tests/test_path_stages.py`・`tests/test_v10_cfg.py`。
+3. 初期アーカイブ `outputs/archive_seed/overhand_28links_v10.pt` を `view_archive.py --write_filtered` で作る (コマンドは v10 の README)。残った件数が 0023 の見込み (128 / 264 / 18) と合うかを確かめる。
+4. skill `train-eval` でスモークテスト -> seed 43 / 44 の学習 -> chain 評価 (v7 の seed 43 / 44 の iteration 70 / 100 と比べる。`knot_strict` も見る)。
 
 ### v9・推論時探索 (2026-10-05 から続く作業)
 

@@ -37,6 +37,7 @@ Isaac Sim を起動せずに `pytest` 単体で検証できる。Isaac Lab の
     knot_detect.py      固結びの判定と報酬ラダーの段・R2 除去 (テンソル層のみ)
     knot_graph.py       R1/R2/cross の位相グラフと固結びまでの BFS 距離 (v3、交差 4 個まで) と段 (v4)、最短の次の辺 (v6)
     next_edge.py        次にたどる辺のリンクマスク (v6。テンソル層)
+    path_stages.py      段を固結びへの正規の経路の上の p-data に限る段の定義 (v10)
     symmetry.py         鏡像・逆順の対称変換を観測と行動にかける (v8 のデータ拡張)
 """
 
@@ -88,6 +89,17 @@ from .knot_graph import (
 )
 from .next_edge import RULES as NEXT_EDGE_RULES
 from .next_edge import NextEdgeTable, feature_dim, get_next_edge_table, point_links
+from .path_stages import (
+    OFF_PATH,
+    PATH_STAGE_P_DATA,
+    STAGE_DEFINITIONS,
+    STRICT_GOAL_P_DATA,
+    PathStage,
+    get_stage_function,
+    path_children,
+    stage_definition_of,
+    strict_goal_mask,
+)
 from .polyline import (
     center_xy,
     polyline_from_link_centers,
@@ -119,9 +131,13 @@ __all__ = [
     "MOVE_R2",
     "NEXT_EDGE_RULES",
     "NUM_CLASSES",
+    "OFF_PATH",
     "OVERHAND_P_DATA",
     "PAD",
+    "PATH_STAGE_P_DATA",
+    "STAGE_DEFINITIONS",
     "STAGE_GOAL",
+    "STRICT_GOAL_P_DATA",
     "AbstractState",
     "BfsPotential",
     "Edge",
@@ -129,6 +145,7 @@ __all__ = [
     "GraphEdge",
     "IntersectionBatch",
     "NextEdgeTable",
+    "PathStage",
     "Point",
     "batch_keys",
     "batch_p_data",
@@ -141,6 +158,7 @@ __all__ = [
     "feature_dim",
     "get_bfs_potential",
     "get_next_edge_table",
+    "get_stage_function",
     "has_duplicate_segments",
     "has_knot_subsequence",
     "intersections_to_topology",
@@ -150,6 +168,7 @@ __all__ = [
     "p_data_key",
     "p_data_to_lists",
     "partner_gaps",
+    "path_children",
     "point_links",
     "polyline_from_link_centers",
     "polyline_to_p_data",
@@ -162,6 +181,8 @@ __all__ = [
     "segment_intersections",
     "shortest_edges",
     "sign_consistent",
+    "stage_definition_of",
+    "strict_goal_mask",
     "subdivide_segments",
     "subsequence_truncated",
     "topology_class",

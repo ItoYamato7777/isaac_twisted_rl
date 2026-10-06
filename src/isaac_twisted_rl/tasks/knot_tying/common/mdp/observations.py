@@ -55,6 +55,16 @@ def get_extractor(env: ManagerBasedRLEnv, rope_name: str = "rope") -> RopeTopolo
     return extractor
 
 
+def stage_function(env: ManagerBasedRLEnv) -> tp.BfsPotential | tp.PathStage:
+    """env の設定の段の定義 (`stage_definition`。無ければ `bfs`) で段を引くもの。v10 で追加。
+
+    段を引く項 (`stages.py`・`archive.py`・`NextEdgeGoal`・`topology_log.py`) はすべてこれを通す。
+    v4〜v9 の設定は `stage_definition` を持たないので `BfsPotential` のままで、挙動は変わらない。
+    v10 は `path` (`topology.PathStage`、`docs/decisions/0023-v10-path-stages.md`)。
+    """
+    return tp.get_stage_function(tp.stage_definition_of(env.cfg), env.device)
+
+
 def invalidate_extractor(env: ManagerBasedRLEnv) -> None:
     """次の `get_extractor()` で必ず `update()` を回させる。
 
@@ -243,7 +253,7 @@ class NextEdgeGoal(ManagerTermBase):
 
     def __init__(self, cfg: ObservationTermCfg, env: ManagerBasedRLEnv):
         super().__init__(cfg, env)
-        self._table = tp.get_next_edge_table(env.device)
+        self._table = tp.get_next_edge_table(env.device, tp.stage_definition_of(env.cfg))
         num_envs = env.num_envs
         self.key = torch.full((num_envs,), _UNSELECTED, dtype=torch.int64, device=env.device)
         """辺を選んだときの位相のキー。"""
@@ -252,7 +262,7 @@ class NextEdgeGoal(ManagerTermBase):
         self.cand = torch.full((num_envs,), -1, dtype=torch.int64, device=env.device)
         """選んだ候補の番号。表に無い状態は −1。"""
         self.stage = torch.zeros(num_envs, dtype=torch.int64, device=env.device)
-        """直近の観測の時点 (= 次の手を打つ前) の段 (`BfsPotential.stage`)。ログ用。"""
+        """直近の観測の時点 (= 次の手を打つ前) の段 (`stage_function`)。ログ用。"""
         self._generator = torch.Generator(device=env.device)
         self._generator.manual_seed(int(cfg.params.get("seed", 0)))
         setattr(env, _NEXT_EDGE_ATTR, self)
@@ -291,7 +301,7 @@ class NextEdgeGoal(ManagerTermBase):
         self.cand = torch.where(redo, new, self.cand)
         self.key = keys
         self.row = row
-        self.stage = tp.get_bfs_potential(env.device).stage(batch, extractor.reduced_batch)
+        self.stage = stage_function(env).stage(batch, extractor.reduced_batch)
         return self._table.features(row, self.cand, links, extractor.num_links)
 
 

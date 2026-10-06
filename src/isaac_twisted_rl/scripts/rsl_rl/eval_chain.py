@@ -14,6 +14,9 @@
 
 出力 (JSON と標準出力):
 * `knot`: 固結びに達した割合 (`stage_up`。Play では固結びでだけ立つ)
+* `knot_strict`: 固結びに達し、その形が正規の経路の終点 (`topology.STRICT_GOAL_P_DATA`、厳密な段 3) だった割合。
+  段の定義によらず同じ 2 つの p-data で数える (v10 の段 3 は v7 と同じ判定で、こちらは別の列。
+  `docs/decisions/0023-v10-path-stages.md`)。手の後の p-data は `stages.last_stage_transition` (reset の前の値) から読む
 * `diverged` / `time_out`: 発散 / 18 手で終わった割合
 * `max_stage_ge{k}`: エピソード中に段 k 以上に達した割合 (観測の段の one-hot から)
 * `mean_actions_to_knot`: 固結びに達したエピソードの手数の平均
@@ -59,6 +62,8 @@ from isaaclab_rl.rsl_rl import RslRlBaseRunnerCfg, RslRlVecEnvWrapper
 
 import isaaclab_tasks  # noqa: F401
 import isaac_twisted_rl.tasks  # noqa: F401
+from isaac_twisted_rl.tasks.knot_tying.common import topology as tp
+from isaac_twisted_rl.tasks.knot_tying.common.mdp.stages import last_stage_transition
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
 _STAGE_DIMS = 4
@@ -95,6 +100,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
 
     counted = torch.zeros(n, dtype=torch.bool, device=dev)
     outcome = {k: torch.zeros(n, dtype=torch.bool, device=dev) for k in names}
+    strict = torch.zeros(n, dtype=torch.bool, device=dev)
     max_stage = torch.zeros(n, dtype=torch.long, device=dev)
     ep_max_stage = torch.zeros(n, dtype=torch.long, device=dev)
     length = torch.zeros(n, dtype=torch.long, device=dev)
@@ -112,6 +118,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
             done = dones.bool() & ~counted
             for k in names:
                 outcome[k] |= done & tm.get_term(k)
+            transition = last_stage_transition(unwrapped)
+            if transition is None:
+                raise RuntimeError("stage_transition のキャッシュが無い (段の終了項 stage_up が配線されていない?)")
+            strict |= done & tm.get_term("stage_up") & tp.strict_goal_mask(transition["key_after"])
             # 固結び (stage_up) で終わった手は観測が次のエピソードに替わっているので 3 を入れる。
             final_stage = torch.where(tm.get_term("stage_up"), torch.full_like(ep_max_stage, 3), ep_max_stage)
             max_stage = torch.where(done, final_stage, max_stage)
@@ -131,6 +141,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
         "episodes": m,
         "uncounted": n - m,
         "knot": float(knot.sum()) / max(m, 1),
+        "knot_strict": float((strict & counted).sum()) / max(m, 1),
         **{k: float((outcome[k] & counted).sum()) / max(m, 1) for k in names if k != "stage_up"},
         **{f"max_stage_ge{s}": float(((max_stage >= s) & counted).sum()) / max(m, 1) for s in (1, 2, 3)},
         "mean_actions_to_knot": float(length[knot].float().mean()) if bool(knot.any()) else None,

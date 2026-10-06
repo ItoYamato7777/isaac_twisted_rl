@@ -28,3 +28,25 @@ def test_seed_reproducible():
     a = pick_shapes({0: 16384}, [0], per_stage=8, seed=1)
     assert a == pick_shapes({0: 16384}, [0], per_stage=8, seed=1)
     assert a != pick_shapes({0: 16384}, [0], per_stage=8, seed=2)
+
+
+def test_filtered_state_dict_keeps_matching_shapes():
+    """keep が True の形だけを、元の番号の順に、`StateArchive.state_dict` と同じ形で残す。"""
+    import torch
+
+    from isaac_twisted_rl.scripts.rsl_rl.archive_view import filtered_state_dict
+
+    entries = {
+        s: {
+            "root_pose": torch.arange(n * 7, dtype=torch.float32).reshape(n, 7) + 100 * s,
+            "joint_pos": torch.rand(n, 3),
+        }
+        for s, n in ((0, 3), (2, 4))
+    }
+    picks = pick_shapes({0: 3, 2: 4}, [0, 2], per_stage=4, seed=0)
+    keep = [True, False, True, False, False, False, False]
+    out = filtered_state_dict(entries, 3, picks, keep)
+    assert out["num_joints"] == 3
+    assert set(out["entries"]) == {0}  # 段 2 は全部外れたのでキーごと無い
+    assert torch.equal(out["entries"][0]["root_pose"], entries[0]["root_pose"][[0, 2]])
+    assert torch.equal(out["entries"][0]["joint_pos"], entries[0]["joint_pos"][[0, 2]])

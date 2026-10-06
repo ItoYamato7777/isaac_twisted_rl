@@ -50,7 +50,7 @@ import torch
 from isaaclab.managers import ManagerTermBase, RewardTermCfg, SceneEntityCfg
 
 from .. import topology as tp
-from .observations import get_extractor, get_next_edge_goal
+from .observations import get_extractor, get_next_edge_goal, stage_function
 from .terminations import diverged_now
 
 if TYPE_CHECKING:
@@ -259,7 +259,7 @@ class NextEdgeStats(ManagerTermBase):
         valid = goal.cand >= 0
         live = valid & ~diverged
         reached = live & (tp.batch_keys(extractor.batch) == goal.child_key)
-        stage = tp.get_bfs_potential(env.device).stage(extractor.batch, extractor.reduced_batch)
+        stage = stage_function(env).stage(extractor.batch, extractor.reduced_batch)
         kind = goal.kind
         values = {
             "reached": reached,

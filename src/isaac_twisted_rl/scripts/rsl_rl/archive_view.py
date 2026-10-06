@@ -36,3 +36,27 @@ def pick_shapes(sizes: dict[int, int], stages: list[int], per_stage: int, seed: 
             idx = torch.randperm(n, generator=gen)[:per_stage].sort().values.tolist()
         out.extend((s, i) for i in idx)
     return out
+
+
+def filtered_state_dict(
+    entries: dict[int, dict[str, torch.Tensor]], num_joints: int, picks: list[tuple[int, int]], keep: list[bool]
+) -> dict:
+    """`picks` のうち `keep` が True の形だけを、`StateArchive.state_dict` と同じ形の辞書にする (`--write_filtered`)。
+
+    段は元のアーカイブの段のまま (計算し直した段と一致した形だけを残す使い方なので、付け替えない)。
+    形の並びは `picks` の順 (= 元のアーカイブの番号の順)。残る形が無い段はキーごと無い。
+    """
+    if len(picks) != len(keep):
+        raise ValueError(f"picks ({len(picks)}) と keep ({len(keep)}) の長さが違う")
+    rows: dict[int, list[int]] = {}
+    for (s, i), k in zip(picks, keep):
+        if k:
+            rows.setdefault(s, []).append(i)
+    out: dict = {"num_joints": int(num_joints), "entries": {}}
+    for s, idx in rows.items():
+        sel = torch.tensor(idx, dtype=torch.long)
+        out["entries"][s] = {
+            "root_pose": entries[s]["root_pose"][sel].clone(),
+            "joint_pos": entries[s]["joint_pos"][sel].clone(),
+        }
+    return out

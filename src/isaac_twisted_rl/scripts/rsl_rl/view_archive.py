@@ -20,9 +20,23 @@
   `archive.pt` を上書きしない。
 
 `--headless` では表を出して終わる (形の位相だけを数えるとき)。
+
+## 段の定義を変えた版の初期アーカイブを作る (`--write_filtered`)
+
+段は `--task` の版の段の定義 (`stage_definition`。v10 は `path`) で計算し直す。`--write_filtered <新しいパス>` は、
+指定した段の **全部の形** を書き込み、計算し直した段がアーカイブの段と一致した形だけを新しいファイルに書く
+(`--per_stage` は無視する)。v10 は台本の初期アーカイブのうち、段 0〜2 の正規の経路の上の形だけで始める
+(`docs/decisions/0023-v10-path-stages.md`)。物理を進めないので、残った形は元のファイルの形とまったく同じ:
+
+    uv run python src/isaac_twisted_rl/scripts/rsl_rl/view_archive.py --headless \
+        --archive outputs/archive_seed/overhand_28links.pt --task Isaac-Twisted-RL-Knot-Play-v10 \
+        --write_filtered outputs/archive_seed/overhand_28links_v10.pt
+
+既にあるファイルには書かない (`outputs/archive_seed/` の初期アーカイブを上書きしないため)。
 """
 
 import argparse
+import os
 import sys
 
 from isaaclab.app import AppLauncher
@@ -36,6 +50,12 @@ parser.add_argument(
 parser.add_argument("--stages", type=str, default="0,1,2", help="Archive stages to show (comma separated).")
 parser.add_argument("--per_stage", type=int, default=8, help="Shapes per stage.")
 parser.add_argument("--seed", type=int, default=0, help="Seed for picking the shapes.")
+parser.add_argument(
+    "--write_filtered",
+    type=str,
+    default=None,
+    help="Write the shapes whose recomputed stage matches the archive stage to this new file (uses all shapes).",
+)
 AppLauncher.add_app_launcher_args(parser)
 args_cli, hydra_args = parser.parse_known_args()
 sys.argv = [sys.argv[0]] + hydra_args
@@ -52,7 +72,7 @@ import isaaclab.sim as sim_utils
 from isaaclab.envs import ManagerBasedRLEnvCfg
 
 import isaac_twisted_rl.tasks  # noqa: F401
-from isaac_twisted_rl.scripts.rsl_rl.archive_view import pick_shapes
+from isaac_twisted_rl.scripts.rsl_rl.archive_view import filtered_state_dict, pick_shapes
 from isaac_twisted_rl.scripts.rsl_rl.stage_colors import STAGE_COLOR_NAMES, STAGE_COLORS
 from isaac_twisted_rl.tasks.knot_tying.common import state_archive as sa
 from isaac_twisted_rl.tasks.knot_tying.common import topology as tp
@@ -60,6 +80,7 @@ from isaac_twisted_rl.tasks.knot_tying.common.mdp.observations import (
     get_extractor,
     get_next_edge_goal,
     invalidate_extractor,
+    stage_function,
 )
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
@@ -107,7 +128,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
     entries = {int(k): v for k, v in data["entries"].items()}
     sizes = {k: int(v["root_pose"].shape[0]) for k, v in entries.items()}
     stages = [int(s) for s in args_cli.stages.split(",") if s.strip()]
-    picks = pick_shapes(sizes, stages, args_cli.per_stage, args_cli.seed)
+    if args_cli.write_filtered and os.path.exists(args_cli.write_filtered):
+        raise FileExistsError(f"{args_cli.write_filtered} は既にある (上書きしない)")
+    per_stage = max(sizes.values(), default=0) if args_cli.write_filtered else args_cli.per_stage
+    picks = pick_shapes(sizes, stages, per_stage, args_cli.seed)
     if not picks:
         raise ValueError(f"{args_cli.archive} に段 {stages} の形が無い (件数: {sizes})")
     print(f"[INFO] {args_cli.archive}: 段 -> 件数 {sizes}。見せる形 {len(picks)} 個")
@@ -136,12 +160,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
     unwrapped.observation_manager.compute()
 
     extractor = get_extractor(unwrapped)
-    stage_now = tp.get_bfs_potential(dev).stage(extractor.batch, extractor.reduced_batch).tolist()
+    stage_now = stage_function(unwrapped).stage(extractor.batch, extractor.reduced_batch).tolist()
     crossings = extractor.batch.count.tolist()
     reduced = extractor.reduced_batch.count.tolist()
     goal = get_next_edge_goal(unwrapped)
     has_edge = (goal.cand >= 0).tolist() if goal is not None else [None] * len(picks)
     names = {tp.p_data_key(pd): pd for pd in tp.potential_table()}
+    names.update({tp.p_data_key(pd): pd for pds in tp.PATH_STAGE_P_DATA.values() for pd in pds})
     keys = tp.batch_keys(extractor.batch).tolist()
 
     legend = " / ".join(f"段 {k} = {n}" for k, n in enumerate(STAGE_COLOR_NAMES))
@@ -157,6 +182,14 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
             no_edge = sum(1 for e in rows if not has_edge[e])
             mean_c = sum(crossings[e] for e in rows) / len(rows)
             print(f"[INFO] 段 {s}: {len(rows)} 形、交差の平均 {mean_c:.1f}、たどる辺なし {no_edge} 形")
+
+    if args_cli.write_filtered:
+        keep = [sn == s for (s, _), sn in zip(picks, stage_now)]
+        out = filtered_state_dict(entries, int(data["num_joints"]), picks, keep)
+        kept = {s: int(v["root_pose"].shape[0]) for s, v in out["entries"].items()}
+        os.makedirs(os.path.dirname(os.path.abspath(args_cli.write_filtered)), exist_ok=True)
+        torch.save(out, args_cli.write_filtered)
+        print(f"[INFO] 段が一致した形を書いた: {args_cli.write_filtered} (段 -> 件数 {kept}、元 {sizes})")
 
     if not unwrapped.sim.has_gui():
         env.close()

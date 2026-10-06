@@ -47,7 +47,7 @@ from isaaclab.managers import EventTermCfg, ManagerTermBase, SceneEntityCfg
 
 from .. import state_archive as sa
 from .. import topology as tp
-from .observations import get_extractor, rope_zmax
+from .observations import get_extractor, rope_zmax, stage_function
 from .terminations import diverged_now
 
 if TYPE_CHECKING:
@@ -360,7 +360,7 @@ class ResetToStage(ManagerTermBase):
         # -- 検算: 書き込んだ形状の段が保存時と一致するか
         body_index = get_extractor(env, rope_cfg.name).body_index
         nodes = tp.polyline_from_link_centers(rope.data.body_pos_w[sel][:, body_index])
-        restored = tp.get_bfs_potential(env.device).stage(tp.segment_intersections(nodes))
+        restored = stage_function(env).stage(tp.segment_intersections(nodes))
         self._sums["restored"] += float(sel.numel())
         self._sums["mismatch"] += float((restored != cls).sum())
 
@@ -376,7 +376,7 @@ class ResetToStage(ManagerTermBase):
     ) -> None:
         """手の終わりの形状のうち、床に落ちていて発散していないものを段ごとに保存する。"""
         extractor = get_extractor(env, rope_cfg.name)
-        stage = tp.get_bfs_potential(env.device).stage(extractor.batch, extractor.reduced_batch)
+        stage = stage_function(env).stage(extractor.batch, extractor.reduced_batch)
         ok = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
         ok &= torch.isfinite(extractor.nodes).all(dim=-1).all(dim=-1)
         if diverged_term is not None:

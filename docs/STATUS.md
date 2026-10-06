@@ -11,6 +11,7 @@
   - **(A) v9 = v7 + `stage_weights` (1, 1, 2)**。seed 43 は iteration 100 まで学習し終えた (chain 評価はまだ)。seed 44 は学習中。学習ログ (代理の指標) の段 2 の成功は、iteration 90〜99 で v9 s43 が 0.34、v7 が 0.19 / 0.24 (推測。chain 評価で確かめる)。
   - **(B) 推論時探索の評価を v7 で再開**。v7 (iteration 100、seed 43 / 44) の `rollouts` と `search` は終わった (JSON は各 run のフォルダの `eval_search_{rollouts,search}_it100.json`)。ビーム探索は 128 問題すべてを予算 1024 手以内に解いた。段 2 の形ごとの診断 (`--mode shapes`) は、初回が `inference_mode` のバグで失敗し、直して (`8a22558`) smoke test を通した。本番はこれから。
 - 対称性の切り分け (v8) は今回やらない。rope study は打ち切りのまま。
+- 2026-10-06 にユーザーの指示で **v10 (段を固結びへの正規の経路の上の p-data だけに絞る)** の仕様を決めた ([0023](decisions/0023-v10-path-stages.md))。実装は別のセッションで行う (下の「次の作業」の「v10」)。
 
 ## 版の状態
 
@@ -29,6 +30,7 @@
 | v7 | chain 評価 済み (seed 43・44 は iteration 100 まで、GPU 1 枚に 1 本。seed 42 に当たる `abl_depB` は iteration 70 まで) | [2026-10-04_v7_seeds](experiments/2026-10-04_v7_seeds.md) |
 | v8 | chain 評価 済み (seed 43・44、iteration 70 / 100、GPU 1 枚に 1 本)。v7 を下回った | [2026-10-05_v8_symmetry](experiments/2026-10-05_v8_symmetry.md)、判断は [0022](decisions/0022-p2-one-version-each.md) |
 | v9 | seed 43 は iteration 100 まで学習済み (chain 評価はまだ)、seed 44 は学習中。継承元 v7、差は `stage_weights` だけ | [versions/v9/README.md](../src/isaac_twisted_rl/tasks/knot_tying/versions/v9/README.md) |
+| v10 | **未実装**。仕様は決定済み (継承元 v7、差は段の定義だけ) | [0023](decisions/0023-v10-path-stages.md) |
 
 ## 走っているジョブ
 
@@ -48,18 +50,30 @@
 
 ## 次の作業
 
+### v10 (段の定義を正規の経路に絞る。別のセッションで実装する)
+
+仕様・理由・実装の見通しは [0023](decisions/0023-v10-path-stages.md)。v7 との差は段の定義だけ (`stage_weights` 1:1:1)。
+
+1. 0023 の「未決」(許していない固結びに着いた手を −1 にするか) をユーザーに確かめる。
+2. skill `add-version` で v10 を作る。段の関数 (`common/topology/`、Isaac Sim なし) と経路の単体テストから。段を差し替える口は、既定のままなら v4〜v9 の挙動が変わらないことをテストで確かめる。
+3. 初期アーカイブの扱いを決めて実装する (新しい定義に入るのは段 0 の 128 形・段 1 の 264 形・段 2 の 18 形。`outputs/archive_seed/` は上書きしない)。
+   形の p-data は `src/isaac_twisted_rl/scripts/rsl_rl/view_archive.py --headless` で出せる。
+4. commit してから、skill `train-eval` でスモークテスト -> seed 43 / 44 の学習 -> chain 評価 (v7 の seed 43 / 44 の iteration 70 / 100 と比べる)。
+
+### v9・推論時探索 (2026-10-05 から続く作業)
+
 1. **v9 の chain 評価** (seed 43 / 44、iteration 70 / 100、512 環境、seed 7、Hydra の上書きなし。コマンドは [v7 の記録](experiments/2026-10-04_v7_seeds.md) の「コマンド」のタスクを `Play-v9`・ログ名を `knot_tying_v9` に)。s44 の学習が終わる 17:30 頃以降。s43 の分は、GPU の割り当てをユーザーが許せばそれより前に回せる (1 本約 7 分)。比べる相手は v7 の既存の評価 JSON (seed 43 / 44、iteration 70 / 100)。差は v7 のシード差 (iteration 100 で約 6 ポイント)・標準誤差 (約 2 ポイント) を超えるかで読む。
 2. **`shapes` の結果を読む** (chain2 が終わる 20:00 頃)。形ごとの成功率が 0 / 1 に分かれるか、平均の付近に集まるかを、`summary.knot` の `shape_share`・`hist` と `by_p_data` で見る。台本の初期アーカイブと、学習中に到達した形 (`archive.pt`) を比べる。smoke test (v7 s43、6 形) では形ごとの成功が 1〜34 / 64 とばらけたが、6 形だけで結論には使えない。
 3. **v7 の `rollouts` / `search` と `shapes`、v9 の記録を書く** (skill `experiment-record`)。探索ありの成功率は chain 評価の `knot` と別に報告する ([evaluation.md](system/evaluation.md) §4)。
 4. **探索の設定を詰める** (1 回に 1 つ変える。[2026-10-03_inference_search](experiments/2026-10-03_inference_search.md) §6 の 3): `--slots` を 16 -> 4 か 8 / `--rank random` (V(s) の順位付けとの比較) / `--no_mean_first`。v7 s43 と s44 の両方で。
 5. 結果が出たら `paper/Report_Paper.md` §9.3 の P2-4 の状況と、この STATUS の「推論時探索」の行を更新する。v9 も同じ条件で探索を測れる。
-6. その他の候補 (どれも未着手): v8 の切り分け ([v8 の記録](experiments/2026-10-05_v8_symmetry.md))、P2 の残り ([0022](decisions/0022-p2-one-version-each.md))、v7 を iteration 150〜200 まで ([v7 の記録](experiments/2026-10-04_v7_seeds.md)。ユーザーが GPU 0 で iteration 500 まで延長中)、めり込み解消速度の中間値 ([overnight の記録](experiments/2026-10-01_v4-v6_overnight.md))。
+6. その他の候補 (どれも未着手): v8 の切り分け ([v8 の記録](experiments/2026-10-05_v8_symmetry.md))、P2 の残り ([0022](decisions/0022-p2-one-version-each.md))、v7 を長く学習する ([v7 の記録](experiments/2026-10-04_v7_seeds.md)。seed 43 を延ばした run は 2026-10-06 に iteration 330 で止めた。chain 評価は it200 50.0%・it300 39.3% で伸びなかった。上の「走っているジョブ」の下の行)、めり込み解消速度の中間値 ([overnight の記録](experiments/2026-10-01_v4-v6_overnight.md))。
 
 ## 保留・再開した研究
 
 | 研究 | 止めた所 | 再開するときの 1 番目 | 記録 |
 |---|---|---|---|
-| 推論時探索 (ビーム探索・best-of-N) | **2026-10-05 にユーザーの指示で再開** (v7 に絞る)。v7 の rollouts / search は終了、shapes は未完、探索の設定の比較は未着手。v6 s43 の rollouts / search、v6 s42・v5 の search は未完了のまま | 上の「次の作業」2〜4 | [2026-10-03_inference_search](experiments/2026-10-03_inference_search.md) §6 |
+| 推論時探索 (ビーム探索・best-of-N) | **2026-10-05 にユーザーの指示で再開** (v7 に絞る)。v7 の rollouts / search は終了、shapes は未完、探索の設定の比較は未着手。v6 s43 の rollouts / search、v6 s42・v5 の search は未完了のまま | 上の「次の作業」の「v9・推論時探索」2〜4 | [2026-10-03_inference_search](experiments/2026-10-03_inference_search.md) §6 |
 | rope study (紐モデルの比較。打ち切り中、再開はユーザーの判断待ち) | 最終報告まで書いた。評価と実装は 2026-10-03 13:00 に打ち切り | XPBD の段 0 の方策の崩れの切り分け (結論を変えうる最大の未解決) | [2026-10-02_rope_models](experiments/2026-10-02_rope_models.md) §12 |
 
 - rope study の発散の数値には、`rope_study/bench_physics.py:378` の数え方による過大の疑いがある (未確認。再開するときに確かめる)。

@@ -34,13 +34,16 @@
 
 ## 走っているジョブ
 
-2026-10-06 13:00 に確認。止めてよいのは自分が起動した PID だけ (job の `pid` のファイルの PID に SIGTERM)。
+2026-10-06 18:45 に確認。止めてよいのは自分が起動した PID だけ (job の `pid` のファイルの PID に SIGTERM)。
 
 | job (`outputs/jobs/`) | PID | GPU | 中身 | run のフォルダ |
 |---|---|---|---|---|
 | `2026-10-06_07-23-22_v9_s44` | 1124402 | cuda:1 | v9 seed 44 の学習 (`--max_iterations 101`、`agent.save_interval=10`)。13:00 で iteration 58。**直近の 1 iteration は約 380 s** (v9 s43 の序盤は約 218 s)。遅くなった原因は未確認。残り 43 iteration で、終わるのは 17:30 頃の見込み | `logs/rsl_rl/knot_tying_v9/2026-10-06_07-23-28_v9_s44` |
 | `2026-10-06_13-00-47_chain2_shapes_v7` | 1490021 | cuda:1 | v9 s44 の `exit.txt` を待ち、v7 (seed 43 / 44、iteration 100) の `shapes` 4 本を順に回す (run の `archive.pt` の段 2 から 128 形 / 台本の初期アーカイブの段 2 の全 130 形、各 64 回・6 手・決定論的・1024 環境)。失敗したら止まり、JSON が無くても止まる。1 本約 40 分と見込む。コマンドは job の `cmd.txt` | JSON は v7 の各 run のフォルダの `eval_search_shapes_it100_{run,seed}_det.json` |
+| `2026-10-06_18-42-55_v10_s43` | 1896378 | cuda:0 | v10 seed 43 の学習 (`--max_iterations 101`、`agent.save_interval=10`、timeout 14h)。commit `59ebca8`。1 iteration の時間は未確認 | `logs/rsl_rl/knot_tying_v10/2026-10-06_18-43-01_v10_s43` |
 
+- **v9 s44 は 17:23 に `timeout 10h` で止まった** (`exit: 124`、`model_90.pt` まで。iteration 100 には届いていない)。chain 評価を iteration 90 でそろえるか、再開するかはユーザーの判断待ち。上の表の `v9_s44` の行は終了済み。
+- v10 seed 44 は GPU 1 が空く 20:00 頃に cuda:1 で起動する予定 (ユーザーの指示、2026-10-06)。
 - GPU 1 には他のユーザー (ohtsukatakeshi) の Isaac Lab のプロセス (PID 673851) も載っている。触らない。
 - GPU の割り当てはユーザーの判断 (2026-10-05): v9 は GPU 1 に 1 本ずつ、作業 B の評価は v9 の学習と同じ GPU に載せない。
 - v7 seed 43 の延長 (`2026-10-05_20-39-20_v7_s43_to500`) は 2026-10-06 13:47 にユーザーの指示で止めた (`model_330.pt` まで)。run は `logs/rsl_rl/knot_tying_v7/2026-10-05_20-39-25_v7_s43_to500`。chain 評価 (seed 7、512 エピソード、Hydra 上書きなし、`eval_chain_it{200,300}.json`): 固結び it100 53.7% → it200 50.0% → it300 39.3%。1 シードなので、300 の低下は推測 (記録は未作成)。

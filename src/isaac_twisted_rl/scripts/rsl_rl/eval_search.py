@@ -578,6 +578,7 @@ def _key_names() -> dict[int, str]:
     return {tp.p_data_key(pd): pd for pd in tp.potential_table()}
 
 
+@torch.inference_mode()
 def run_shapes(env, unwrapped, policy: Policy, settle: tuple[float, float]) -> dict:
     """段のアーカイブの形ごとに、同じ初期状態から同じ方策で R 回試し、固結びの割合を形ごとに出す。
 
@@ -591,6 +592,8 @@ def run_shapes(env, unwrapped, policy: Policy, settle: tuple[float, float]) -> d
     * 1 バッチ = `num_envs // R` 個の形 x R 環境。`env.reset()` (グリッパー・手・辺の選択を初期化) の後に
       ロープの状態を書き込み、観測を計算し直す。書き込んだ後の段が `--shape_stage` と違う形は集計から外す
       (アーカイブの復元の不一致。`ResetToStage` の `restore_mismatch` と同じもの)。
+    * 関数全体を `inference_mode` で回す。`env.step()` の後の環境のテンソルは inference tensor になり、
+      その外 (2 バッチ目の `env.reset()` の書き込み) で更新すると例外になるため (`search` と同じ)。
     * Play 環境 (chain モード) のまま `--shape_moves` 手打つ。段が下がっても続く (chain 評価と同じ)。
       各環境の最初のエピソードだけを数え、固結び・発散で reset された後は数えない。
       `knot` は M 手以内の固結び、`knot_no_drop` はその中で一度も段が下がらなかったもの
@@ -645,14 +648,13 @@ def run_shapes(env, unwrapped, policy: Policy, settle: tuple[float, float]) -> d
         knot_at = torch.full((n,), -1, dtype=torch.long, device=dev)
         div_at = torch.full((n,), -1, dtype=torch.long, device=dev)
         drop_at = torch.full((n,), -1, dtype=torch.long, device=dev)
-        with torch.inference_mode():
-            for t in range(1, moves + 1):
-                obs, _, _, _ = env.step(policy.act(obs, mean_mask))
-                knot, div, _, stage_after = step_outcome(env, unwrapped, obs, *settle)
-                knot_at[alive & knot] = t
-                div_at[alive & div & ~knot] = t
-                drop_at[alive & ~knot & ~div & (stage_after < start) & (drop_at < 0)] = t
-                alive &= ~(knot | div)
+        for t in range(1, moves + 1):
+            obs, _, _, _ = env.step(policy.act(obs, mean_mask))
+            knot, div, _, stage_after = step_outcome(env, unwrapped, obs, *settle)
+            knot_at[alive & knot] = t
+            div_at[alive & div & ~knot] = t
+            drop_at[alive & ~knot & ~div & (stage_after < start) & (drop_at < 0)] = t
+            alive &= ~(knot | div)
 
         for j in range(m):
             sl = slice(j * r, (j + 1) * r)

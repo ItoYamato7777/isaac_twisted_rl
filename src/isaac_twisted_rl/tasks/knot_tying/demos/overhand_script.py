@@ -27,7 +27,11 @@ skill `physics-check` (`.claude/skills/physics-check/SKILL.md`) / `paper/Report_
 * 既定 (台本モード): `PickPlaceAction` を通さず、このスクリプトがハンドを直接動かす。
   1 手の粒度は `PickPlaceAction` と同じ (掴む -> 持ち上げる -> 運ぶ -> 降ろす -> 離す
   -> 退避) で、運搬高さを手ごとに変えられる点だけが違う (既定値は学習と同じ 0.20 m)。
-  フェーズの尺はデモ相当のゆっくりした値 (7.8 s/手)。`--fast` で学習環境の尺にする。
+  フェーズの尺はデモ相当のゆっくりした値 (7.8 s/手)。`--fast` で学習環境の尺 (2.4 s/手) にする。
+  **GUI (`--headless` なし) のときは自動で `--fast` 相当になる** (`--no_gui_fast` で戻す)。物理は 240 Hz で
+  1 ステップ約 12 ms (6 env、実測) と実時間の約 1/3 の速さなので、7.8 s/手のままだと 1 手を見るのに
+  数十秒かかるため。尺を縮めると結果が変わりうるので、ゲート 1 の成功率は headless で測る (GUI は見た目の確認用)。
+  描画は `--gui_render_every N` ステップごと (既定 8)。大きくするとコマ送りになる代わりに描画の時間が減る。
 * `--replay_actions`: 同じ手を `plan_to_action` で 6 次元の行動へ逆変換し、
   `env.step()` で実行する。置き先が行動の範囲 (target リンク ±8 本 + ±0.15 L) に
   収まらなければクリップし、その数をログに出す。
@@ -102,6 +106,24 @@ parser.add_argument(
 )
 parser.add_argument(
     "--fast", action="store_true", help="台本モードでもフェーズの尺を学習環境 (env_cfg.durations) と同じにする。"
+)
+parser.add_argument(
+    "--no_gui_fast",
+    action="store_true",
+    help=(
+        "GUI のときの自動の --fast を切り、フェーズの尺をデモ相当 (7.8 s/手) のままにする。"
+        "既定では GUI のときだけ学習環境の尺 (2.4 s/手) にして、見て確かめる待ち時間を約 1/3 にする。"
+    ),
+)
+parser.add_argument(
+    "--gui_render_every",
+    type=int,
+    default=8,
+    help=(
+        "GUI のとき何物理ステップごとに 1 回描画するか (既定 8 = 240 Hz で 30 Hz 相当、play と同じ)。"
+        "大きくすると描画に使う時間が減るが、動きはコマ送りになる。物理が実時間より遅いと、"
+        "速さは物理 (約 12 ms/step) で頭打ちになる。"
+    ),
 )
 parser.add_argument(
     "--cfg",
@@ -303,6 +325,8 @@ class ScriptRunner:
         """初めて発散を検出したフェーズごとの環境数 (原因の切り分け用)。"""
         self.div_reason: dict[str, int] = {}
         """初めて発散を検出した基準 (NaN / 水平 3 m / 速さ 20 m/s) ごとの環境数。"""
+        self._steps = 0
+        """通算の物理ステップ数。描画の間隔をフェーズの境目に左右されず一定にするために数える。"""
         self._pose = torch.zeros(n, 7, device=self.device)
         self._vel = torch.zeros(n, 6, device=self.device)
 
@@ -341,7 +365,8 @@ class ScriptRunner:
             self.scene.write_data_to_sim()
             self.sim.step(render=False)
             self.scene.update(self.dt)
-            if self.sim.has_gui() and k % 8 == 0:
+            self._steps += 1
+            if self.sim.has_gui() and self._steps % args_cli.gui_render_every == 0:
                 self.sim.render()
             if os.environ.get("ROPE_DEBUG_DIV"):
                 # 紐が 3 m/s を初めて超えた環境と、そのフェーズ・手・指 (切り分け用、既定では何もしない)
@@ -769,7 +794,13 @@ def main():
     env.reset()
 
     runner = ScriptRunner(env, out_dir)
-    if args_cli.fast:
+    gui_fast = runner.sim.has_gui() and not args_cli.no_gui_fast
+    if gui_fast and not args_cli.fast:
+        print(
+            "[INFO] GUI なのでフェーズの尺を学習環境の尺にする (--fast 相当。デモ相当に戻すなら --no_gui_fast)。",
+            flush=True,
+        )
+    if args_cli.fast or gui_fast:
         # 学習環境の尺に揃える (尺 0 のフェーズは 1 物理ステップになる。PickPlaceAction と同じ)。
         d = env.unwrapped.cfg.durations
         g = globals()

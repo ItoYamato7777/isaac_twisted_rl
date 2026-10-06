@@ -36,6 +36,7 @@
 | job (`outputs/jobs/`) | PID | GPU | 中身 | run のフォルダ |
 |---|---|---|---|---|
 | `2026-10-06_18-42-55_v10_s43` | 1896378 | cuda:0 | v10 seed 43 の学習 (`--max_iterations 101`、`agent.save_interval=10`、timeout 14h)。commit `59ebca8`。22:45 で iteration 50、1 iteration 約 240 s、02:10 頃に終わる見込み | `logs/rsl_rl/knot_tying_v10/2026-10-06_18-43-01_v10_s43` |
+| `2026-10-06_22-44-31_v10_s44` | 2165042 | cuda:1 | v10 seed 44 の学習 (`--max_iterations 101`、`agent.save_interval=10`、timeout 14h)。commit `d38f82d` (v10 のコードは `7b57c91` から変わっていない)。ユーザーの指示で 22:44 に起動 (予定の 20:00 を取り逃がした) | `logs/rsl_rl/knot_tying_v10/` の `*_v10_s44` |
 | `2026-10-06_22-44-31_v10_s44` | 2165042 | cuda:1 | v10 seed 44 の学習 (同じ引数)。commit `d38f82d`。22:44 起動 | `logs/rsl_rl/knot_tying_v10/2026-10-06_22-44-37_v10_s44` |
 
 - GPU 0・1 には他のユーザー (ohtsukatakeshi) の Isaac Lab のプロセス (PID 673851、各約 2 GB) が載っている。触らない。v9 の学習が v7 より 1.4〜1.6 倍遅かったのは、これとの共有が疑わしい (未確認)。

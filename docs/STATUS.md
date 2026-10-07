@@ -28,7 +28,7 @@
 | v8 | chain 評価 済み (seed 43・44、iteration 70 / 100、GPU 1 枚に 1 本)。v7 を下回った | [2026-10-05_v8_symmetry](experiments/2026-10-05_v8_symmetry.md)、判断は [0022](decisions/0022-p2-one-version-each.md) |
 | v9 | chain 評価 済み (seed 43 は iteration 70 / 100、seed 44 は timeout で iteration 90 まで)。v7 を上回らなかった | [2026-10-05_v9_stage2-weight](experiments/2026-10-05_v9_stage2-weight.md) |
 | v10 | chain 評価 済み (seed 43・44、iteration 70 / 90 / 100、GPU 1 枚に 1 本)。v7 を大きく下回った | [2026-10-06_v10_path-stages](experiments/2026-10-06_v10_path-stages.md)、[0023](decisions/0023-v10-path-stages.md) |
-| v11 | **未実装**。仕様は決定済み (継承元 v7、差は表に無い形の段の付け方だけ) | [0024](decisions/0024-v11-dead-end-stages.md) |
+| v11 | 実装した (未学習)。継承元 v7、差は表に無い形の段の付け方だけ | [0024](decisions/0024-v11-dead-end-stages.md)、[README](../src/isaac_twisted_rl/tasks/knot_tying/versions/v11/README.md) |
 
 ## 走っているジョブ
 

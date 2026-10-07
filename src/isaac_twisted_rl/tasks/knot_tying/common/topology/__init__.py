@@ -37,10 +37,12 @@ Isaac Sim を起動せずに `pytest` 単体で検証できる。Isaac Lab の
     knot_detect.py      固結びの判定と報酬ラダーの段・R2 除去 (テンソル層のみ)
     knot_graph.py       R1/R2/cross の位相グラフと固結びまでの BFS 距離 (v3、交差 4 個まで) と段 (v4)、最短の次の辺 (v6)
     next_edge.py        次にたどる辺のリンクマスク (v6。テンソル層)
-    path_stages.py      段を固結びへの正規の経路の上の p-data に限る段の定義 (v10)
+    path_stages.py      段を固結びへの正規の経路の上の p-data に限る段の定義 (v10) と、段の定義の切り替え
+    dead_end_stages.py  表に無くラダーでも 0 の形だけを −1 にする段の定義 (v11)
     symmetry.py         鏡像・逆順の対称変換を観測と行動にかける (v8 のデータ拡張)
 """
 
+from .dead_end_stages import DEAD_END, DeadEndStage
 from .intersections import (
     DEFAULT_EPS,
     PAD,
@@ -122,6 +124,7 @@ __all__ = [
     "CLASS_OVERHAND",
     "CLASS_SINGLE",
     "CLASS_TRIVIAL",
+    "DEAD_END",
     "DEFAULT_EPS",
     "MAX_CROSSINGS_CONSIDERED",
     "MOVE_CROSS",
@@ -140,6 +143,7 @@ __all__ = [
     "STRICT_GOAL_P_DATA",
     "AbstractState",
     "BfsPotential",
+    "DeadEndStage",
     "Edge",
     "Face",
     "GraphEdge",

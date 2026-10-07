@@ -29,6 +29,7 @@ from collections.abc import Mapping
 
 import torch
 
+from .dead_end_stages import DeadEndStage
 from .intersections import IntersectionBatch
 from .knot_graph import STAGE_GOAL, BfsPotential, batch_keys, get_bfs_potential, p_data_key
 
@@ -53,8 +54,9 @@ STRICT_GOAL_P_DATA: tuple[str, ...] = (
 )
 """正規の経路の終点の固結び (厳密な段 3)。段 3 の判定には使わない (評価の別の列)。"""
 
-STAGE_DEFINITIONS = ("bfs", "path")
-"""env の設定の `stage_definition` が取る値。`bfs` = v4〜v9 (`BfsPotential.stage`)、`path` = v10 (`PathStage`)。"""
+STAGE_DEFINITIONS = ("bfs", "path", "bfs_dead_end")
+"""env の設定の `stage_definition` が取る値。`bfs` = v4〜v9 (`BfsPotential.stage`)、`path` = v10 (`PathStage`)、
+`bfs_dead_end` = v11 (`dead_end_stages.DeadEndStage`)。"""
 
 
 def path_children() -> dict[str, frozenset[str]]:
@@ -115,18 +117,19 @@ def strict_goal_mask(keys: torch.Tensor) -> torch.Tensor:
     return _lookup(_STRICT_CACHE[dev], keys)[1]
 
 
-_PATH_CACHE: dict[str, PathStage] = {}
+_STAGE_CACHE: dict[tuple[str, str], PathStage | DeadEndStage] = {}
+_STAGE_CLASSES = {"path": PathStage, "bfs_dead_end": DeadEndStage}
 
 
-def get_stage_function(definition: str, device: torch.device | str) -> BfsPotential | PathStage:
+def get_stage_function(definition: str, device: torch.device | str) -> BfsPotential | PathStage | DeadEndStage:
     """段の定義の名前 (`STAGE_DEFINITIONS`) -> `.stage(raw_batch, reduced_batch)` を持つもの。デバイスごとに使い回す。"""
     if definition == "bfs":
         return get_bfs_potential(device)
-    if definition == "path":
-        key = str(device)
-        if key not in _PATH_CACHE:
-            _PATH_CACHE[key] = PathStage(device)
-        return _PATH_CACHE[key]
+    if definition in _STAGE_CLASSES:
+        key = (definition, str(device))
+        if key not in _STAGE_CACHE:
+            _STAGE_CACHE[key] = _STAGE_CLASSES[definition](device)
+        return _STAGE_CACHE[key]
     raise ValueError(f"stage_definition は {STAGE_DEFINITIONS} のどれか (got {definition!r})")
 
 

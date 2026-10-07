@@ -39,7 +39,7 @@ import gymnasium as gym
 
 # 登録するバージョン。**新しいバージョンを足すときはここに 1 行足すだけ**
 # (`versions/vN/` に env_cfg.py と agents/ を置いたうえで)。
-_VERSIONS = ("v0", "v1", "v2", "v2-R2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10")
+_VERSIONS = ("v0", "v1", "v2", "v2-R2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11")
 
 
 def _version_package(ver: str) -> str:

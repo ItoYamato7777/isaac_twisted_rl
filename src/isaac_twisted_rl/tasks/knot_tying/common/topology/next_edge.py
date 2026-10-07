@@ -42,6 +42,7 @@ int64 キーを、`p_data_key` で並べた表から `searchsorted` で引く。
 
 v10 (段の定義 `path`、`path_stages.py`) では、候補を「子が正規の経路の上にある辺」に絞り、経路の上に
 無い状態には辺を渡さない (`get_next_edge_table(device, "path")`)。表の形 (観測の次元) は変わらない。
+v11 (`bfs_dead_end`) は v7 と同じ絞らない表を使う。
 """
 
 from __future__ import annotations
@@ -288,12 +289,14 @@ _TABLE_CACHE: dict[tuple[str, str], NextEdgeTable] = {}
 def get_next_edge_table(device: torch.device | str, stage_definition: str = "bfs") -> NextEdgeTable:
     """段の定義 (`path_stages.STAGE_DEFINITIONS`) とデバイスごとに 1 つだけ作って使い回す。
 
-    `bfs` (既定、v6〜v9) は絞らない表、`path` (v10) は候補を正規の経路の上に絞った表。
+    `path` (v10) は候補を正規の経路の上に絞った表、それ以外 (`bfs` = 既定の v6〜v9、`bfs_dead_end` = v11) は
+    絞らない同じ表 (v11 は v7 の表のまま。行き止まりの形は表に無いので、もともと辺なし)。
     """
     if stage_definition not in STAGE_DEFINITIONS:
         raise ValueError(f"stage_definition は {STAGE_DEFINITIONS} のどれか (got {stage_definition!r})")
-    key = (str(device), stage_definition)
+    restrict = stage_definition == "path"
+    key = (str(device), "path" if restrict else "bfs")
     if key not in _TABLE_CACHE:
-        allowed = path_children() if stage_definition == "path" else None
+        allowed = path_children() if restrict else None
         _TABLE_CACHE[key] = NextEdgeTable(device, allowed_children=allowed)
     return _TABLE_CACHE[key]

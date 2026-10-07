@@ -55,12 +55,13 @@ def get_extractor(env: ManagerBasedRLEnv, rope_name: str = "rope") -> RopeTopolo
     return extractor
 
 
-def stage_function(env: ManagerBasedRLEnv) -> tp.BfsPotential | tp.PathStage:
+def stage_function(env: ManagerBasedRLEnv) -> tp.BfsPotential | tp.PathStage | tp.DeadEndStage:
     """env の設定の段の定義 (`stage_definition`。無ければ `bfs`) で段を引くもの。v10 で追加。
 
     段を引く項 (`stages.py`・`archive.py`・`NextEdgeGoal`・`topology_log.py`) はすべてこれを通す。
     v4〜v9 の設定は `stage_definition` を持たないので `BfsPotential` のままで、挙動は変わらない。
-    v10 は `path` (`topology.PathStage`、`docs/decisions/0023-v10-path-stages.md`)。
+    v10 は `path` (`topology.PathStage`、`docs/decisions/0023-v10-path-stages.md`)、v11 は `bfs_dead_end`
+    (`topology.DeadEndStage`、`docs/decisions/0024-v11-dead-end-stages.md`)。
     """
     return tp.get_stage_function(tp.stage_definition_of(env.cfg), env.device)
 

@@ -1,8 +1,8 @@
 # 0023 v10 は段を「固結びへの正規の経路の上の p-data」だけに絞る
 
-- 状態: 有効 (v10 以降。実装は `versions/v10/`・`common/topology/path_stages.py`)
+- 状態: 有効 (v10 の仕様として。実装は `versions/v10/`・`common/topology/path_stages.py`)。**v10 は chain 評価で v7 を大きく下回った** ([記録](../experiments/2026-10-06_v10_path-stages.md))
 - 読むべき状況: v10 を実装するとき。段 (`BfsPotential.stage`) の定義を変えたくなったとき。段のアーカイブに入る形を絞りたくなったとき
-- 最終更新: 2026-10-06
+- 最終更新: 2026-10-07
 
 ## 決定
 

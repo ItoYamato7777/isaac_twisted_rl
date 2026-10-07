@@ -33,9 +33,16 @@
         --write_filtered outputs/archive_seed/overhand_28links_v10.pt
 
 既にあるファイルには書かない (`outputs/archive_seed/` の初期アーカイブを上書きしないため)。
+
+## 形の p-data を書き出す (`--dump_pdata`)
+
+`--dump_pdata <json>` は、見せた形ごとに `{stage, index, raw, reduced}` (アーカイブの段・番号・R2 除去の前と後の
+short p-data) を JSON の配列に書く。表に無い形の p-data も文字列で出るので、段の定義の案を Isaac Sim なしで
+数え直せる (`--per_stage` を大きくして、段ごとの形の分布を見る)。
 """
 
 import argparse
+import json
 import os
 import sys
 
@@ -50,6 +57,9 @@ parser.add_argument(
 parser.add_argument("--stages", type=str, default="0,1,2", help="Archive stages to show (comma separated).")
 parser.add_argument("--per_stage", type=int, default=8, help="Shapes per stage.")
 parser.add_argument("--seed", type=int, default=0, help="Seed for picking the shapes.")
+parser.add_argument(
+    "--dump_pdata", type=str, default=None, help="Write per-shape {stage, index, raw, reduced} p-data as JSON here."
+)
 parser.add_argument(
     "--write_filtered",
     type=str,
@@ -182,6 +192,15 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
             no_edge = sum(1 for e in rows if not has_edge[e])
             mean_c = sum(crossings[e] for e in rows) / len(rows)
             print(f"[INFO] 段 {s}: {len(rows)} 形、交差の平均 {mean_c:.1f}、たどる辺なし {no_edge} 形")
+
+    if args_cli.dump_pdata:
+        raw = tp.p_data_from_batch(extractor.batch, short=True)
+        red = tp.p_data_from_batch(extractor.reduced_batch, short=True)
+        rows = [{"stage": s, "index": i, "raw": r, "reduced": d} for (s, i), r, d in zip(picks, raw, red)]
+        os.makedirs(os.path.dirname(os.path.abspath(args_cli.dump_pdata)), exist_ok=True)
+        with open(args_cli.dump_pdata, "w") as f:
+            json.dump({"archive": args_cli.archive, "task": args_cli.task, "shapes": rows}, f)
+        print(f"[INFO] 形の p-data を書いた: {args_cli.dump_pdata} ({len(rows)} 形)")
 
     if args_cli.write_filtered:
         keep = [sn == s for (s, _), sn in zip(picks, stage_now)]

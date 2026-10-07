@@ -6,9 +6,9 @@
 
 ## 要点
 
-- v9 (v7 + 段 2 から始める重み 2 倍) は chain 評価で v7 を上回らなかった。v7 の推論時探索と段 2 の形ごとの切り分けから、段 2 の詰まりは方策が段 2 に作る形 (幾何) の偏りが大きいと読める (推測)。記録: [v9](experiments/2026-10-05_v9_stage2-weight.md)、[推論時探索 v7](experiments/2026-10-06_inference_search_v7.md)。
-- **v10 (段を固結びへの正規の経路に絞る。[0023](decisions/0023-v10-path-stages.md)) は chain 評価で v7 を大きく下回った** (seed 43 / 44、iteration 70 / 90 / 100 のどれでも固結び 0〜1.8%)。段 1 -> 経路の上の段 2 の手をほとんど学べなかった ([記録](experiments/2026-10-06_v10_path-stages.md))。v7 の固結びのうち経路の終点 (`knot_strict`) は 1〜3 割だけだった。
-- 対称性の切り分け (v8)・rope study は打ち切りのまま。
+- v10 (段を正規の経路に絞る) は chain 評価で v7 を大きく下回った (固結び 0〜1.8%。段 1 -> 段 2 を定義が塞いだ)。[記録](experiments/2026-10-06_v10_path-stages.md)
+- **次は v11 の実装** (ユーザーの指示、2026-10-07): v7 の段のまま、表に無くラダーでも 0 の「行き止まりの形」だけを −1 にし、偽の交差は R2 除去後の形で救う。仕様・根拠のデータ・実装の見通しは [0024](decisions/0024-v11-dead-end-stages.md)。seed 43 / 44 を iteration 300 まで学習し、v7 (s44 も 300 まで延ばす) と chain 評価で比べる。
+- v9 は v7 を上回らなかった ([記録](experiments/2026-10-05_v9_stage2-weight.md))。対称性の切り分け (v8)・rope study は打ち切りのまま。
 
 ## 版の状態
 
@@ -28,27 +28,36 @@
 | v8 | chain 評価 済み (seed 43・44、iteration 70 / 100、GPU 1 枚に 1 本)。v7 を下回った | [2026-10-05_v8_symmetry](experiments/2026-10-05_v8_symmetry.md)、判断は [0022](decisions/0022-p2-one-version-each.md) |
 | v9 | chain 評価 済み (seed 43 は iteration 70 / 100、seed 44 は timeout で iteration 90 まで)。v7 を上回らなかった | [2026-10-05_v9_stage2-weight](experiments/2026-10-05_v9_stage2-weight.md) |
 | v10 | chain 評価 済み (seed 43・44、iteration 70 / 90 / 100、GPU 1 枚に 1 本)。v7 を大きく下回った | [2026-10-06_v10_path-stages](experiments/2026-10-06_v10_path-stages.md)、[0023](decisions/0023-v10-path-stages.md) |
+| v11 | **未実装**。仕様は決定済み (継承元 v7、差は表に無い形の段の付け方だけ) | [0024](decisions/0024-v11-dead-end-stages.md) |
 
 ## 走っているジョブ
 
-2026-10-07 12:30 に確認。このリポジトリのジョブは無い。
+なし (2026-10-07 13:00 に確認)。
 
 - GPU 0・1 には他のユーザー (ohtsukatakeshi) の Isaac Lab のプロセス (PID 673851、各約 2 GB) が載っている。触らない。v9・v10 の学習が v7 より 1.2〜1.6 倍遅かったのは、これとの共有が疑わしい (未確認)。
-- 完走の確認は `exit.txt` に `signal:` の行が無いことと `model_100.pt`。遅い GPU では timeout を長めにする (v9 s44 は `timeout 10h` が足りずに止まった。v10 は 14h で足りた)。
+- 完走の確認は `exit.txt` に `signal:` の行が無いことと最後のチェックポイント。遅い GPU では timeout を長めにする (v9 s44 は `timeout 10h` が足りずに止まった。v10 は 14h で足りた)。
 
 ## 次の作業
 
-1. **v10 の後をどうするかをユーザーに確かめる** (推奨: v10 をこの定義のまま延ばさない)。段の定義を変える次の版を作るなら、その前に v10 の段 1 から打った手の後の p-data の分布を測る (どの形に外れているか)。案と理由は [v10 の記録](experiments/2026-10-06_v10_path-stages.md) の「次の作業」。
-2. v10 の段 2 の形ごとの切り分け (`--mode shapes`) は見送る。v10 の段 2 には chain 評価でほとんど届かないため。
-3. **探索の設定を詰める** (1 回に 1 つ変える): `--slots 8` / `--slots 4`、`--rank random`、`--no_mean_first`。v7 s43 / s44 の `model_100.pt`、それ以外は推論時探索 v7 の記録の `search` と同じ。
-4. **成功する段 2 の形と失敗する形の幾何の違いを見る** (`eval_search_shapes_it100_run_det.json` の `shapes_detail` の `index` でアーカイブの形を引き、`scripts/rsl_rl/view_archive.py` で並べる)。
-5. その他の候補 (どれも未着手): v8 の切り分け ([v8 の記録](experiments/2026-10-05_v8_symmetry.md))、P2 の残り ([0022](decisions/0022-p2-one-version-each.md))、v7 seed 43 の延長 (iteration 330 で止めた。chain 評価は it200 50.0%・it300 39.3%。1 シードで記録は未作成。run は `logs/rsl_rl/knot_tying_v7/2026-10-05_20-39-25_v7_s43_to500`)、めり込み解消速度の中間値 ([overnight の記録](experiments/2026-10-01_v4-v6_overnight.md))。
+### v11 (行き止まりの形だけを −1 にする。仕様は [0024](decisions/0024-v11-dead-end-stages.md))
+
+1. skill `add-version` で v11 を作る。段の関数 (`common/topology/`、Isaac Sim なし) と単体テストから。0024 の「実装の見通し」の代表の p-data 5 つと「表の全 p-data で v7 と同じ値」をテストにする。差し替えの口は v10 で作った `stage_function` (`common/mdp/observations.py`) と `get_next_edge_table(device, 定義)` を使う (新しい名前では絞らない表を返す)。
+2. 実装した段の関数を `outputs/archive_pdata/*.json` (v7 のアーカイブの形の生と R2 除去後の p-data) に当て、0024 の「データ」の表の v11 の列 (段 0 の −1 が it100 で 9〜10%、it330 で 70%、段 1・2 は 100% v7 と同じ) が再現するかを確かめる。
+3. commit してから skill `train-eval`: スモークテスト -> v11 seed 43 / 44 を **iteration 300 まで** (`--max_iterations 301`、`agent.save_interval=10`、timeout は 1 iteration 約 4〜5 分を見て 30h 前後。GPU 1 枚に 1 本、GPU の割り当てはユーザーに確かめる)。
+4. 比べる相手の v7 seed 44 を iteration 300 まで延ばす。v7 s43 の延長 (`logs/rsl_rl/knot_tying_v7/2026-10-05_20-39-25_v7_s43_to500`、iteration 330 まで) は、`--resume --load_run 2026-10-04_22-37-42_v7_s43 --checkpoint model_100.pt --max_iterations 401 --run_name v7_s43_to500 env.events.reset_to_stage.params.load_paths=[<その run の archive.pt>]` で起動した (job `outputs/jobs/2026-10-05_20-39-20_v7_s43_to500` の `cmd.txt`)。s44 も同じ形にする。**v11 は 0 から 300 まで通しで学習するので、iteration 100 で再開した v7 と条件がそろわない** (最適化の状態の引き継ぎなど)。そろえ方 (v11 も 100 で止めて同じ形で再開するか、違いを記録に書いて比べるか) をユーザーに確かめる。
+5. chain 評価 (seed 7、512 環境、Hydra の上書きなし) を iteration 100 / 200 / 300 (できれば 70・90 なども) で、v11 と v7 の 2 シードずつ。学習ログでは `Curriculum/stage_log/success_s1` (v7 並みの 0.55 前後に戻るか) と、段 0 のアーカイブの形 (`view_archive.py --dump_pdata` で iteration 100 / 300 の段 0 の −1 の割合) を見る。
+
+### その他
+
+6. **探索の設定を詰める** (1 回に 1 つ変える): `--slots 8` / `--slots 4`、`--rank random`、`--no_mean_first`。v7 s43 / s44 の `model_100.pt`、それ以外は推論時探索 v7 の記録の `search` と同じ。
+7. **成功する段 2 の形と失敗する形の幾何の違いを見る** (`eval_search_shapes_it100_run_det.json` の `shapes_detail` の `index` でアーカイブの形を引き、`scripts/rsl_rl/view_archive.py` で並べる)。
+8. その他の候補 (どれも未着手): v8 の切り分け ([v8 の記録](experiments/2026-10-05_v8_symmetry.md))、P2 の残り ([0022](decisions/0022-p2-one-version-each.md))、めり込み解消速度の中間値 ([overnight の記録](experiments/2026-10-01_v4-v6_overnight.md))。v7 s43 の延長 (chain 評価 it200 50.0%・it300 39.3%) の記録は未作成で、v11 の記録でまとめて書く。
 
 ## 保留・再開した研究
 
 | 研究 | 止めた所 | 再開するときの 1 番目 | 記録 |
 |---|---|---|---|
-| 推論時探索 (ビーム探索・best-of-N) | 再開中 (2026-10-05 にユーザーの指示)。v7 の rollouts / search / shapes は済み。探索の設定の比較は未着手。v6 s43 の rollouts / search、v6 s42・v5 の search は止めたまま (再開するかはユーザーの判断) | 上の「次の作業」3 | [2026-10-06_inference_search_v7](experiments/2026-10-06_inference_search_v7.md)、[2026-10-03_inference_search](experiments/2026-10-03_inference_search.md) §6 |
+| 推論時探索 (ビーム探索・best-of-N) | 再開中 (2026-10-05 にユーザーの指示)。v7 の rollouts / search / shapes は済み。探索の設定の比較は未着手。v6 s43 の rollouts / search、v6 s42・v5 の search は止めたまま (再開するかはユーザーの判断) | 上の「次の作業」6 | [2026-10-06_inference_search_v7](experiments/2026-10-06_inference_search_v7.md)、[2026-10-03_inference_search](experiments/2026-10-03_inference_search.md) §6 |
 | rope study (紐モデルの比較。打ち切り中、再開はユーザーの判断待ち) | 最終報告まで書いた。評価と実装は 2026-10-03 13:00 に打ち切り | XPBD の段 0 の方策の崩れの切り分け (結論を変えうる最大の未解決) | [2026-10-02_rope_models](experiments/2026-10-02_rope_models.md) §12 |
 
 - rope study の発散の数値には、`rope_study/bench_physics.py:378` の数え方による過大の疑いがある (未確認。再開するときに確かめる)。

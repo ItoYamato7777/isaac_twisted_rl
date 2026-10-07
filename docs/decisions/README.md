@@ -32,6 +32,7 @@
 | [0021](0021-measure-physics-changes-by-training.md) | 物性を変えるときは、計測だけでなく学習と chain 評価で確かめる | (同上) | — |
 | [0022](0022-p2-one-version-each.md) | 探索と汎化の改善 (P2) は 1 版に 1 つずつ。v8 は対称性のデータ拡張 | RND は rsl_rl の `rnd_cfg` のままでは使わない (終了した環境では reset 後の観測で新しさを数える) | `paper/Report_Paper.md` §7 P2 |
 | [0023](0023-v10-path-stages.md) | v10 は段を固結びへの正規の経路の上の p-data だけに絞る (段 0〜3 に 1 / 2 / 4 / 2 個) | 段 2 には Fig.1 の C2 と台本の C2 の両方を入れる (Fig.1 の C2 は台本で 1 度も通っていない)。道から外れたら −1 で終了 | 論文 Fig.1、`overhand_script.py` |
+| [0024](0024-v11-dead-end-stages.md) | v11 は v7 の段のまま、表に無くラダーでも 0 の「行き止まりの形」だけを −1 にする (偽の交差は R2 除去後の形で救う) | R2 除去は生の p-data が表に無いときだけ使う。段 2 の表に無い形 (ラダー 2) は外さない。iteration 300 まで学習 | v7 のアーカイブの p-data (`outputs/archive_pdata/`) |
 
 ## decisions を作らなかった理由の候補
 

@@ -2,7 +2,8 @@
 
 - 状態: 有効 (v11 以降。実装は `common/topology/dead_end_stages.py` と `versions/v11/`)
 - 読むべき状況: v11 を実装するとき。段の定義 (`stage_definition`) を変えたくなったとき。段 0 のアーカイブに溜まる形を減らしたくなったとき
-- 最終更新: 2026-10-07
+- 最終更新: 2026-10-08
+- 結果: [v11 の記録](../experiments/2026-10-07_v11_dead-end-stages.md) (iteration 300 で v7 を上回らなかった。続けるかは未定)
 
 ## 決定
 

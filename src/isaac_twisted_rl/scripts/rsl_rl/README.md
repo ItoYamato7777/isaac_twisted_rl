@@ -4,6 +4,7 @@
 |---|---|
 | `train.py` / `play.py` | 学習と再生 (`uv run train` / `uv run play`) |
 | `eval_chain.py` | v4 以降の **chain 評価**: Play 環境でまっすぐなロープから 18 手以内に固結びを結べるか。各環境の最初の 1 エピソードを数える |
+| `diag_stage_moves.py` | chain モードで、手の前の段ごとに手の結果 (段が上がった・下がった・形が変わらない・ロープが床に落ちていない・発散) の割合と、その手の行動の平均を数える。段で詰まる方策が何をしているかを見る |
 | `eval_search.py` | **推論時探索の評価**: 同じチェックポイントに「探索ありの成功率」を付ける (この README の本題) |
 | `summarize_search.py` | `eval_chain.py` / `eval_search.py` の JSON から版ごとの比較表 (Markdown) を出す |
 | `stage_colors.py` | `play.py` が使う: 段ごとの方策 (v4 以降) で、各環境がいま使っている段の方策をグリッパの色で見せる (下の「Play のグリッパの色」) |

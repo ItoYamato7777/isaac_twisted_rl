@@ -32,7 +32,11 @@
 
 ## 走っているジョブ
 
-なし (2026-10-08 17:30 に確認)。
+| job (`outputs/jobs/`) | pid (`timeout`) | GPU | run (`logs/rsl_rl/knot_tying_v11/`) | 1 iteration | 終わりの見込み |
+|---|---|---|---|---|---|
+| `2026-10-08_19-23-57_v11_s43_to1000` | 3371712 | 1 | `2026-10-08_19-24-03_v11_s43_to1000` | 約 4.8 分 | 2026-10-11 3 時ごろ (`model_1000.pt`) |
+
+- v11 s43 を `model_300.pt` から iteration 1000 まで延ばす (ユーザーの指示、2026-10-08)。v7 s43 の延長と同じ形: `uv run train --task Isaac-Twisted-RL-Knot-v11 --headless --device cuda:1 --seed 43 --resume --load_run 2026-10-07_14-11-04_v11_s43 --checkpoint model_300.pt --max_iterations 701 --run_name v11_s43_to1000 agent.device=cuda:1 agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[<元の run の archive.pt (it300 の時点)>]` (`run_job.sh --timeout 72h --detach`)。commit `072e4c7`。
 
 - GPU 0・1 は他のユーザー (ohtsukatakeshi) とも共有している。他の人のジョブがあれば触らない。
 - 完走の確認は `exit.txt` に `signal:` の行が無いことと最後のチェックポイント。300 iteration は 1 本約 21〜23 時間 (v11、GPU 1 枚に 1 本)。

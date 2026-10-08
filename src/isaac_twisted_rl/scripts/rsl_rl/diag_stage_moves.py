@@ -134,7 +134,6 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
             outcome = torch.where(not_settled, OUTCOMES.index("not_settled"), outcome)
             outcome = torch.where(diverged, OUTCOMES.index("diverged"), outcome)
             act = actions.clamp(-1.0, 1.0)
-            proc = term.processed_actions
             rows.append(
                 {
                     "keep": ~counted,
@@ -143,8 +142,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
                     "key_after": tr["key_after"],
                     "outcome": outcome,
                     "act": act,
-                    "delta": proc[:, 1] - proc[:, 0],
-                    "grasp": proc[:, 0],
+                    # `processed_actions` は reset で 0 に戻るので、reset で消えない掴む点・置く先のリンクを読む
+                    "delta": term._target_id - term._grasp_id,
+                    "grasp": term._grasp_id.clone(),
                     "carry": diag["carry_dist"],
                     "held": diag["held"].float(),
                     "release_z": diag["release_tip_z"],

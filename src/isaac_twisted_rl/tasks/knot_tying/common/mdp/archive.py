@@ -48,6 +48,7 @@ from isaaclab.managers import EventTermCfg, ManagerTermBase, SceneEntityCfg
 from .. import state_archive as sa
 from .. import topology as tp
 from .observations import get_extractor, rope_zmax, stage_function
+from .stages import stage_transition
 from .terminations import diverged_now
 
 if TYPE_CHECKING:
@@ -245,8 +246,9 @@ class ResetToStage(ManagerTermBase):
     * 段ごとの結果 (上がった / 下がった / 時間切れ / 発散) を開始した段別に数える。
 
     保存は `record_stage_archive` (報酬項)、ログは `log_stage_stats` (カリキュラム項) が行う。
-    保存するのは段 0〜2 の形状で、段を上がった直後の形状はそのまま次の段の初期状態になる
-    (論文の「l -> k の遷移で到達した形を k の初期状態に使う」)。
+    保存するのは段 0〜2 の形状。どの手の後の形を保存するかは `record_stage_archive` の `save_on`:
+    v4〜v11 は毎手 (`every_move`)、v12 は段が上がった手だけ (`stage_up`。論文の「l -> k の遷移で
+    到達した形を k の初期状態に使う」。理由は `state_archive.SAVE_RULES`)。
 
     params (すべて `__call__` の引数):
         stages: 始める段 (= 保存する段)。
@@ -285,11 +287,12 @@ class ResetToStage(ManagerTermBase):
         self._outcomes = ("up", "down", "diverged", "time_out")
         self._sums = self._empty_sums()
         self._last_save_step = -1
+        self._last_history_step = -1
 
     def _empty_sums(self) -> dict[str, float]:
-        keys = ["resets", "restored", "mismatch", "straight_n", "straight_up"]
+        keys = ["resets", "restored", "mismatch", "straight_n", "straight_up", "save_checked", "save_stage_mismatch"]
         for s in self.stages:
-            keys += [f"start_s{s}", f"episodes_s{s}"] + [f"{o}_s{s}" for o in self._outcomes]
+            keys += [f"start_s{s}", f"episodes_s{s}", f"saved_s{s}"] + [f"{o}_s{s}" for o in self._outcomes]
         return {k: 0.0 for k in keys}
 
     def __call__(
@@ -373,20 +376,34 @@ class ResetToStage(ManagerTermBase):
         save_every: int,
         save_name: str,
         rope_cfg: SceneEntityCfg,
+        save_on: str = "every_move",
+        action_name: str = "pick_place",
+        history_every: int = 0,
     ) -> None:
-        """手の終わりの形状のうち、床に落ちていて発散していないものを段ごとに保存する。"""
+        """手の終わりの形状のうち、床に落ちていて発散していないもの (`save_on` で絞る) を段ごとに保存する。"""
         extractor = get_extractor(env, rope_cfg.name)
         stage = stage_function(env).stage(extractor.batch, extractor.reduced_batch)
         ok = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
         ok &= torch.isfinite(extractor.nodes).all(dim=-1).all(dim=-1)
         if diverged_term is not None:
             ok &= ~diverged_now(env, diverged_term)
-        rows = ok.nonzero(as_tuple=False).squeeze(-1)
+        if save_on == "every_move":
+            # v4〜v11 の挙動。stage_transition を呼ばない (呼んでも値は変わらないが、計算の順序を変えない)。
+            save = sa.rows_to_save(ok, stage, stage, save_on)
+        else:
+            tr = stage_transition(env, action_name, rope_cfg)
+            # 検算: 手の後の段は、ここで引いた段と同じ抽出結果・同じ段の定義から来るので一致するはず。
+            self._sums["save_checked"] += float(ok.sum())
+            self._sums["save_stage_mismatch"] += float((ok & (tr["after"] != stage)).sum())
+            save = sa.rows_to_save(ok, tr["before"], stage, save_on)
+        rows = save.nonzero(as_tuple=False).squeeze(-1)
         if rows.numel() > 0:
             rope: Articulation = env.scene[rope_cfg.name]
             link_pos = rope.data.body_pos_w[rows][:, extractor.body_index]
             rel = sa.to_centroid_frame(rope.data.root_link_pose_w[rows], link_pos, env.scene.env_origins[rows])
             self.archive.add(stage[rows], rel, rope.data.joint_pos[rows])
+            for s in self.stages:
+                self._sums[f"saved_s{s}"] += float((stage[rows] == s).sum())
 
         log_dir = getattr(env.cfg, "log_dir", None)
         step = env.common_step_counter
@@ -394,6 +411,11 @@ class ResetToStage(ManagerTermBase):
             os.makedirs(log_dir, exist_ok=True)
             self.archive.save(os.path.join(log_dir, save_name))
             self._last_save_step = step
+        if history_every > 0 and log_dir and step % history_every == 0 and step != self._last_history_step:
+            hist_dir = os.path.join(log_dir, "archive_history")
+            os.makedirs(hist_dir, exist_ok=True)
+            self.archive.save(os.path.join(hist_dir, f"archive_step{step}.pt"))
+            self._last_history_step = step
 
     def pop_stats(self) -> dict[str, float]:
         """前回からの集計を返してリセットする。アーカイブの大きさは現在値。
@@ -401,11 +423,15 @@ class ResetToStage(ManagerTermBase):
         `success_s{k}` は段 k から始めたエピソードのうち段が上がって終わった割合。
         `chain_est` はその積で、まっすぐなロープから固結びまでつないだときの成功率の粗い見積り
         (段の間の形状の相性を無視している。正確な値は Play の chain モードで測る)。
+        `saved_s{k}` は前回からアーカイブの段 k に保存した件数 (`episodes_s{k}` と同じく件数で、割合ではない)。
+        `save_stage_mismatch` は `save_on` が `every_move` 以外のときの、`stage_transition` の手の後の段と
+        保存した段の食い違いの割合 (0 のはず。`every_move` では数えないので 0)。
         """
         s = self._sums
         out = {
             "restore_mismatch": s["mismatch"] / max(s["restored"], 1.0),
             "straight_success": s["straight_up"] / max(s["straight_n"], 1.0),
+            "save_stage_mismatch": s["save_stage_mismatch"] / max(s["save_checked"], 1.0),
         }
         chain = 1.0
         for k in self.stages:
@@ -416,6 +442,7 @@ class ResetToStage(ManagerTermBase):
             out[f"fail_s{k}"] = s[f"down_s{k}"] / max(n, 1.0)
             out[f"diverged_s{k}"] = s[f"diverged_s{k}"] / max(n, 1.0)
             out[f"timeout_s{k}"] = s[f"time_out_s{k}"] / max(n, 1.0)
+            out[f"saved_s{k}"] = s[f"saved_s{k}"]
             chain *= out[f"success_s{k}"]
         out["chain_est"] = chain
         for k, n in self.archive.sizes().items():
@@ -467,15 +494,35 @@ def record_stage_archive(
     save_every: int = 0,
     save_name: str = "archive.pt",
     rope_cfg: SceneEntityCfg = SceneEntityCfg("rope"),
+    save_on: str = "every_move",
+    action_name: str = "pick_place",
+    history_every: int = 0,
 ) -> torch.Tensor:
     """報酬項: 手の終わりの形状を段ごとのアーカイブへ入れ、`save_every` 手ごとにファイルへ書く。**常に 0**。
 
     ファイルは `{env.cfg.log_dir}/{save_name}` (train.py が log_dir を設定する)。`save_every=0` なら書かない。
 
+    `save_on` はどの手の後の形を保存するか (`state_archive.SAVE_RULES`)。既定の `every_move` は v4〜v11 の
+    挙動。`stage_up` (v12) は手の前後の段を `stage_transition` (`action_name` の行動項が控えた手の前の形)
+    から読む。
+
+    `history_every` > 0 なら、その env ステップごとにアーカイブの写しを
+    `{log_dir}/archive_history/archive_step{N}.pt` に残す (`save_name` は上書きなので中身の推移を追えない。
+    学習の挙動は変えない)。Play は `log_dir` が学習の run のフォルダなので、0 にすること。
+
     重みは 0 にしないこと (0 だと `RewardManager` が呼ばない)。`record_archive` (v3) と同じ流儀。
     """
     _get_stage_term(env, event_term).record(
-        env, settled_height_diameters, rope_diameter, diverged_term, save_every, save_name, rope_cfg
+        env,
+        settled_height_diameters,
+        rope_diameter,
+        diverged_term,
+        save_every,
+        save_name,
+        rope_cfg,
+        save_on=save_on,
+        action_name=action_name,
+        history_every=history_every,
     )
     return torch.zeros(env.num_envs, device=env.device)
 

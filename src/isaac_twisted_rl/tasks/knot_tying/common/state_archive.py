@@ -150,6 +150,38 @@ class StateArchive:
         return loaded
 
 
+# ---------------------------------------------------------------- 保存する手の選び方 (v12 で追加)
+
+SAVE_RULES = ("every_move", "stage_up")
+"""`rows_to_save` の `rule`。
+
+* `every_move` (v4〜v11): 床に落ちていて発散していない手の後の形を、すべて保存する。
+* `stage_up` (v12): そのうち段が上がった手 (手の前の段 < 手の後の段) で、手の後の段が 1 か 2 の
+  ものだけを保存する。`every_move` は段 k の方策が抜け出せない形を時間切れまで毎手 段 k に
+  書き足すので、アーカイブが方策の一番苦手な形に占められるループを作る
+  (`docs/decisions/0025-archive-save-on-stage-up.md`)。段が上がった手だけなら段 k のアーカイブに
+  入るのは段 k より下の方策が作った形だけになり、自分の出力が自分の訓練に戻らない。
+  段 0 には何も足さず (起動時に読む初期アーカイブのまま)、段 3 (固結び) は始めても学ぶことが
+  無いので保存しない。
+"""
+
+
+def rows_to_save(ok: torch.Tensor, before: torch.Tensor, after: torch.Tensor, rule: str) -> torch.Tensor:
+    """保存する env の bool マスク `(N,)`。
+
+    Args:
+        ok: 床に落ちていて発散していない手か `(N,)` bool。どの規則でもこれが偽なら保存しない。
+        before: 手の前の段 `(N,)`。
+        after: 手の後の段 `(N,)`。保存する段はこの値 (v10 の段の定義の −1 は保存しない)。
+        rule: `SAVE_RULES` のどれか。
+    """
+    if rule == "every_move":
+        return ok.clone()
+    if rule == "stage_up":
+        return ok & (after > before) & (after >= 1) & (after <= 2)
+    raise ValueError(f"unknown save rule: {rule!r} (expected one of {SAVE_RULES})")
+
+
 # ---------------------------------------------------------------- 姿勢の変換 (quaternion は w, x, y, z)
 
 

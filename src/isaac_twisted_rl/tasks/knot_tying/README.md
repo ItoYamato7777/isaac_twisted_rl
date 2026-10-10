@@ -45,6 +45,7 @@ uv run train --task Isaac-Twisted-RL-Knot-v6 --headless   # 学習 (手順は sk
 | `v9` | v7 | **学習の初期状態で段 2 を選ぶ重みを 2 倍に** (`stage_weights` (1, 1, 1) -> (1, 1, 2))。観測・報酬・物理・PPO は v7 のまま (v8 の対称性は入れない) | 同上 | [versions/v9/README.md](versions/v9/README.md) |
 | `v10` | v7 | **段を固結びへの正規の経路の上の p-data だけに絞る** (段 0〜2 は 7 個の p-data、外れた形は −1 で終了。段 3 は v7 と同じ判定)。`next_edge` の候補も経路の上に絞る。観測の形・報酬の値・物理・PPO・`stage_weights` は v7 のまま | 同上 | [versions/v10/README.md](versions/v10/README.md) |
 | `v11` | v7 | **v7 の段のまま、Φ の表に無く R2 除去後のラダーでも 0 の「行き止まりの形」だけを −1 にする** (−1 で終了・アーカイブに入らない)。生が表に無く R2 除去後が表にある形は R2 除去後の形の段。`next_edge`・初期アーカイブ・観測の形・報酬の値・物理・PPO・`stage_weights` は v7 のまま | 同上 | [versions/v11/README.md](versions/v11/README.md) |
+| `v12` | v7 | **到達状態アーカイブに「段が上がった手の後の形」だけを保存する** (`save_on = "stage_up"`。段 0 には学習中に何も足さない)。記録のためにアーカイブの写しを 50 iteration ごとに残す。段の定義・初期アーカイブ・観測・報酬・物理・PPO・`stage_weights` は v7 のまま | 同上 | [versions/v12/README.md](versions/v12/README.md) |
 
 各版の状態 (学習したか、結果、比べた相手) は `docs/STATUS.md` の「版の状態」にある。
 
@@ -61,7 +62,7 @@ Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-{v0,v1}          # 20 タ
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2[-RNN|-LSTM]   # 30 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2-R2[-RNN|-LSTM]   # 30 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v3[-RNN|-LSTM]   # 30 タスク
-Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-{v4,v5,v6,v7,v8,v9,v10,v11} # 各 10 タスク (MLP のみ)
+Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-{v4,v5,v6,v7,v8,v9,v10,v11,v12} # 各 10 タスク (MLP のみ)
 Isaac-Twisted-RL-RS-<紐モデル>[-Play]-v4                                # rope study (rope_study/__init__.py)
 ```
 

@@ -1,8 +1,8 @@
 # 0025 v12 は到達状態アーカイブに「段が上がった手の後の形」だけを保存する
 
-- 状態: 有効 (v12 以降。v12 は未実装)
+- 状態: 有効 (v12 以降。v12 は実装済み・学習は未実施)
 - 読むべき状況: v12 を実装するとき。到達状態アーカイブの保存の規則・引き方を変えたくなったとき。学習ログの段の成功が途中で落ちたとき
-- 最終更新: 2026-10-09
+- 最終更新: 2026-10-10
 
 ## 決定
 
@@ -55,7 +55,7 @@ v12 = v7 + **到達状態アーカイブの保存の規則の差し替え** (1 �
 - **保存する行を選ぶ関数を純 torch で足す** (`kt/common/state_archive.py`。isaaclab を import しない置き場所なので単体テストできる)。例: `rows_to_save(ok, before, after, rule)`。`rule` は `"every_move"` (今) と `"stage_up"` (v12)。`"stage_up"` は `ok & (after > before) & (after >= 1) & (after <= 2)`。テストは `tests/test_state_archive.py` に足す (0 -> 1・1 -> 2・0 -> 2 は保存、0 -> 0・2 -> 2・2 -> 1・1 -> 0・2 -> 3・−1 は保存しない、`ok` が偽なら保存しない、`every_move` は今の挙動と同じ)。
 - **保存の項に引数を足す** (`kt/common/mdp/archive.py:461` の `record_stage_archive` と `:367` の `ResetToStage.record`)。`save_on: str = "every_move"` を足し、既定は今の挙動 (過去の版の挙動を変えない。`.claude/rules/mdp.md` の「項は追加だけ」)。`"stage_up"` のときは、手の前後の段を `kt/common/mdp/stages.py:62` の `stage_transition(env, action_name, rope_cfg)` から読む (`before` / `after`。同じ env ステップの中ではキャッシュされ、段の定義は `stage_function` と同じ)。`action_name` の引数 (既定 `"pick_place"`) も足す。手の後の段は `record` が今計算している値と同じになるはずなので、食い違えば検算として数える。
 - **写しの引数を足す**: `history_every: int = 0` (env ステップ。0 なら書かない)。`{log_dir}/archive_history/archive_step{N}.pt` に書く (1 つ約 17 MB。200 env ステップ = 50 iteration ごとなら 300 iteration で 6 つ)。
-- **版**: `versions/v12/` は v7 を継承し、`__post_init__` で `self.rewards.record_stage_archive.params["save_on"] = "stage_up"` と `["history_every"] = 200` だけを書く。Play (chain) は `play_post_init` が `save_every` を 0 にするだけで、保存の規則は評価に効かない。`tests/test_v12_cfg.py` で v7 との差がそれだけであることを静的に検査する (`tests/test_v11_cfg.py` が手本)。
+- **版**: `versions/v12/` は v7 を継承し、`__post_init__` で `self.rewards.record_stage_archive.params["save_on"] = "stage_up"` と `["history_every"] = 200` だけを書く。Play (chain) の保存の規則は評価に効かない (アーカイブから引かず、ファイルにも書かない)。ただし Play は `log_dir` を学習の run のフォルダにするので、v12 の `play_post_init` は v7 の `play_post_init` の後に `history_every` を 0 にする (しないと学習が残した写しを評価が上書きする)。`tests/test_v12_cfg.py` で v7 との差がそれだけであることを静的に検査する (`tests/test_v11_cfg.py` が手本)。
 - **ログ**: 今の `Curriculum/stage_log/arc_size_s{k}` に加えて、手ごとに保存した件数を段ごとに数えると、段 0 に何も入らないことと、段 1・2 の入れ替わりの速さが学習ログで見える (`ResetToStage.pop_stats` に `saved_s{k}` を足す)。
 - **スモークテストで確かめる**: `params/env.yaml` の `save_on: stage_up`、段 0 の `arc_size_s0` が 128 のまま、`saved_s0` が 0、`restore_mismatch` 0。
 

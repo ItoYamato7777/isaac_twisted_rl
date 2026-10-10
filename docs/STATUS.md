@@ -29,7 +29,7 @@
 | v9 | chain 評価 済み (seed 43 は iteration 70 / 100、seed 44 は timeout で iteration 90 まで)。v7 を上回らなかった | [2026-10-05_v9_stage2-weight](experiments/2026-10-05_v9_stage2-weight.md) |
 | v10 | chain 評価 済み (seed 43・44、iteration 70 / 90 / 100、GPU 1 枚に 1 本)。v7 を大きく下回った | [2026-10-06_v10_path-stages](experiments/2026-10-06_v10_path-stages.md)、[0023](decisions/0023-v10-path-stages.md) |
 | v11 | chain 評価 済み (seed 43・44、iteration 70〜300、GPU 1 枚に 1 本)。iteration 300 で v7 を上回らなかった。s44 が段 0 で崩れた。s43 は iteration 1000 まで延長中 | [2026-10-07_v11_dead-end-stages](experiments/2026-10-07_v11_dead-end-stages.md)、[2026-10-09_v11_stage2-archive-loop](experiments/2026-10-09_v11_stage2-archive-loop.md)、[0024](decisions/0024-v11-dead-end-stages.md) |
-| v12 | **未実装**。仕様は決定済み (継承元 v7、差は到達状態アーカイブの保存の規則だけ) | [0025](decisions/0025-archive-save-on-stage-up.md) |
+| v12 | 実装済み・**学習は未実施** (継承元 v7、差は到達状態アーカイブの保存の規則だけ) | [0025](decisions/0025-archive-save-on-stage-up.md)、[versions/v12/README.md](../src/isaac_twisted_rl/tasks/knot_tying/versions/v12/README.md) |
 
 ## 走っているジョブ
 

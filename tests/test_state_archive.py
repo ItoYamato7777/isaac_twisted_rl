@@ -151,3 +151,45 @@ def test_load_rejects_other_rope(tmp_path):
     other = sa.StateArchive(classes=(1,), capacity=4, num_joints=J + 1, device="cpu")
     with pytest.raises(ValueError, match="関節数"):
         other.load(path)
+
+
+# ---------------------------------------------------------------- 保存する手の選び方 (v12)
+
+
+def _rows(before: list[int], after: list[int], rule: str, ok: list[bool] | None = None) -> list[bool]:
+    b = torch.tensor(before)
+    a = torch.tensor(after)
+    m = torch.ones_like(b, dtype=torch.bool) if ok is None else torch.tensor(ok)
+    return sa.rows_to_save(m, b, a, rule).tolist()
+
+
+def test_stage_up_saves_only_moves_up_to_stage_1_or_2():
+    #         0->1  1->2  0->2  0->0  2->2  2->1  1->0  2->3  1->3  0->-1 2->-1
+    before = [0, 1, 0, 0, 2, 2, 1, 2, 1, 0, 2]
+    after = [1, 2, 2, 0, 2, 1, 0, 3, 3, -1, -1]
+    want = [True, True, True, False, False, False, False, False, False, False, False]
+    assert _rows(before, after, "stage_up") == want
+
+
+def test_stage_up_requires_ok():
+    assert _rows([0, 1, 0], [1, 2, 2], "stage_up", ok=[False, False, True]) == [False, False, True]
+
+
+def test_every_move_is_ok_only():
+    # v4〜v11 の挙動: 段に関係なく ok の手をすべて保存する (段 3 と −1 は StateArchive.add が捨てる)。
+    before = [0, 1, 2, 2, 0]
+    after = [0, 0, 2, 3, -1]
+    ok = [True, False, True, True, False]
+    assert _rows(before, after, "every_move", ok=ok) == ok
+
+
+def test_every_move_does_not_alias_ok():
+    ok = torch.tensor([True, False])
+    out = sa.rows_to_save(ok, torch.zeros(2, dtype=torch.long), torch.zeros(2, dtype=torch.long), "every_move")
+    out[1] = True
+    assert ok.tolist() == [True, False]
+
+
+def test_unknown_rule_raises():
+    with pytest.raises(ValueError, match="save rule"):
+        _rows([0], [1], "stage_change")

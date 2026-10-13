@@ -2,13 +2,13 @@
 
 - 状態: 現行。上書きで更新する (追記しない。手順は skill `handoff`)
 - 読むべき状況: セッションの始め。今どこにいて、次に何をするかを知るとき
-- 最終更新: 2026-10-09
+- 最終更新: 2026-10-13
 
 ## 要点
 
 - v11 は iteration 300 で v7 を上回らなかった ([記録](experiments/2026-10-07_v11_dead-end-stages.md))。v11 s43 の延長で段 2 の成功が落ちた原因は、**到達状態アーカイブが毎手の形を保存するため、方策の抜け出せない形が溜まるループ**だった (方策は悪くなっていない。[切り分け](experiments/2026-10-09_v11_stage2-archive-loop.md))。
-- **次は v12 の実装** (ユーザーの指示、2026-10-09): v7 + アーカイブに「段が上がった手の後の形」だけを保存する。仕様・根拠・実装の見通しは [0025](decisions/0025-archive-save-on-stage-up.md)。
-- v11 s43 を iteration 1000 まで延ばす学習が GPU 1 で走っている。v10・v9・v8 は v7 を上回らなかった。rope study は打ち切りのまま。
+- **v12 (v7 + アーカイブに「段が上がった手の後の形」だけを保存する) を実装し、seed 43 / 44 の学習を GPU 0 / 1 で走らせている** (2026-10-13 起動、iteration 300 まで)。仕様は [0025](decisions/0025-archive-save-on-stage-up.md)。
+- v11 s43 の iteration 1000 までの延長は 2026-10-10 に完走した (chain 評価は未実施)。v10・v9・v8 は v7 を上回らなかった。rope study は打ち切りのまま。
 
 ## 版の状態
 
@@ -28,36 +28,36 @@
 | v8 | chain 評価 済み (seed 43・44、iteration 70 / 100、GPU 1 枚に 1 本)。v7 を下回った | [2026-10-05_v8_symmetry](experiments/2026-10-05_v8_symmetry.md)、判断は [0022](decisions/0022-p2-one-version-each.md) |
 | v9 | chain 評価 済み (seed 43 は iteration 70 / 100、seed 44 は timeout で iteration 90 まで)。v7 を上回らなかった | [2026-10-05_v9_stage2-weight](experiments/2026-10-05_v9_stage2-weight.md) |
 | v10 | chain 評価 済み (seed 43・44、iteration 70 / 90 / 100、GPU 1 枚に 1 本)。v7 を大きく下回った | [2026-10-06_v10_path-stages](experiments/2026-10-06_v10_path-stages.md)、[0023](decisions/0023-v10-path-stages.md) |
-| v11 | chain 評価 済み (seed 43・44、iteration 70〜300、GPU 1 枚に 1 本)。iteration 300 で v7 を上回らなかった。s44 が段 0 で崩れた。s43 は iteration 1000 まで延長中 | [2026-10-07_v11_dead-end-stages](experiments/2026-10-07_v11_dead-end-stages.md)、[2026-10-09_v11_stage2-archive-loop](experiments/2026-10-09_v11_stage2-archive-loop.md)、[0024](decisions/0024-v11-dead-end-stages.md) |
-| v12 | 実装済み・**学習は未実施** (継承元 v7、差は到達状態アーカイブの保存の規則だけ) | [0025](decisions/0025-archive-save-on-stage-up.md)、[versions/v12/README.md](../src/isaac_twisted_rl/tasks/knot_tying/versions/v12/README.md) |
+| v11 | chain 評価 済み (seed 43・44、iteration 70〜300、GPU 1 枚に 1 本)。iteration 300 で v7 を上回らなかった。s44 が段 0 で崩れた。s43 は iteration 1000 まで延ばした (完走、chain 評価は未実施) | [2026-10-07_v11_dead-end-stages](experiments/2026-10-07_v11_dead-end-stages.md)、[2026-10-09_v11_stage2-archive-loop](experiments/2026-10-09_v11_stage2-archive-loop.md)、[0024](decisions/0024-v11-dead-end-stages.md) |
+| v12 | seed 43・44 を学習中 (iteration 300 まで、GPU 1 枚に 1 本)。スモークテスト済み (継承元 v7、差は到達状態アーカイブの保存の規則だけ) | [0025](decisions/0025-archive-save-on-stage-up.md)、[versions/v12/README.md](../src/isaac_twisted_rl/tasks/knot_tying/versions/v12/README.md) |
 
 ## 走っているジョブ
 
-| job (`outputs/jobs/`) | pid (`timeout`) | GPU | run (`logs/rsl_rl/knot_tying_v11/`) | 1 iteration | 終わりの見込み |
+| job (`outputs/jobs/`) | pid (`timeout`) | GPU | run (`logs/rsl_rl/knot_tying_v12/`) | 1 iteration | 終わりの見込み |
 |---|---|---|---|---|---|
-| `2026-10-08_19-23-57_v11_s43_to1000` | 3371712 | 1 | `2026-10-08_19-24-03_v11_s43_to1000` | 約 4.2 分 | 2026-10-10 19〜20 時ごろ (`model_1000.pt`。10/9 23:24 に iteration 713) |
+| `2026-10-13_15-17-21_v12_s43` | 783225 | 0 | `2026-10-13_15-17-26_v12_s43` | 約 4.2 分 (見込み) | 2026-10-14 12〜14 時ごろ (`model_300.pt`) |
+| `2026-10-13_15-17-26_v12_s44` | 783473 | 1 | `2026-10-13_15-17-31_v12_s44` | 同上 | 同上 |
 
-- v11 s43 を `model_300.pt` から iteration 1000 まで延ばす (ユーザーの指示、2026-10-08)。v7 s43 の延長と同じ形: `uv run train --task Isaac-Twisted-RL-Knot-v11 --headless --device cuda:1 --seed 43 --resume --load_run 2026-10-07_14-11-04_v11_s43 --checkpoint model_300.pt --max_iterations 701 --run_name v11_s43_to1000 agent.device=cuda:1 agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[<元の run の archive.pt (it300 の時点)>]` (`run_job.sh --timeout 72h --detach`)。commit `072e4c7`。
-
+- コマンド (commit `a8d2b3e`、Hydra の上書きなし): `uv run train --task Isaac-Twisted-RL-Knot-v12 --headless --device cuda:N --seed S --max_iterations 301 --run_name v12_sS agent.device=cuda:N agent.save_interval=10` (`run_job.sh --timeout 30h --detach`)。GPU の割り当てはユーザーの指示 (2026-10-13)。
+- 起動の確認 (iteration 1): 両方とも `arc_size_s0` 128・`saved_s0` 0・`save_stage_mismatch` 0・`restore_mismatch` 0。
+- スモークテスト: `outputs/jobs/2026-10-10_16-40-47_smoke_v12` (2 iteration、`history_every=4` を上書きして `archive_history/` の書き出しを確かめた。終わりの `post_quit` の TypeError は無視してよいもの)。v12 の Play (chain 評価) の起動と、Play で `history_every` が 0 になることは**未確認** (評価の前に確かめる)。
+- 終わった: v11 s43 の延長 `2026-10-08_19-23-57_v11_s43_to1000` は 2026-10-10 16:25 に完走 (`exit.txt` に `signal:` 無し、`model_1000.pt` あり)。
 - GPU 0・1 は他のユーザー (ohtsukatakeshi) とも共有している。他の人のジョブがあれば触らない。
-- 完走の確認は `exit.txt` に `signal:` の行が無いことと最後のチェックポイント。300 iteration は 1 本約 21〜23 時間 (v11、GPU 1 枚に 1 本)。
+- 完走の確認は `exit.txt` に `signal:` の行が無いことと最後のチェックポイント。
 
 ## 次の作業
 
 ### v12 (到達状態アーカイブに段が上がった手の後の形だけを保存する。仕様は [0025](decisions/0025-archive-save-on-stage-up.md))
 
-1. skill `add-version` で v12 を作る (継承元 v7)。0025 の「実装の見通し」の順に:
-   - `kt/common/state_archive.py` に保存する行を選ぶ純 torch の関数 (`rows_to_save(ok, before, after, rule)`、`rule` は `every_move` / `stage_up`) と、`tests/test_state_archive.py` の単体テスト (0 -> 1・1 -> 2・0 -> 2 は保存、0 -> 0・2 -> 2・2 -> 1・1 -> 0・2 -> 3・−1 は保存しない、`every_move` は今と同じ)。
-   - `kt/common/mdp/archive.py` の `record_stage_archive` と `ResetToStage.record` に引数 `save_on` (既定 `every_move`)・`action_name` (既定 `pick_place`)・`history_every` (既定 0) を足す。手の前後の段は `kt/common/mdp/stages.py` の `stage_transition`。既定の値で v4〜v11 の挙動が変わらないこと。`pop_stats` に段ごとの保存の件数 `saved_s{k}` を足す。
-   - `versions/v12/` (`__post_init__` で `save_on = "stage_up"`、`history_every = 200` だけ) と `tests/test_v12_cfg.py` (`tests/test_v11_cfg.py` が手本)。
-2. テスト・lint の後に commit し、skill `train-eval` のスモークテストで `params/env.yaml` の `save_on: stage_up`、`arc_size_s0` が 128 のまま、`saved_s0` が 0、`restore_mismatch` 0 を確かめる。
-3. v12 seed 43 / 44 を 0 から iteration 300 まで (`--max_iterations 301`、`agent.save_interval=10`、timeout 30h 前後、GPU 1 枚に 1 本)。**GPU の割り当てと、v11 s43 の延長 (GPU 1) が終わるのを待つかをユーザーに確かめる。**
+1. 実装 (commit `a8d2b3e`)・スモークテスト・学習の起動は済み。学習 2 本の完走を待つ (上の「走っているジョブ」)。
+2. 待つ間か完走の後に、スモークテストの `model_1.pt` で v12 の Play の chain 評価が起動し、`params` の Play で `history_every` が 0 になることを確かめる (少ない環境数で。学習の run の `archive_history/` を上書きしないこと)。
+3. 完走したら `exit.txt` と `model_300.pt` を確かめる。
 4. chain 評価 (seed 7、512 環境、Hydra の上書きなし) を it100 / 200 / 300 で、v7・v11 と並べる。0025 の「外れたら仮説が誤りと言える予想」(段 2 のアーカイブで 1 つの p-data が 20% を超えない、段 2 の成功が途中で半分以下に落ちない、chain 評価が it100 -> it300 で下がらない) を、`archive_history/` の写しと学習ログで確かめる。
 
 ### v7・v11 の比べる相手
 
-5. **v7 s44 を iteration 300 まで延ばす** (比べる相手を 2 シードにする)。v7 s43 の延長と同じ形: `uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:N --seed 44 --resume --load_run 2026-10-04_22-37-47_v7_s44 --checkpoint model_100.pt --max_iterations 201 --run_name v7_s44_to300 agent.device=cuda:N agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[/home/itoyama/work/isaac_twisted_rl/logs/rsl_rl/knot_tying_v7/2026-10-04_22-37-47_v7_s44/archive.pt]` (`run_job.sh --timeout 20h --detach`)。v12 と GPU を取り合うので、順番はユーザーに確かめる。
-6. v11 s43 の延長 (iteration 1000) が終わったら、`exit.txt` と `model_1000.pt` を確かめ、chain 評価を it400 / 500 / 600 / 700 / 800 / 1000 で (`--checkpoint` は延長の run)。段 2 のアーカイブの写し (`outputs/archive_snapshots/`) も足して p-data を数える。
+5. **v7 s44 を iteration 300 まで延ばす** (比べる相手を 2 シードにする)。v7 s43 の延長と同じ形: `uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:N --seed 44 --resume --load_run 2026-10-04_22-37-47_v7_s44 --checkpoint model_100.pt --max_iterations 201 --run_name v7_s44_to300 agent.device=cuda:N agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[/home/itoyama/work/isaac_twisted_rl/logs/rsl_rl/knot_tying_v7/2026-10-04_22-37-47_v7_s44/archive.pt]` (`run_job.sh --timeout 20h --detach`)。v12 の 2 本が終わって GPU が空いてから起動する (ユーザーの指示、2026-10-13)。
+6. v11 s43 の延長 (iteration 1000、完走を確かめた) の chain 評価を it400 / 500 / 600 / 700 / 800 / 1000 で (`--checkpoint` は延長の run)。段 2 のアーカイブの写し (`outputs/archive_snapshots/`) も足して p-data を数える。
 7. v11 s44 の段 0 の崩れ: 同じループ (段 0 の手の後の形が段 0 に保存される) が関わるかを、s44 の `archive.pt` (iteration 300) の段 0 の p-data で見る (`view_archive.py --dump_pdata`)。段の定義のせいかの切り分け (`model_140.pt` から v7 の段の定義で続ける案) は、v12 の結果を見てからユーザーと決める。
 
 ### その他

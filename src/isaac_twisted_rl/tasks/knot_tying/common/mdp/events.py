@@ -16,6 +16,14 @@
 
 これを忘れると「エラーは出ないがロープが指をすり抜ける」という、
 最も気付きにくい壊れ方をする。
+
+.. warning::
+    **この bind は PhysX に届いていないと見られる。** USD の上では bind は解決する (`ComputeBoundMaterial` が
+    `GraspMaterial` を返す) が、tensor API の `get_material_properties` は指の形状の摩擦を 0.5 (PhysX の既定の材質) と
+    読み、学習と同じ手を指の摩擦だけ変えて打つと、何もしない指は μ 0.5 を書いた指と同じに動き、μ 4.0 を書いた指とは
+    違う動きになった (`docs/experiments/2026-10-14_friction-binding.md`、`demos/friction_check.py`)。startup のイベントは
+    PhysX が scene を読み込んだ後に回るので、後から付けた bind が反映されないと推測する。v0 以降の把持は、指 μ 0.5・
+    average 合成 (ロープ <-> 指 0.5) の摩擦で成り立っている。既存の版の挙動を変えないため、ここは直さない。
 """
 
 from __future__ import annotations

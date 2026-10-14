@@ -60,7 +60,17 @@ ROPE_DENSITY = 600.0
 """
 
 ROPE_FRICTION = 2.0
-"""ロープ表面の摩擦係数 (static / dynamic とも同値)。全プリセット共通。
+"""ロープ表面の摩擦係数として USD に書く値 (static / dynamic とも同値)。全プリセット共通。
+
+.. warning::
+    **この値は PhysX に届いていない。実際のロープの摩擦は 0.5 (PhysX の既定の材質)。**
+    `generate_rope_usd.py` は材質を `Scope` の prim に付けて bind するが、physics の bind は
+    `Material` の prim でないと解決されない (`ComputeBoundMaterial` が何も返さない)。軸方向の滑りの試験で、
+    何も書かないロープと tensor API で 0.5 を書いたロープの止まる距離が一致した
+    (`docs/experiments/2026-10-14_friction-binding.md`、`demos/friction_check.py`)。実効摩擦はロープ <-> 床 (0.5 + 2.0) / 2 = 1.25、
+    ロープ <-> ロープ 0.5。v0 以降のすべての学習はこの物理で行った。既存の版の挙動を変えないため、USD は直さない。
+
+以下は意図した設計 (上の理由で、実際には成り立っていない):
 
 PhysX は接触する 2 つのマテリアルの摩擦を **合成則** で 1 つにまとめる。
 Isaac Lab の既定は ``"average"`` なので、実効摩擦は次のようになる:
@@ -78,9 +88,11 @@ Isaac Lab の既定は ``"average"`` なので、実効摩擦は次のように�
 """
 
 GROUND_FRICTION = 2.0
-"""ロープを置く床 (ground plane) の摩擦係数。各デモの地面生成で使う。
+"""ロープを置く床 (ground plane) の摩擦係数。各デモの地面生成で使う。床の材質は PhysX に届いている
+(Isaac Lab の `GroundPlaneCfg` が `Material` の prim を作る)。ロープの摩擦が実際は 0.5 なので、ロープ <-> 床 の実効摩擦は
+1.25 (`ROPE_FRICTION` の warning)。
 
-`ROPE_FRICTION` と合わせて、ロープ <-> 床 の実効摩擦を 2.0 にする
+以下は意図した設計: `ROPE_FRICTION` と合わせて、ロープ <-> 床 の実効摩擦を 2.0 にする
 (従来は両方 1.0 で実効 1.0 だったので 2 倍)。値を大きくすると床の上で
 ロープが滑りにくくなり、掴んで動かしたときに引きずられて全体が付いて
 くる度合いが強くなる。逆に持ち上げる際は床に残った部分の抵抗が増える。

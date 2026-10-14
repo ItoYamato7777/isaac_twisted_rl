@@ -22,6 +22,10 @@ chain 評価 (`eval_chain.py`) はエピソードの結末しか出さない。�
 * `not_settled`: 手の後のロープの最高点が `settled_height_diameters` 直径より高い (学習では up / down に数えない)
 * `diverged`: 発散で終わった
 
+`--dump_obs <pt>` は、数えた手の actor の観測・クリップ前の行動・手の前後の段・結果を保存する。方策の平均が
+行動の範囲 [−1, 1] の外へ出ているか (環境はクリップするので、外へ出ると行動が端に張り付く) を、同じ観測で
+別のチェックポイントについて Isaac Sim なしで数えるのに使う。
+
 段と p-data は `stages.last_stage_transition` (終了判定が計算した reset の前の値) から読む。`not_settled` の
 判定に使うロープの最高点は手の後の観測の時点のもので、reset された環境 (固結び・発散) では使わない。
 """
@@ -44,6 +48,9 @@ parser.add_argument("--steps", type=int, default=19, help="env.step() calls (>= 
 parser.add_argument("--stochastic", action="store_true", default=False, help="Sample actions with the policy std.")
 parser.add_argument("--top", type=int, default=8, help="Number of most frequent p-data after a move to list.")
 parser.add_argument("--out", type=str, default=None, help="Write the summary as JSON here.")
+parser.add_argument(
+    "--dump_obs", type=str, default=None, help="Save actor observations, raw actions and stages of counted moves (.pt)."
+)
 cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 args_cli, hydra_args = parser.parse_known_args()
@@ -118,6 +125,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     obs = env.get_observations()
     with torch.inference_mode():
         for _ in range(args_cli.steps):
+            actor_obs = runner.alg.policy.get_actor_obs(obs).clone()
             actions = policy(obs)
             obs, _, dones, _ = env.step(actions)
             done = dones.bool()
@@ -142,6 +150,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
                     "key_after": tr["key_after"],
                     "outcome": outcome,
                     "act": act,
+                    "raw_act": actions.clone(),
+                    "actor_obs": actor_obs,
                     # `processed_actions` は reset で 0 に戻るので、reset で消えない掴む点・置く先のリンクを読む
                     "delta": term._target_id - term._grasp_id,
                     "grasp": term._grasp_id.clone(),
@@ -157,6 +167,12 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     cat = {k: torch.cat([r[k] for r in rows]) for k in rows[0] if k != "keep"}
     keep = torch.cat([r["keep"] for r in rows])
     cat = {k: v[keep].cpu() for k, v in cat.items()}
+    if args_cli.dump_obs:
+        os.makedirs(os.path.dirname(os.path.abspath(args_cli.dump_obs)), exist_ok=True)
+        dump_keys = ("actor_obs", "raw_act", "before", "after", "outcome")
+        torch.save(
+            {k: cat[k] for k in dump_keys} | {"checkpoint": resume_path, "outcomes": OUTCOMES}, args_cli.dump_obs
+        )
     names = _key_names()
     summary: dict = {"task": args_cli.task, "checkpoint": resume_path, "stochastic": args_cli.stochastic}
     summary["episodes"] = int(counted.sum())

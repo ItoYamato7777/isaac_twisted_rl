@@ -399,7 +399,12 @@ def _run(env, log: Log, out_dir: str) -> None:
     cols: dict[str, list[torch.Tensor]] = {}
     ep_end = {k: 0 for k in names}
     t0 = time.time()
+    dr_term = None
+    if "rope_dr" in uenv.event_manager.active_terms.get("reset", []):
+        dr_term = uenv.event_manager.get_term_cfg("rope_dr").func  # v14: 手ごとの物理の倍率も残す
     for step in range(args_cli.steps):
+        # この手の物理。env.step() の中の reset で、終わった env の倍率は引き直される。
+        dr_scales = dr_term.scales.clone() if dr_term is not None else None
         if policy is None:
             act = 2.0 * torch.rand(uenv.num_envs, 6, device=dev) - 1.0
         else:
@@ -443,6 +448,8 @@ def _run(env, log: Log, out_dir: str) -> None:
             "target_id": term._target_id.clone(),
             "step": torch.full_like(stage0, step),
         }
+        if dr_scales is not None:
+            row["dr_scales"] = dr_scales
         for k, v in row.items():
             cols.setdefault(k, []).append(v.detach().cpu())
         if seeds is not None and bool(ended.any()):
@@ -460,6 +467,19 @@ def _run(env, log: Log, out_dir: str) -> None:
     total_end = sum(ep_end.values())
     log("[エピソードの終わり方] " + "  ".join(f"{k} {_pct(v, total_end)}" for k, v in ep_end.items()))
     summarize(rec, log)
+    if "dr_scales" in rec:
+        from isaac_twisted_rl.tasks.knot_tying.common import domain_rand as dr
+
+        log("[物理の DR] 軸別の 1 手あたりの発散率 (倍率の小 / 中 / 大 の 3 分位、手ごとの倍率で分ける):")
+        for i, name in enumerate(dr.AXES):
+            v = rec["dr_scales"][:, i]
+            thirds = v.argsort().chunk(3)
+            log(
+                f"  {name:16s} "
+                + "  ".join(
+                    f"x{float(v[t].mean()):.2f}:{100 * float(rec['div'][t].float().mean()):5.2f}%" for t in thirds
+                )
+            )
 
 
 if __name__ == "__main__":

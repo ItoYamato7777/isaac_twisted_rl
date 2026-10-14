@@ -746,6 +746,29 @@ class Log:
             f.write(text + "\n")
 
 
+def _log_dr_breakdown(uenv, ok: torch.Tensor, label: str, log) -> None:
+    """ロープの物理の DR (v14 の `rope_dr`) があれば、軸ごとに倍率を 3 分位に分けた `label` の割合を書く。
+
+    台本は reset を 1 回しかしないので、env ごとの物理は起動時に引いた 1 組のまま。DR の無いタスクでは何もしない。
+    """
+    if "rope_dr" not in uenv.event_manager.active_terms.get("reset", []):
+        return
+    term = uenv.event_manager.get_term_cfg("rope_dr").func
+    if not uenv.event_manager.get_term_cfg("rope_dr").params.get("enabled", True):
+        return
+    from isaac_twisted_rl.tasks.knot_tying.common import domain_rand as dr
+
+    scales = term.scales.cpu()
+    ok = ok.cpu()
+    log(f"物理の DR の軸別の{label}の割合 (倍率の小 / 中 / 大 の 3 分位):")
+    for i, name in enumerate(dr.AXES):
+        thirds = scales[:, i].argsort().chunk(3)
+        log(
+            f"  {name:16s} "
+            + "  ".join(f"x{float(scales[t, i].mean()):.2f}:{float(ok[t].float().mean()) * 100:4.0f}%" for t in thirds)
+        )
+
+
 def main():
     task_short = args_cli.task.replace("Isaac-Twisted-RL-", "")
     out_dir = args_cli.out or os.path.join(_REPO_ROOT, "outputs", "overhand_script", task_short)
@@ -911,6 +934,7 @@ def main():
     )
     for e in range(runner.num_envs):
         elog(f"final env{e:3d} cls_r2={int(cls_r2[e])} p='{pd[e]}' r2='{pd_r2[e]}'")
+    _log_dr_breakdown(env.unwrapped, ok, "固結び", log)
     # パラメータの値を 3 分位に分けたときの成功率 (探索の手がかり)。
     if args_cli.jitter > 0 and runner.num_envs >= 30:
         log("パラメータ別の成功率 (値の小 / 中 / 大 の 3 分位):")

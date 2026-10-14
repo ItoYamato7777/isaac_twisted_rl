@@ -59,6 +59,21 @@ def _stage_obs(n: int, obs_dim: int, stage_dims: int, seed: int = 0) -> torch.Te
     return x
 
 
+def _obs_shapes(state: dict) -> tuple[dict[str, torch.Tensor], dict[str, list[str]]]:
+    """方策を組み立てるための観測の形とグループ。critic の幅はチェックポイントから読む。
+
+    v14 から critic は actor と違う幅 (特権観測を前に足す) になる。critic を actor の幅で作ると `load_state_dict`
+    (strict) が落ちるので、critic の入力の幅を `critic.heads.0.0.weight` から読み、別のグループにする。
+    書き出すのは actor だけなので、critic の観測の中身は使わない。v4〜v13 は critic と actor が同じ幅で、今までと同じ形になる。
+    """
+    obs_dim = state["actor.heads.0.0.weight"].shape[1]
+    critic_dim = state["critic.heads.0.0.weight"].shape[1]
+    if critic_dim == obs_dim:
+        return {"policy": torch.zeros(1, obs_dim)}, {"policy": ["policy"], "critic": ["policy"]}
+    obs = {"policy": torch.zeros(1, obs_dim), "critic": torch.zeros(1, critic_dim)}
+    return obs, {"policy": ["policy"], "critic": ["critic"]}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Export a stage-gated policy checkpoint to TorchScript / ONNX.")
     parser.add_argument("--checkpoint", required=True, help="model_<it>.pt")
@@ -80,8 +95,7 @@ def main() -> None:
     state = loaded["model_state_dict"]
     obs_dim = state["actor.heads.0.0.weight"].shape[1]
     num_actions = state["std"].shape[-1]
-    obs = {"policy": torch.zeros(1, obs_dim)}
-    groups = {"policy": ["policy"], "critic": ["policy"]}
+    obs, groups = _obs_shapes(state)
     policy = StageGatedActorCritic(obs, groups, num_actions, **pcfg)
     policy.load_state_dict(state)
     policy.eval()

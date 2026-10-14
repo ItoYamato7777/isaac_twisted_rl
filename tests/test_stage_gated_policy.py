@@ -136,3 +136,63 @@ def test_register_with_rsl_rl():
     register_with_rsl_rl()
     # OnPolicyRunner._construct_algorithm と同じ解決のしかた。
     assert eval("StageGatedActorCritic", vars(on_policy_runner)) is StageGatedActorCritic
+
+
+# ---------------------------------------------------------------- v14: critic に特権観測を前に足す
+
+
+PRIV = 6
+
+
+def _wide_critic_policy() -> StageGatedActorCritic:
+    torch.manual_seed(0)
+    obs = {"policy": _obs(), "rope_params": torch.randn(STAGES.numel(), PRIV)}
+    return StageGatedActorCritic(
+        obs,
+        {"policy": ["policy"], "critic": ["rope_params", "policy"]},
+        ACT,
+        num_stages=3,
+        stage_obs_dims=STAGE_DIMS,
+        actor_hidden_dims=[16, 16],
+        critic_hidden_dims=[16],
+    )
+
+
+def test_wide_critic_routes_by_trailing_stage_columns():
+    # critic の観測は [特権 6, policy]。段の one-hot は末尾に残るので、critic も actor と同じ段の頭を選ぶ。
+    p = _wide_critic_policy()
+    x = _obs()
+    priv = torch.randn(STAGES.numel(), PRIV)
+    critic_in = torch.cat([priv, x], dim=-1)
+    assert p.critic.heads[0][0].in_features == OBS + PRIV
+    assert p.actor.heads[0][0].in_features == OBS
+    assert p.critic.stage_index(critic_in).tolist() == STAGES.clamp(max=2).tolist()
+    v = p.evaluate({"policy": x, "rope_params": priv})
+    for i, s in enumerate(STAGES.clamp(max=2).tolist()):
+        assert torch.allclose(v[i], p.critic.heads[s](critic_in[i]))
+
+
+def test_export_policy_reads_critic_width():
+    import importlib.util
+    import pathlib
+
+    path = pathlib.Path(__file__).resolve().parents[1] / "src/isaac_twisted_rl/scripts/rsl_rl/export_policy.py"
+    spec = importlib.util.spec_from_file_location("export_policy", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    for policy in (_policy(), _wide_critic_policy()):
+        state = policy.state_dict()
+        obs, groups = mod._obs_shapes(state)
+        rebuilt = StageGatedActorCritic(
+            obs,
+            groups,
+            ACT,
+            num_stages=3,
+            stage_obs_dims=STAGE_DIMS,
+            actor_hidden_dims=[16, 16],
+            critic_hidden_dims=[16],
+        )
+        rebuilt.load_state_dict(state)  # strict
+        x = _obs()
+        assert torch.allclose(rebuilt.act_inference({"policy": x}), policy.act_inference({"policy": x}))

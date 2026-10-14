@@ -152,7 +152,7 @@ class StateArchive:
 
 # ---------------------------------------------------------------- 保存する手の選び方 (v12 で追加)
 
-SAVE_RULES = ("every_move", "stage_up")
+SAVE_RULES = ("every_move", "stage_up", "stage_up_s0_reshape")
 """`rows_to_save` の `rule`。
 
 * `every_move` (v4〜v11): 床に落ちていて発散していない手の後の形を、すべて保存する。
@@ -163,10 +163,21 @@ SAVE_RULES = ("every_move", "stage_up")
   入るのは段 k より下の方策が作った形だけになり、自分の出力が自分の訓練に戻らない。
   段 0 には何も足さず (起動時に読む初期アーカイブのまま)、段 3 (固結び) は始めても学ぶことが
   無いので保存しない。
+* `stage_up_s0_reshape` (v14): `stage_up` の行に、段 0 で交差なしのまま形を変えた手 (`s0_reshape`) の後の
+  形を足す。`stage_up` では段 0 のアーカイブが起動時のまま (台本のほぼまっすぐな 128 形) で、段 0 の方策は
+  まっすぐに近い形からしか練習できない。段 0 の方策の出力が段 0 に戻るループは、呼び出し側が 1 エピソード
+  1 回までに絞って抑える (`docs/decisions/0027-v14-s0-reshape-dr-priv-critic.md`)。交差のある段 0 の形
+  (行き止まり) は入れない。v7 の段 0 の汚れはこの形だった。
 """
 
 
-def rows_to_save(ok: torch.Tensor, before: torch.Tensor, after: torch.Tensor, rule: str) -> torch.Tensor:
+def rows_to_save(
+    ok: torch.Tensor,
+    before: torch.Tensor,
+    after: torch.Tensor,
+    rule: str,
+    s0_reshape: torch.Tensor | None = None,
+) -> torch.Tensor:
     """保存する env の bool マスク `(N,)`。
 
     Args:
@@ -174,12 +185,41 @@ def rows_to_save(ok: torch.Tensor, before: torch.Tensor, after: torch.Tensor, ru
         before: 手の前の段 `(N,)`。
         after: 手の後の段 `(N,)`。保存する段はこの値 (v10 の段の定義の −1 は保存しない)。
         rule: `SAVE_RULES` のどれか。
+        s0_reshape: `stage_up_s0_reshape` のときだけ使う `(N,)` bool。段 0 で交差なしのまま形を変えた手か
+            (交差数・形の変化・1 エピソード 1 回の判定は呼び出し側。`mdp/archive.py` の `ResetToStage.record`)。
+            ここでは段 0 -> 0 の手に限るところだけを重ねて確かめる。
     """
     if rule == "every_move":
         return ok.clone()
+    stage_up = ok & (after > before) & (after >= 1) & (after <= 2)
     if rule == "stage_up":
-        return ok & (after > before) & (after >= 1) & (after <= 2)
+        return stage_up
+    if rule == "stage_up_s0_reshape":
+        if s0_reshape is None:
+            raise ValueError("rule 'stage_up_s0_reshape' には s0_reshape が要る")
+        return stage_up | (ok & s0_reshape & (before == 0) & (after == 0))
     raise ValueError(f"unknown save rule: {rule!r} (expected one of {SAVE_RULES})")
+
+
+def rigid_aligned_rms(before_xy: torch.Tensor, after_xy: torch.Tensor) -> torch.Tensor:
+    """2 次元の剛体の位置合わせ (並進と回転) をした後の、点ごとのずれの RMS `(N,)`。v14 で追加。
+
+    段 0 の手が「形を変えたか」を測る (`stage_up_s0_reshape`)。ロープ全体を引きずって動かす・回すだけの手は
+    形を変えていないので 0 に近くなる。回転は Kabsch の 2 次元の閉じた式 (重心を合わせた後、
+    `θ = atan2(Σ a×b, Σ a·b)`) で、鏡映は許さない (床の上のロープは裏返らない)。
+
+    Args:
+        before_xy: `(N, L, 2)` 手の前のリンクの xy。
+        after_xy: `(N, L, 2)` 手の後のリンクの xy。
+    """
+    a = before_xy - before_xy.mean(dim=1, keepdim=True)
+    b = after_xy - after_xy.mean(dim=1, keepdim=True)
+    dot = (a * b).sum(dim=(1, 2))
+    cross = (a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]).sum(dim=1)
+    theta = torch.atan2(cross, dot)
+    c, s = torch.cos(theta).unsqueeze(-1), torch.sin(theta).unsqueeze(-1)
+    rot = torch.stack([c * a[..., 0] - s * a[..., 1], s * a[..., 0] + c * a[..., 1]], dim=-1)
+    return ((rot - b) ** 2).sum(dim=-1).mean(dim=1).sqrt()
 
 
 # ---------------------------------------------------------------- 姿勢の変換 (quaternion は w, x, y, z)

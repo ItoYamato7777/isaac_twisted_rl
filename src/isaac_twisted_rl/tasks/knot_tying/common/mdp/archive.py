@@ -288,9 +288,16 @@ class ResetToStage(ManagerTermBase):
         self._sums = self._empty_sums()
         self._last_save_step = -1
         self._last_history_step = -1
+        # -- v14 (`save_on="stage_up_s0_reshape"`): 段 0 の手が形を変えたかを測るための、手の前のリンクの xy と、
+        # このエピソードで段 0 に保存したか。`record` がその規則で呼ばれるまでは控えない (v4〜v13 は何も変わらない)。
+        # 最初の手の前の xy は控えていない (NaN) ので、その手は形を変えたと数えない。
+        self._track_s0 = False
+        self._xy_at_move_start: torch.Tensor | None = None
+        self._s0_saved_ep = torch.zeros(n, dtype=torch.bool, device=env.device)
 
     def _empty_sums(self) -> dict[str, float]:
         keys = ["resets", "restored", "mismatch", "straight_n", "straight_up", "save_checked", "save_stage_mismatch"]
+        keys += ["s0_reshape_saved", "s0_flat_n", "s0_change_sum", "s0_change_over"]
         for s in self.stages:
             keys += [f"start_s{s}", f"episodes_s{s}", f"saved_s{s}"] + [f"{o}_s{s}" for o in self._outcomes]
         return {k: 0.0 for k in keys}
@@ -311,6 +318,26 @@ class ResetToStage(ManagerTermBase):
         if env_ids is None:
             env_ids = torch.arange(env.num_envs, device=env.device)
         env_ids = torch.as_tensor(env_ids, device=env.device, dtype=torch.long)
+        self._reset_to_stage(env, env_ids, stage_weights, straight_prob, random_yaw, outcome_terms, rope_cfg)
+        self._s0_saved_ep[env_ids] = False
+        if self._track_s0:
+            # 書き込んだ直後の xy (まっすぐな env は reset_all の後の xy)。関節を書き込んだ後に body_pos_w を読むと
+            # Isaac Lab が FK を回し直す (`restore_mismatch` の検算と同じ)。
+            body_index = get_extractor(env, rope_cfg.name).body_index
+            rope: Articulation = env.scene[rope_cfg.name]
+            self._xy_at_move_start[env_ids] = rope.data.body_pos_w[env_ids][:, body_index, :2]
+
+    def _reset_to_stage(
+        self,
+        env: ManagerBasedRLEnv,
+        env_ids: torch.Tensor,
+        stage_weights: tuple[float, ...],
+        straight_prob: float,
+        random_yaw: bool,
+        outcome_terms: dict[str, str] | None,
+        rope_cfg: SceneEntityCfg,
+    ) -> None:
+        """段を選び、アーカイブから引いた形を書き込む (`__call__` の本体。v4〜v13 の挙動)。"""
         self._count_finished_episodes(env, env_ids, outcome_terms or {})
         self._active[env_ids] = True
         self._sums["resets"] += float(env_ids.numel())
@@ -379,8 +406,14 @@ class ResetToStage(ManagerTermBase):
         save_on: str = "every_move",
         action_name: str = "pick_place",
         history_every: int = 0,
+        s0_min_change: float = 0.02,
     ) -> None:
-        """手の終わりの形状のうち、床に落ちていて発散していないもの (`save_on` で絞る) を段ごとに保存する。"""
+        """手の終わりの形状のうち、床に落ちていて発散していないもの (`save_on` で絞る) を段ごとに保存する。
+
+        `save_on="stage_up_s0_reshape"` (v14) の段 0 の形を変えた手は、次をすべて満たす手:
+        手の前後とも段 0・手の前後とも交差 0 個 (R2 除去の前)・形の変化 (`state_archive.rigid_aligned_rms`) が
+        `s0_min_change` [m] 以上・その env のこのエピソードでまだ段 0 に保存していない。
+        """
         extractor = get_extractor(env, rope_cfg.name)
         stage = stage_function(env).stage(extractor.batch, extractor.reduced_batch)
         ok = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
@@ -395,7 +428,18 @@ class ResetToStage(ManagerTermBase):
             # 検算: 手の後の段は、ここで引いた段と同じ抽出結果・同じ段の定義から来るので一致するはず。
             self._sums["save_checked"] += float(ok.sum())
             self._sums["save_stage_mismatch"] += float((ok & (tr["after"] != stage)).sum())
-            save = sa.rows_to_save(ok, tr["before"], stage, save_on)
+            s0_reshape = None
+            if save_on == "stage_up_s0_reshape":
+                s0_reshape, xy_now = self._s0_reshape(
+                    env, ok, tr["before"], stage, s0_min_change, action_name, rope_cfg
+                )
+            save = sa.rows_to_save(ok, tr["before"], stage, save_on, s0_reshape=s0_reshape)
+            if s0_reshape is not None:
+                saved_s0 = save & s0_reshape
+                self._s0_saved_ep |= saved_s0
+                self._sums["s0_reshape_saved"] += float(saved_s0.sum())
+                # 次の手の前の xy。終了した env は直後の reset (`__call__`) が書き込んだ後の xy で上書きする。
+                self._xy_at_move_start = xy_now
         rows = save.nonzero(as_tuple=False).squeeze(-1)
         if rows.numel() > 0:
             rope: Articulation = env.scene[rope_cfg.name]
@@ -417,6 +461,33 @@ class ResetToStage(ManagerTermBase):
             self.archive.save(os.path.join(hist_dir, f"archive_step{step}.pt"))
             self._last_history_step = step
 
+    def _s0_reshape(
+        self,
+        env: ManagerBasedRLEnv,
+        ok: torch.Tensor,
+        before: torch.Tensor,
+        after: torch.Tensor,
+        s0_min_change: float,
+        action_name: str,
+        rope_cfg: SceneEntityCfg,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """段 0 で交差なしのまま形を変えた、このエピソードでまだ保存していない手 `(N,)` と、今のリンクの xy。"""
+        self._track_s0 = True
+        extractor = get_extractor(env, rope_cfg.name)
+        rope: Articulation = env.scene[rope_cfg.name]
+        xy_now = rope.data.body_pos_w[:, extractor.body_index, :2].clone()
+        if self._xy_at_move_start is None:
+            self._xy_at_move_start = torch.full_like(xy_now, float("nan"))
+        change = sa.rigid_aligned_rms(self._xy_at_move_start, xy_now)
+        crossings_before = env.action_manager.get_term(action_name).crossings_at_action_start
+        flat = ok & (before == 0) & (after == 0) & (crossings_before == 0) & (extractor.count == 0)
+        flat &= torch.isfinite(change)
+        over = flat & (change >= s0_min_change)
+        self._sums["s0_flat_n"] += float(flat.sum())
+        self._sums["s0_change_sum"] += float(torch.where(flat, change, torch.zeros_like(change)).sum())
+        self._sums["s0_change_over"] += float(over.sum())
+        return over & ~self._s0_saved_ep, xy_now
+
     def pop_stats(self) -> dict[str, float]:
         """前回からの集計を返してリセットする。アーカイブの大きさは現在値。
 
@@ -426,6 +497,10 @@ class ResetToStage(ManagerTermBase):
         `saved_s{k}` は前回からアーカイブの段 k に保存した件数 (`episodes_s{k}` と同じく件数で、割合ではない)。
         `save_stage_mismatch` は `save_on` が `every_move` 以外のときの、`stage_transition` の手の後の段と
         保存した段の食い違いの割合 (0 のはず。`every_move` では数えないので 0)。
+
+        `save_on="stage_up_s0_reshape"` (v14) のときだけ次も出す: `s0_reshape_saved` (段 0 の形を変えた手として
+        保存した件数)、`s0_change_mean` (段 0 で交差なしのままだった手の形の変化の平均 [m])、`s0_change_frac`
+        (そのうち `s0_min_change` 以上だった割合。1 エピソード 1 回の制限の前)。
         """
         s = self._sums
         out = {
@@ -445,6 +520,10 @@ class ResetToStage(ManagerTermBase):
             out[f"saved_s{k}"] = s[f"saved_s{k}"]
             chain *= out[f"success_s{k}"]
         out["chain_est"] = chain
+        if self._track_s0:
+            out["s0_reshape_saved"] = s["s0_reshape_saved"]
+            out["s0_change_mean"] = s["s0_change_sum"] / max(s["s0_flat_n"], 1.0)
+            out["s0_change_frac"] = s["s0_change_over"] / max(s["s0_flat_n"], 1.0)
         for k, n in self.archive.sizes().items():
             out[f"arc_size_s{k}"] = float(n)
         self._sums = self._empty_sums()
@@ -497,6 +576,7 @@ def record_stage_archive(
     save_on: str = "every_move",
     action_name: str = "pick_place",
     history_every: int = 0,
+    s0_min_change: float = 0.02,
 ) -> torch.Tensor:
     """報酬項: 手の終わりの形状を段ごとのアーカイブへ入れ、`save_every` 手ごとにファイルへ書く。**常に 0**。
 
@@ -509,6 +589,9 @@ def record_stage_archive(
     `history_every` > 0 なら、その env ステップごとにアーカイブの写しを
     `{log_dir}/archive_history/archive_step{N}.pt` に残す (`save_name` は上書きなので中身の推移を追えない。
     学習の挙動は変えない)。Play は `log_dir` が学習の run のフォルダなので、0 にすること。
+
+    `s0_min_change` [m] は `save_on="stage_up_s0_reshape"` (v14) のときだけ使う、段 0 の手が形を変えたと見なす
+    変化の下限 (`ResetToStage.record`)。
 
     重みは 0 にしないこと (0 だと `RewardManager` が呼ばない)。`record_archive` (v3) と同じ流儀。
     """
@@ -523,6 +606,7 @@ def record_stage_archive(
         save_on=save_on,
         action_name=action_name,
         history_every=history_every,
+        s0_min_change=s0_min_change,
     )
     return torch.zeros(env.num_envs, device=env.device)
 

@@ -193,3 +193,92 @@ def test_every_move_does_not_alias_ok():
 def test_unknown_rule_raises():
     with pytest.raises(ValueError, match="save rule"):
         _rows([0], [1], "stage_change")
+
+
+# ---------------------------------------------------------------- v14: 段 0 の形を変えた手 (`stage_up_s0_reshape`)
+
+
+def _rows_s0(before, after, s0, ok=None):
+    b, a = torch.tensor(before), torch.tensor(after)
+    m = torch.ones_like(b, dtype=torch.bool) if ok is None else torch.tensor(ok)
+    return sa.rows_to_save(m, b, a, "stage_up_s0_reshape", s0_reshape=torch.tensor(s0)).tolist()
+
+
+def test_s0_reshape_adds_reshaped_0_to_0_moves_to_stage_up():
+    #         0->1  1->2  0->2  0->0  0->0  2->2  2->1  1->0  0->-1 2->2
+    before = [0, 1, 0, 0, 0, 2, 2, 1, 0, 2]
+    after = [1, 2, 2, 0, 0, 2, 1, 0, -1, 2]
+    s0 = [False, False, False, True, False, False, False, False, True, True]
+    want = [True, True, True, True, False, False, False, False, False, False]
+    assert _rows_s0(before, after, s0) == want
+
+
+def test_s0_reshape_requires_ok():
+    assert _rows_s0([0, 0, 0], [0, 1, 0], [True, False, True], ok=[False, False, True]) == [False, False, True]
+
+
+def test_s0_reshape_requires_mask():
+    with pytest.raises(ValueError, match="s0_reshape"):
+        sa.rows_to_save(torch.ones(1, dtype=torch.bool), torch.zeros(1), torch.zeros(1), "stage_up_s0_reshape")
+
+
+def test_old_rules_ignore_s0_mask():
+    # 既存の 2 つの規則は s0_reshape を渡しても今と同じ。
+    before, after = torch.tensor([0, 0, 1]), torch.tensor([0, 1, 1])
+    ok, s0 = torch.ones(3, dtype=torch.bool), torch.ones(3, dtype=torch.bool)
+    for rule in ("every_move", "stage_up"):
+        assert (
+            sa.rows_to_save(ok, before, after, rule, s0_reshape=s0).tolist()
+            == sa.rows_to_save(ok, before, after, rule).tolist()
+        )
+
+
+def _line(n: int = 28, spacing: float = 0.03) -> torch.Tensor:
+    x = torch.arange(n, dtype=torch.float32) * spacing
+    return torch.stack([x, torch.zeros_like(x)], dim=-1)
+
+
+def test_rigid_aligned_rms_is_zero_for_rigid_motion():
+    g = torch.Generator().manual_seed(0)
+    before = torch.randn(4, 28, 2, generator=g) * 0.1
+    th = torch.tensor([0.0, 0.7, -2.5, math.pi])
+    c, s = torch.cos(th)[:, None], torch.sin(th)[:, None]
+    after = torch.stack([c * before[..., 0] - s * before[..., 1], s * before[..., 0] + c * before[..., 1]], dim=-1)
+    after = after + torch.tensor([0.3, -1.2])
+    assert torch.allclose(sa.rigid_aligned_rms(before, after), torch.zeros(4), atol=1e-5)
+
+
+def test_rigid_aligned_rms_of_bent_line():
+    # 1 本の直線の真ん中のリンクだけを横に d 動かす: 位置合わせの後のずれは、動かさないときより大きく、d/sqrt(L) を超えない。
+    before = _line().unsqueeze(0)
+    d = 0.1
+    after = before.clone()
+    after[0, 14, 1] += d
+    rms = float(sa.rigid_aligned_rms(before, after))
+    assert 0.0 < rms <= d / math.sqrt(28) + 1e-6
+    # 回転の最適化を外した値 (並進だけ合わせる) と比べ、位置合わせが RMS を小さくしている。
+    shift = after - after.mean(dim=1, keepdim=True) - (before - before.mean(dim=1, keepdim=True))
+    assert rms <= float(shift.pow(2).sum(-1).mean().sqrt()) + 1e-7
+
+
+def test_rigid_aligned_rms_detects_folding():
+    # 直線を半分に折り返した形 (ロープの長さ 0.81 m 程度) は、変化が直径 (0.02 m) よりずっと大きい。
+    before = _line().unsqueeze(0)
+    after = before.clone()
+    after[0, 14:, 0] = before[0, 13, 0] - (before[0, 14:, 0] - before[0, 13, 0])
+    after[0, 14:, 1] = 0.05
+    assert float(sa.rigid_aligned_rms(before, after)) > 0.1
+
+
+def test_rigid_aligned_rms_does_not_allow_mirroring():
+    # 鏡映 (y を反転) は剛体の動きではない。非対称な形なら 0 にならない。
+    before = torch.tensor([[[0.0, 0.0], [1.0, 0.0], [1.0, 0.5], [0.2, 0.9]]])
+    after = before * torch.tensor([1.0, -1.0])
+    assert float(sa.rigid_aligned_rms(before, after)) > 0.05
+
+
+def test_rigid_aligned_rms_nan_propagates():
+    # 手の前の xy を控えていない (NaN) 手は、閾値の比較で偽になる (形を変えたと数えない)。
+    before = torch.full((1, 28, 2), float("nan"))
+    rms = sa.rigid_aligned_rms(before, _line().unsqueeze(0))
+    assert not bool(rms >= 0.02)

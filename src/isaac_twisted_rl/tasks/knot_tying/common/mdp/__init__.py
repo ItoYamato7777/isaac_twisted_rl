@@ -24,6 +24,7 @@ from .events import bind_grasp_material, check_rope_link_order  # noqa: F401
 from .observations import *  # noqa: F401, F403
 from .phases import GraspLimits, PhaseDurations  # noqa: F401
 from .rewards import *  # noqa: F401, F403
+from .rope_dr import RandomizeRopePhysics, rope_physics_params  # noqa: F401
 from .stages import (  # noqa: F401
     current_stage,
     knot_stage_one_hot,

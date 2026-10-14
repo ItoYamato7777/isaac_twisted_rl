@@ -47,6 +47,7 @@ uv run train --task Isaac-Twisted-RL-Knot-v6 --headless   # 学習 (手順は sk
 | `v11` | v7 | **v7 の段のまま、Φ の表に無く R2 除去後のラダーでも 0 の「行き止まりの形」だけを −1 にする** (−1 で終了・アーカイブに入らない)。生が表に無く R2 除去後が表にある形は R2 除去後の形の段。`next_edge`・初期アーカイブ・観測の形・報酬の値・物理・PPO・`stage_weights` は v7 のまま | 同上 | [versions/v11/README.md](versions/v11/README.md) |
 | `v12` | v7 | **到達状態アーカイブに「段が上がった手の後の形」だけを保存する** (`save_on = "stage_up"`。段 0 には学習中に何も足さない)。記録のためにアーカイブの写しを 50 iteration ごとに残す。段の定義・初期アーカイブ・観測・報酬・物理・PPO・`stage_weights` は v7 のまま | 同上 | [versions/v12/README.md](versions/v12/README.md) |
 | `v13` | v12 | **PPO の損失に、段ごとの方策の平均が行動の範囲 [−1, 1] の外へ出た分の罰則を足す** (`BoundedPPO`、`bounds_loss_coef` 0.01)。環境 (観測・報酬・終了・アーカイブの保存の規則・物理) と方策の構造は v12 のまま | 同上 | [versions/v13/README.md](versions/v13/README.md) |
+| `v14` | v13 | **3 つを足す (Hydra で個別に切れる)**: (1) 段 0 で交差なしのまま形を変えた手 (1 エピソード 1 回) の後の形も保存する (`save_on = "stage_up_s0_reshape"`)、(2) ロープの物理の DR (曲げ・捩り・減衰比・質量・ロープと指の摩擦を env ごとに ×0.5〜×2)、(3) critic に引いた物理の倍率を特権観測として渡す。actor の観測・報酬・終了・PPO は v13 のまま。Play は DR を切る | 同上 | [versions/v14/README.md](versions/v14/README.md) |
 
 各版の状態 (学習したか、結果、比べた相手) は `docs/STATUS.md` の「版の状態」にある。
 
@@ -63,7 +64,7 @@ Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-{v0,v1}          # 20 タ
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2[-RNN|-LSTM]   # 30 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2-R2[-RNN|-LSTM]   # 30 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v3[-RNN|-LSTM]   # 30 タスク
-Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-{v4,v5,v6,v7,v8,v9,v10,v11,v12,v13} # 各 10 タスク (MLP のみ)
+Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-{v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14} # 各 10 タスク (MLP のみ)
 Isaac-Twisted-RL-RS-<紐モデル>[-Play]-v4                                # rope study (rope_study/__init__.py)
 ```
 

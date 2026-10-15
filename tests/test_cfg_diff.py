@@ -100,3 +100,17 @@ def test_custom_ignore_prefixes():
     assert unexpected_diff(train, ev, train_default, play_default)["changed"] == {"sim.dt": (0.004, 0.002)}
     out = unexpected_diff(train, ev, train_default, play_default, ignore=("sim",))
     assert out["changed"] == {}
+
+
+def test_scene_namespace_token_matches_resolved_path():
+    """学習の env.yaml は環境を作った後に書かれ、prim_path の `{ENV_REGEX_NS}` が展開されている。"""
+    train, train_default, play_default = _cfgs()
+    train["scene"]["rope"]["prim_path"] = "/World/envs/env_.*/Rope"
+    train["io_descriptors_output_dir"] = "/logs/run"
+    ev = load_cfg_yaml(_TRAIN_YAML.replace("straight_prob: 0.1", "straight_prob: 1.0"))
+    ev["scene"]["rope"]["prim_path"] = "{ENV_REGEX_NS}/Rope"
+    ev["io_descriptors_output_dir"] = None
+    out = unexpected_diff(train, ev, train_default, play_default)
+    assert out == {"changed": {}, "only_in_train": [], "only_in_eval": []}
+    ev["scene"]["rope"]["prim_path"] = "{ENV_REGEX_NS}/Rope2"
+    assert list(unexpected_diff(train, ev, train_default, play_default)["changed"]) == ["scene.rope.prim_path"]

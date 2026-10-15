@@ -14,8 +14,12 @@ from typing import Any
 
 import yaml
 
-DEFAULT_IGNORE = ("seed", "log_dir", "scene.num_envs", "sim.device")
-"""学習と評価で必ず違い、物理を変えない項 (`eval_chain.py` と `train.py` がコマンドの引数から書く)。"""
+DEFAULT_IGNORE = ("seed", "log_dir", "io_descriptors_output_dir", "scene.num_envs", "sim.device")
+"""学習と評価で必ず違い、物理を変えない項 (`eval_chain.py` と `train.py` がコマンドの引数と run のフォルダから書く)。"""
+
+_PATH_TOKENS = {"{ENV_REGEX_NS}": "/World/envs/env_.*"}
+"""学習の env.yaml は環境を作った後に書かれ、scene の prim_path の名前空間の記号が展開されている
+(isaaclab の `InteractiveScene` が設定を書き換える)。評価の設定は環境を作る前に比べるので、記号を展開して揃える。"""
 
 
 class _CfgLoader(yaml.SafeLoader):
@@ -30,17 +34,24 @@ def load_cfg_yaml(text: str) -> dict:
     return yaml.load(text, Loader=_CfgLoader)  # noqa: S506 (SafeLoader に tuple だけを足したもの)
 
 
+def _normalize(v: Any) -> Any:
+    if isinstance(v, str):
+        for token, resolved in _PATH_TOKENS.items():
+            v = v.replace(token, resolved)
+    return v
+
+
 def flatten(d: Any, prefix: str = "") -> dict[str, Any]:
-    """入れ子の辞書を `a.b.c` のキーの平らな辞書にする。list と辞書でない値は葉。"""
+    """入れ子の辞書を `a.b.c` のキーの平らな辞書にする。list と辞書でない値は葉。文字列の名前空間の記号は展開する。"""
     if not isinstance(d, dict):
-        return {prefix: d}
+        return {prefix: _normalize(d)}
     out: dict[str, Any] = {}
     for k, v in d.items():
         key = f"{prefix}.{k}" if prefix else str(k)
         if isinstance(v, dict) and v:
             out.update(flatten(v, key))
         else:
-            out[key] = v
+            out[key] = _normalize(v)
     return out
 
 

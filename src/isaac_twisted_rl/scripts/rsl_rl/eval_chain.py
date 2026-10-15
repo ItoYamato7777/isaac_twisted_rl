@@ -161,6 +161,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     resume_path = retrieve_file_path(args_cli.checkpoint)
     env_cfg.log_dir = os.path.dirname(resume_path)
     started = _now()
+    git = _git_info()  # 起動の時点の作業ツリー (評価の途中の編集を拾わないため)
 
     param_check = _check_params(env_cfg, resume_path)
     found = {k: param_check[k] for k in ("changed", "only_in_train", "only_in_eval") if param_check.get(k)}
@@ -267,7 +268,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
         "num_envs": n,
         "steps": args_cli.steps,
         "device": str(dev),
-        **_git_info(),
+        **git,
         "started": started,
         "finished": _now(),
     }

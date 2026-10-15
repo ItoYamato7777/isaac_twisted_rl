@@ -22,7 +22,7 @@ uv run play  --task Isaac-Twisted-RL-Knot-Play-v14 --num_envs 16   # 公称の�
 |---|---|---|---|
 | アーカイブの保存の規則 (`record_stage_archive.params.save_on`) | `stage_up` | **`stage_up_s0_reshape`**: `stage_up` の行に、段 0 の形を変えた手の後の形を足す | `env.rewards.record_stage_archive.params.save_on=stage_up` |
 | 段 0 の形を変えた手の下限 (`s0_min_change`) | — | **0.02 m** (直径 1 本) | — |
-| ロープの物理 (`events.rope_dr`、`mdp.RandomizeRopePhysics`) | 公称のまま | **reset のたびに env ごとに 6 軸を ×0.5〜×2 (対数一様)** | `env.events.rope_dr.params.enabled=false` |
+| ロープの物理 (`events.rope_dr`、`mdp.RandomizeRopePhysics`) | 公称のまま | **reset のたびに env ごとに 6 軸を引く (対数一様。減衰比 ζ は ×1.0〜×2、ほかの 5 軸は ×0.5〜×2)** | `env.events.rope_dr.params.enabled=false` |
 | critic の観測 (`agent.obs_groups.critic`) | `[policy]` (197) | **`[rope_params, policy]`** (6 + 197 = 203) | `agent.obs_groups.critic=[policy]` |
 | Play | v13 | v13 + `rope_dr.params.enabled = False` (公称の物理) | DR を付けた評価は `env.events.rope_dr.params.enabled=true` |
 | それ以外 (actor の観測・報酬・終了・行動・PPO・方策の構造・初期アーカイブ) | | v13 のまま | |
@@ -55,7 +55,7 @@ uv run play  --task Isaac-Twisted-RL-Knot-Play-v14 --num_envs 16   # 公称の�
 
 ### critic の特権観測
 
-`rope_params` グループ (`mdp.rope_physics_params`) は、引いた倍率の log2 を範囲の中点と半幅で [−1, 1] に写した 6 次元。公称の物理 (DR を切ったとき) は 0。
+`rope_params` グループ (`mdp.rope_physics_params`) は、引いた倍率の log2 を範囲の中点と半幅で [−1, 1] に写した 6 次元。公称の物理 (DR を切ったとき) は、ζ 以外の 5 軸では 0、ζ では −1 (範囲の端)。
 `StageGatedActorCritic` は critic の観測でも最後の 4 列 (段の one-hot) で頭を選ぶので、特権観測は前に置く。critic の幅が変わるので、v12・v13 のチェックポイントからは再開できない。
 `eval_search.py` は状態を別の env に写すので、写し先の env の物理で V(s) を計算する (Play の既定では DR を切るので公称の物理)。
 

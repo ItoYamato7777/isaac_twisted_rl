@@ -63,6 +63,8 @@ def test_v14_events_add_only_rope_dr():
     )
     ranges = ast.literal_eval(_module_assign(tree, "DR_RANGES"))
     assert tuple(ranges) == dr.AXES
+    # 減衰比だけ下限を ×1.0 に上げた (ゲートで ζ の小さい側の発散が公称の 2.4 倍だったため)。
+    assert ranges.pop("damping_ratio") == (1.0, 2.0)
     assert all(v == (0.5, 2.0) for v in ranges.values())
     # v5〜v13 は events を差し替えない (v13 の events は v4 の EventCfg)。
     for ver in ("v5", "v6", "v7", "v12", "v13"):

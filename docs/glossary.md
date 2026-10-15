@@ -44,7 +44,7 @@
 | モデル | 多義。(1) **紐モデル** (`RopeModel`) (2) `common/rope_model/` = **剛体鎖のロープの資産と設定** (USD の生成と ArticulationCfg。rope study より前からある) (3) XPBD の `"model"` = **棒の種類** (`cosserat` / `mass_spring`) (4) `model_<it>.pt` = **チェックポイント** (5) 方策のネットワーク | (1) `RopeModel` (2) `common/rope_model/{rope_cfg,rope_specs,generate_rope_usd}.py` (3) `_xpbd(model=…)`、`bench_physics --model` (4) `model_<it>.pt` | 「モデル」単独では書かない。 |
 | 剛体鎖 | D6 関節でつないだカプセル剛体の鎖 (PhysX Articulation) のロープ。v0〜v9 のロープはすべてこれ。rope study の `Art` 系 | `articulation`、`common/rope_model/` | 「chain 評価」の chain とは無関係。 |
 | `LowMu` | **LowMu (実物の範囲の摩擦)**。ロープどうし・ロープと床 0.5、指 1.0 にした変種。既定 (2.0 / 2.0 / 4.0) が非現実的に高いので、「Low」は既定に対する相対 | `LOW_MU` (`kt/rope_study/models.py:38-40`)、剛体鎖は `RopeModel.rope_friction` / `ground_friction` / `finger_friction`、XPBD は `friction_ground` / `friction_self` / `friction_finger` | 剛体鎖と XPBD では効かせるパラメータが違う。初出では 3 つの値を書く。 |
-| 指の接触 (方式 1 / 2) | XPBD の指とロープの接触の解き方。方式 2 (今の既定) は挟む力の分だけ compliance で残りを剛にし、指の前後の面にも接触を持たせ、1 物理ステップで 2 cm より大きく動いた手を瞬間移動として扱う。方式 1 は全部の面が compliance で、挟む面と底面だけ | `XPBD_FINGER_V2` (`kt/rope_study/models.py:65-79`)、`finger_rigid_outside`・`finger_x_faces`・`finger_x_face_margin`・`hand_teleport_distance` | rope study の文書は方式を「v1 / v2」と書く (例 `docs/experiments/2026-10-02_rope_models.md:483` の「以下、XPBD の学習・評価はすべて v2」は方式 2 の意味で、MDP は v4)。MDP の版 vN と混同しない。 |
+| 指の接触 (方式 1 / 2) | XPBD の指とロープの接触の解き方。方式 2 (今の既定) は挟む力の分だけ compliance で残りを剛にし、指の前後の面にも接触を持たせ、1 物理ステップで 2 cm より大きく動いた手を瞬間移動として扱う。方式 1 は全部の面が compliance で、挟む面と底面だけ | `XPBD_FINGER_V2` (`kt/rope_study/models.py:65-79`)、`finger_rigid_outside`・`finger_x_faces`・`finger_x_face_margin`・`hand_teleport_distance` | rope study の文書は方式を「v1 / v2」と書く (例 `docs/experiments/2026-10-02_rope_models_detail.md:483` の「以下、XPBD の学習・評価はすべて v2」は方式 2 の意味で、MDP は v4)。MDP の版 vN と混同しない。 |
 | 物理試験の回 | rope study の `run_physics_suite.sh` を回した回。文書では「第 n 回」か日付で呼ぶ | `kt/rope_study/run_physics_suite.sh`、出力 `outputs/rope_study/logs_suite_v{2,3}_gpu*.txt` | rope study の文書は「物理試験 v2 / v3」と書く (`docs/history/rope_study_HANDOFF.md:82`、`:98`)。MDP の版ではない。 |
 
 ### 1.2 rope study の紐モデル (8 個)
@@ -205,8 +205,8 @@
 
 | 名前 | 過去の意味 | 今の意味 | どこに残るか |
 |---|---|---|---|
-| v7 | **旧 v7** = v6 + 時間切れの罰則 −0.2 (報酬項 `stage_time_out`: 段が変わらないまま 6 手で終わった手に罰)。1 本だけ学習し (`abl_toP_s42`)、効果が見えず削除した。コードはどのコミットにも残っていない | **v7** = v6 のロープのめり込み解消速度の上限を v4 の既定 (0.96 m/s) に戻した版 (`kt/versions/v7/`) | run `logs/rsl_rl/knot_tying_v6_ablation/2026-10-02_12-34-00_abl_toP_s42` (`params/agent.yaml` のログ名は `knot_tying_v7`)、`kt/versions/v7/README.md:68-72`、`docs/experiments/2026-10-01_v4-v6_overnight.md:226`、`:288` |
-| v1 / v2 (rope study) | XPBD の指の接触の方式 1 / 2 | MDP の版 v1 / v2 とは無関係 (§1.1) | `kt/rope_study/models.py:65-79` (`XPBD_FINGER_V2`)、`docs/experiments/2026-10-02_rope_models.md:483` |
+| v7 | **旧 v7** = v6 + 時間切れの罰則 −0.2 (報酬項 `stage_time_out`: 段が変わらないまま 6 手で終わった手に罰)。1 本だけ学習し (`abl_toP_s42`)、効果が見えず削除した。コードはどのコミットにも残っていない | **v7** = v6 のロープのめり込み解消速度の上限を v4 の既定 (0.96 m/s) に戻した版 (`kt/versions/v7/`) | run `logs/rsl_rl/knot_tying_v6_ablation/2026-10-02_12-34-00_abl_toP_s42` (`params/agent.yaml` のログ名は `knot_tying_v7`)、`kt/versions/v7/README.md:68-72`、`docs/experiments/2026-10-01_v4-v6_overnight_detail.md:226`、`:288` |
+| v1 / v2 (rope study) | XPBD の指の接触の方式 1 / 2 | MDP の版 v1 / v2 とは無関係 (§1.1) | `kt/rope_study/models.py:65-79` (`XPBD_FINGER_V2`)、`docs/experiments/2026-10-02_rope_models_detail.md:483` |
 | 物理試験 v2 / v3 | rope study の物理試験の回 | MDP の版とは無関係 (§1.1) | `docs/history/rope_study_HANDOFF.md:82`、`:98` |
 | 段 | v1〜v3 の文書では報酬ラダーの段 (= 位相クラス) | v4 以降の `BfsPotential.stage` だけ (§1.3) | `kt/versions/v1/README.md`、`kt/versions/v2/README.md`、`topology_class` の docstring |
 
@@ -221,9 +221,9 @@
 | `kt/rope_study/HANDOFF.md` | [`docs/history/rope_study_HANDOFF.md`](history/rope_study_HANDOFF.md) | `62b251b` |
 | `kt/versions/v1/diff_to_TwistedRL.md` | [`docs/history/v1_diff_to_TwistedRL.md`](history/v1_diff_to_TwistedRL.md) | `62b251b` |
 | `kt/versions/v3/HTML/*.html` | `docs/history/v3_html/` (`v3-implementation.html`、`v3-vs-papers.html`) | `62b251b` |
-| `kt/versions/v3/Result_report_v3.md` | [`docs/experiments/2026-09-28_v3_main.md`](experiments/2026-09-28_v3_main.md) | `62b251b` |
-| `kt/versions/v6/Result_Report_v6.md` | [`docs/experiments/2026-10-01_v4-v6_overnight.md`](experiments/2026-10-01_v4-v6_overnight.md) | `62b251b` |
-| `kt/rope_study/Report_rope_models.md` | [`docs/experiments/2026-10-02_rope_models.md`](experiments/2026-10-02_rope_models.md) | `62b251b` |
-| `paper/Report_Search.md` | [`docs/experiments/2026-10-03_inference_search.md`](experiments/2026-10-03_inference_search.md) | `62b251b` |
+| `kt/versions/v3/Result_report_v3.md` | [`docs/experiments/2026-09-28_v3_main_detail.md`](experiments/2026-09-28_v3_main_detail.md) | `62b251b` |
+| `kt/versions/v6/Result_Report_v6.md` | [`docs/experiments/2026-10-01_v4-v6_overnight_detail.md`](experiments/2026-10-01_v4-v6_overnight_detail.md) | `62b251b` |
+| `kt/rope_study/Report_rope_models.md` | [`docs/experiments/2026-10-02_rope_models_detail.md`](experiments/2026-10-02_rope_models_detail.md) | `62b251b` |
+| `paper/Report_Search.md` | [`docs/experiments/2026-10-03_inference_search_detail.md`](experiments/2026-10-03_inference_search_detail.md) | `62b251b` |
 
 `scripts/rsl_rl/eval_chain.py:8` が参照する `eval_compare.py` は、追跡しているファイルにも git の履歴 (`git log --all -- '*eval_compare*'`) にも無い。

@@ -3,6 +3,11 @@
 - 状態: 凍結
 - 読むべき状況: v4 以降が読む初期アーカイブ (`outputs/archive_seed/overhand_28links.pt`) の中身の件数を知りたいとき。v4 の配線 (段ごとのアーカイブ・切り分けの上書き・Play の chain モード・ONNX の出力) が動いたことの記録を見たいとき
 
+## 要約
+
+- 結論: 台本の途中の形を、段 0 / 1 / 2 の初期アーカイブ (128 / 264 / 130 形) にした。アーカイブの保存と読み戻し・切り分けの上書き・Play・ONNX の配線が動いた。
+- 有効か: 有効 (配線の確認)。シード・コマンド・run のフォルダは記録なし。
+
 > 転記元: `src/isaac_twisted_rl/tasks/knot_tying/versions/v4/README.md` の「初期アーカイブと smoke test (2026-09-28)」(`:312-336`、commit 62b251b の時点)。
 > 実装の注意 (ONNX の `__getitem__`・終了時の `TypeError`) は [v4 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v4/README.md) にも残っている。
 

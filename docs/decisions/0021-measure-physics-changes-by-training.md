@@ -18,7 +18,7 @@ v5 の発散対策で、計測と学習の結果が逆になった。
 |---|---|---|
 | 計測 (学習済みの v3 方策 `model_150.pt`、1024 環境 × 24 手) | 1 手あたりの発散 1.88% → 0.44%、固結びで終わったエピソード 41.9% → 49.1% (A を含む) | [`docs/experiments/2026-10-01_v5_divergence.md`](../experiments/2026-10-01_v5_divergence.md) §3 |
 | 計測 (ゲート 1 の台本の再生、256 環境 × 種 2 通り) | 固結び 53.1% → 59.0%、発散 8.2% → 1.4% (A を含む) | 同 §4 |
-| 学習 (seed 42、4096 環境、v4 との比較) | 段 2 -> 固結び (tuck) を学べず、chain 評価は v4 の 1/4 以下 (iteration 100 で v5 9.6%、v4 41.6%) | [`docs/experiments/2026-10-01_v4-v6_overnight.md`](../experiments/2026-10-01_v4-v6_overnight.md) §3.1 |
+| 学習 (seed 42、4096 環境、v4 との比較) | 段 2 -> 固結び (tuck) を学べず、chain 評価は v4 の 1/4 以下 (iteration 100 で v5 9.6%、v4 41.6%) | [`docs/experiments/2026-10-01_v4-v6_overnight_detail.md`](../experiments/2026-10-01_v4-v6_overnight_detail.md) §3.1 |
 | 切り分け (v6 に 1 つずつ v4 の値を戻す、seed 42、iteration 70) | 学習ログの段 2 を止めていたのはめり込み解消速度で、離す高さではなかった。0.4 m/s では学習前から段 0 の時間切れが多い (29%、0.96 m/s では 5%) | 同 追記 |
 | 切り分けの chain 評価 | 0.96 m/s に戻すと学習ログでは段 2 を学べたが、chain 評価の発散も v4 並み (17%) に戻り、固結び率は v6 と差が出なかった | 同 追記 |
 
@@ -53,5 +53,5 @@ v7 の確認の学習 (v7 のタスク ID での学習) はまだ無い ([`docs/
 
 - `kt/versions/v5/README.md:188-189` (commit 62b251b の時点。「学習の結果」の最後の項目)
 - `kt/versions/v5/README.md:182-187` (同。発散対策は効いたが段 2 を学べなかった)
-- `docs/experiments/2026-10-01_v4-v6_overnight.md:146-158`、`:221-288` (頭書きを足した後の行番号)
+- `docs/experiments/2026-10-01_v4-v6_overnight_detail.md:146-158`、`:221-288` (頭書きを足した後の行番号)
 - `kt/versions/v7/README.md:28-38` (同)

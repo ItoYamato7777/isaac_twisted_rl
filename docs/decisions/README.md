@@ -25,7 +25,7 @@
 | [0010](0010-stage-granularity-bfs.md) | 段の粒度: p-data グラフの BFS 距離で数える | cover 後を段 2 に数える。生の交差数も 4 クラスのラダーも粗い | `paper/Report_Paper.md` §5.4、§4.8.10 の 5、v3 README P1-3、v4 README |
 | [0011](0011-success-rate-without-search.md) | 成功率は探索なしで測り、探索込みの数字と分ける | 論文の成功率は 30〜60 分の探索込み | `paper/Report_Paper.md` §5.2 |
 | [0012](0012-version-is-config.md) | 「版 = 設定」であって「版 = コードのコピー」ではない | 版の差は配線と重みだけ。共有層の項は追加のみ。バグ修正は全版に効かせる | §6、`kt/README.md:154-173` (commit 62b251b) |
-| [0013](0013-rope-knot.md) | 学習のロープは `Knot` (剛体鎖 28 リンク・1.14 m) | 長さが決め手。rope study でも剛体鎖を推す (摩擦は未決)。仕様の表 | §4.8.10 の 1、`docs/experiments/2026-10-02_rope_models.md` §2.1・§10 |
+| [0013](0013-rope-knot.md) | 学習のロープは `Knot` (剛体鎖 28 リンク・1.14 m) | 長さが決め手。rope study でも剛体鎖を推す (摩擦は未決)。仕様の表 | §4.8.10 の 1、`docs/experiments/2026-10-02_rope_models_detail.md` §2.1・§10 |
 | [0014](0014-gate1-wiring-for-knot.md) | `Knot` で学習するための 3 点 | 置き先 ±0.30 L、1 手 3.16 s (carry 0.6 s)、運搬高さ 0.20 m 固定 | §4.8.9 の 1 つ目、§4.8.10 の 2・3・4・7 |
 | [0015](0015-shaping-verification-pitfall.md) | 整形報酬は計算の瞬間に捕まえて検証する | `env.step()` の後に読むと reset 後の値を見る | §4.8.8 |
 | [0020](0020-v4-solver-iterations-and-steps-per-iteration.md) | v4 以降はソルバの位置反復を 8、1 iteration を 4 手にする | (別の文書。番号 0020〜0029 は v4 の速度と v5 の教訓) | — |

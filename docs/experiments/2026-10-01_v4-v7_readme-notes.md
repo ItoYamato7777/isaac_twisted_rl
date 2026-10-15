@@ -3,6 +3,11 @@
 - 状態: 凍結
 - 読むべき状況: v4 / v5 / v6 の overnight と v6 の切り分け (= v7 の設定) の run のフォルダ名・最後のチェックポイント・評価 JSON を探すとき。結果の数値の正本は [`2026-10-01_v4-v6_overnight.md`](2026-10-01_v4-v6_overnight.md) で、ここにはそこに無いものだけを置く
 
+## 要約
+
+- 結論: v4〜v6 の overnight の比較と v6 の切り分けの、run のフォルダ名・最後のチェックポイント・評価 JSON の一覧 (再現の索引)。結論は [overnight の記録](2026-10-01_v4-v6_overnight.md) のとおり。
+- 有効か: 有効 (索引)。3 時間の run と一部の run の学習のコマンドは記録なし。
+
 > 転記元 (commit 62b251b の時点): `src/isaac_twisted_rl/tasks/knot_tying/versions/v4/README.md` の「学習の結果」(`:290-310`)、`v5/README.md` の「学習の結果」(`:168-189`)、`v6/README.md` の「学習の結果」「v6 の切り分け」(`:147-183`)、`v7/README.md` の「なぜ作ったか」の表 (`:17-38`) と「結果」(`:67-75`)。
 > これらの節の数値・条件は、下に転記したものを除いて [`2026-10-01_v4-v6_overnight.md`](2026-10-01_v4-v6_overnight.md) にあることを確かめてから、版の README からはリンクに置き換えた。
 
@@ -12,7 +17,7 @@
 
 ## 条件
 
-共通の条件は [`2026-10-01_v4-v6_overnight.md`](2026-10-01_v4-v6_overnight.md) の §1 と追記の「条件」(4096 環境、GPU 1 枚に 2 本、10 iteration ごとに保存、chain 評価は 512 エピソード・seed 7・決定論的方策)。
+共通の条件は [`2026-10-01_v4-v6_overnight_detail.md`](2026-10-01_v4-v6_overnight_detail.md) の §1 と追記の「条件」(4096 環境、GPU 1 枚に 2 本、10 iteration ごとに保存、chain 評価は 512 エピソード・seed 7・決定論的方策)。
 
 ### run のフォルダ (ls で確認)
 

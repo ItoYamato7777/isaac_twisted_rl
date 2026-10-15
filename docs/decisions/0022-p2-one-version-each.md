@@ -34,7 +34,7 @@
 - v4 以降は段が変わると必ずエピソードが終わる ([0008](0008-transition-reward-and-termination.md))。「新しい位相に着いた」手の新しさは、
   次のエピソードの初期状態の新しさとして数えられ、新しい位相に着いたことには払われない。
 - 観測 (197 次元) の新しさは、物理の非決定性 (同じ状態・同じ手で手の後の段が約 3 割変わる。
-  [`docs/experiments/2026-10-03_inference_search.md`](../experiments/2026-10-03_inference_search.md) §3.1) で水増しされる。位相のキーは離散なので数えられる。
+  [`docs/experiments/2026-10-03_inference_search_detail.md`](../experiments/2026-10-03_inference_search_detail.md) §3.1) で水増しされる。位相のキーは離散なので数えられる。
 
 ### 初期形状のランダム化を後にする理由
 

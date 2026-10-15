@@ -582,7 +582,7 @@ def _key_names() -> dict[int, str]:
 def run_shapes(env, unwrapped, policy: Policy, settle: tuple[float, float]) -> dict:
     """段のアーカイブの形ごとに、同じ初期状態から同じ方策で R 回試し、固結びの割合を形ごとに出す。
 
-    推論時探索の記録 (`docs/experiments/2026-10-03_inference_search.md` §3.1) では、同じ状態・同じ手でも手の後の
+    推論時探索の記録 (`docs/experiments/2026-10-03_inference_search_detail.md` §3.1) では、同じ状態・同じ手でも手の後の
     段が約 3 割変わった。段 2 -> 固結びの失敗が「形 (初期状態) で決まる」のか「試行ごとのばらつき」なのかを
     分けるため、形ごとの成功率の分布を見る (0 か 1 に分かれれば形、平均の付近に集まればばらつき)。
 

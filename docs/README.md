@@ -2,7 +2,7 @@
 
 - 状態: 現行
 - 読むべき状況: どの文書を読めばよいかを決めるとき。新しい文書を置く場所を決めるとき
-- 最終更新: 2026-10-04
+- 最終更新: 2026-10-15
 
 ## 読む順番
 
@@ -17,7 +17,7 @@
 | 情報の種類 | 置き場所 |
 |---|---|
 | 現在地・次の作業・保留 | [`STATUS.md`](STATUS.md) (上書きで更新。skill `handoff`) |
-| 実験の結果と、再現のメタデータ | [`experiments/`](experiments/README.md) (1 実験 1 ファイル。書いたら凍結。skill `experiment-record`) |
+| 実験の結果と、再現のメタデータ | [`experiments/`](experiments/README.md) (1 実験 1 ファイル。書いたら凍結 (冒頭の「要約」の「有効か」だけは更新してよい)。skill `experiment-record`) |
 | 版をまたぐ設計の判断と理由 | [`decisions/`](decisions/README.md) (1 判断 1 ファイル) |
 | 横断的な仕様 (評価・ログ) | [`system/`](system/) |
 | 1 つのパッケージ・版に閉じた仕様と理由 | コードの隣 (パッケージの README・docstring) |
@@ -46,7 +46,9 @@
 
 ### 実験記録
 
-一覧と要点は [`experiments/README.md`](experiments/README.md)。打ち切り中の 2 つの研究の報告書もここにある
+一覧と、全記録に効く注意 (摩擦・時間切れの bootstrap の不具合) は [`experiments/README.md`](experiments/README.md)。
+各記録は冒頭の「要約」(結論・今も有効か) から読む。大きい記録は要約 (`<名前>.md`) と全文 (`<名前>_detail.md`) に分けてある。
+打ち切り中の 2 つの研究の報告書もここにある
 ([`2026-10-02_rope_models.md`](experiments/2026-10-02_rope_models.md)、[`2026-10-03_inference_search.md`](experiments/2026-10-03_inference_search.md))。
 
 ### 論文と提案 (`paper/`)

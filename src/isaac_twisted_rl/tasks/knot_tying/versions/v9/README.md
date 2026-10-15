@@ -24,7 +24,7 @@ v9 の差が読めなくなるので、v7 から派生させる。
 
 v6 の切り分け (2026-10-02、seed 42、iteration 70) で、同じ `stage_weights=[1.0,1.0,2.0]` を Hydra の上書きで試した run
 `knot_tying_v6_ablation/2026-10-02_12-34-26_abl_sw2_s42` がある。学習ログの段 2 の成功は 0.04 のまま、chain 評価は 20.7% で、
-改善は見えなかった ([`docs/experiments/2026-10-01_v4-v6_overnight.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight.md) の追記)。
+改善は見えなかった ([`docs/experiments/2026-10-01_v4-v6_overnight_detail.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight_detail.md) の追記)。
 ただし v6 では、めり込み解消速度の上限 0.4 m/s が段 2 の学習を止めていた (v7 を作った理由。v6 は段 2 の時間切れ 0.3 前後の局所解)。
 v7 の物理 (0.96 m/s) では段 2 の成功が伸びるので、学習量を増やす効果は v6 とは別に測る必要がある。
 

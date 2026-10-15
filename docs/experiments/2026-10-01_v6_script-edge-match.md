@@ -3,6 +3,11 @@
 - 状態: 凍結
 - 読むべき状況: v6 以降の観測 `next_edge` の辺の候補 (最短の単純な辺と複合の辺「端の置き直し」) と、既定の選び方 `long_end` の根拠の数値を確かめるとき
 
+## 要約
+
+- 結論: 台本の遷移は最短の辺でほぼ表せる。台本との一致率で、辺の選び方 `long_end` (93.4%) を既定にした。
+- 有効か: 有効。学習の中での選び方の比較は無い。
+
 > 転記元: `src/isaac_twisted_rl/tasks/knot_tying/versions/v6/README.md` の「台本との照合」(`:76-125`、commit 62b251b の時点)。
 > 日付は v6 の辺の列挙とリンクマスクを入れたコミット `cd92d06` / `09ec904` (2026-10-01) の日。照合を行った日は記録なし。
 > `long_end` を既定にした理由の段落は [v6 README](../../src/isaac_twisted_rl/tasks/knot_tying/versions/v6/README.md) にも残っている。

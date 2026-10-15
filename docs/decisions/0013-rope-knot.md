@@ -11,7 +11,7 @@
 
 ### `Knot` の仕様
 
-`docs/experiments/2026-10-02_rope_models.md` §2.1 の表 (本報告では `Art28` と呼ぶ)。
+`docs/experiments/2026-10-02_rope_models_detail.md` §2.1 の表 (本報告では `Art28` と呼ぶ)。
 
 | 項目 | 値 | 出どころ |
 |---|---|---|
@@ -88,4 +88,4 @@
 
 - `docs/history/next_action.md:516-519` (旧 §4.8.10 の「分かったこと」1)
 - `kt/common/rope_model/rope_specs.py:464-499` (`KNOT_NUM_LINKS` の docstring)
-- `docs/experiments/2026-10-02_rope_models.md:56-73` (§2.1)、`:170-180` (§5.1 設計の方針)、`:722-753` (§10)
+- `docs/experiments/2026-10-02_rope_models_detail.md:56-73` (§2.1)、`:170-180` (§5.1 設計の方針)、`:722-753` (§10)

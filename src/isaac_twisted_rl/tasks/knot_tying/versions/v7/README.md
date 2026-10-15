@@ -15,7 +15,7 @@ v4 / v5 / v6 の比較 ([`docs/experiments/2026-10-01_v4-v6_overnight.md`](../..
 直接の対策 2 つ (時間切れの罰則、段 2 から始める割合を上げる) も試した。
 
 v6 に 1 つずつ入れた (seed 42、4096 環境、GPU 1 枚に 2 本)。学習ログの iteration 34〜43 の平均の表 (段ごとの成功・段 2 の
-時間切れ・発散・`chain_est`) と chain 評価 (iteration 70) は [`docs/experiments/2026-10-01_v4-v6_overnight.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight.md) の末尾の追記にある (数値の正本)。
+時間切れ・発散・`chain_est`) と chain 評価 (iteration 70) は [`docs/experiments/2026-10-01_v4-v6_overnight_detail.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight_detail.md) の末尾の追記にある (数値の正本)。
 下の (b) は、その追記の「めり込み解消速度を v4 の既定 (0.96 m/s) に戻す」run (`abl_depB_s42`、= v7 の設定)。
 
 * **段 2 の学習を止めていたのは、めり込み解消速度の上限 0.4 m/s だった。** 戻すと段 2 の成功率も
@@ -28,7 +28,7 @@ v6 に 1 つずつ入れた (seed 42、4096 環境、GPU 1 枚に 2 本)。学�
 **ただし本番の指標 (chain 評価、iteration 70) では確かめられなかった。** (b) は 31.2% で、v6 の 2 シード
 (35.2% / 16.0%) の間、v4 (29.7%) と同程度。(b) は 18 手のあいだの発散を v4 と同じ 17% に戻すので、段 2 を
 学びやすくなった分と相殺している (発散しなかったエピソードに限ると (b)・v4・v6 s42 とも 36〜38%)。
-v7 のタスク ID での確認の学習 (2 シード、iteration 100) の結果は下の「結果」。詳しくは [`docs/experiments/2026-10-01_v4-v6_overnight.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight.md) の追記。
+v7 のタスク ID での確認の学習 (2 シード、iteration 100) の結果は下の「結果」。詳しくは [`docs/experiments/2026-10-01_v4-v6_overnight_detail.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight_detail.md) の追記。
 
 ## v6 から何を・なぜ変えたか
 
@@ -53,7 +53,7 @@ v7 のタスク ID での確認の学習 (2 シード、iteration 100) の結果
 v6 と同じ (`../v6/README.md` の「見るべき指標」)。特に:
 
 * Play (chain モード) での固結び到達率 (`scripts/rsl_rl/eval_chain.py`)。版の比較はこれで行う
-  (学習ログの `chain_est` は本番の成功率とずれる。[`docs/experiments/2026-10-01_v4-v6_overnight.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight.md) §4.5)。
+  (学習ログの `chain_est` は本番の成功率とずれる。[`docs/experiments/2026-10-01_v4-v6_overnight_detail.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight_detail.md) §4.5)。
 * `Curriculum/stage_log/success_s2` と `timeout_s2`: 段 2 の学習が v4 並みに進み、時間切れが増えないこと。
 * `Curriculum/stage_log/timeout_s0`: 学習の最初から v4 並み (約 5%) であること。
 
@@ -64,7 +64,7 @@ v7 のタスク ID での確認の学習 (seed 43 / 44、iteration 100) と chai
 v4 を上回り、iteration 70 では差がシード差に埋もれる。v6 とはシードと GPU の配置が揃っていない (同記録の「未確認」)。
 
 v7 seed 42 に当たる run は v6 の切り分けの `logs/rsl_rl/knot_tying_v6_ablation/2026-10-02_12-33-35_abl_depB_s42`
-(v6 + Hydra の上書き、iteration 70 まで)。その chain 評価は [`docs/experiments/2026-10-01_v4-v6_overnight.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight.md) の追記。
+(v6 + Hydra の上書き、iteration 70 まで)。その chain 評価は [`docs/experiments/2026-10-01_v4-v6_overnight_detail.md`](../../../../../../docs/experiments/2026-10-01_v4-v6_overnight_detail.md) の追記。
 
 ### 時間切れの罰則 (試して外したもの)
 

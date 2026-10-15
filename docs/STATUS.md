@@ -6,9 +6,9 @@
 
 ## 要点
 
-- **v14 seed 43 を GPU 1 で学習中** (2026-10-15 15:07 起動、約 17 時間)。DR の減衰比 ζ の下限は ×1.0 に決めた (ユーザー、commit `d8dc8f7`)。seed 44 は GPU 0 の v13 s43 が終わったら起動する。
+- **v14 seed 43 を GPU 1、seed 44 を GPU 0 で学習中** (s43: 2026-10-15 15:07 起動、s44: 16:07 起動。どちらも約 17 時間)。DR の減衰比 ζ の下限は ×1.0 に決めた (ユーザー、commit `d8dc8f7`)。
 - v14 の結果が出るまで v15 の実装は後回し (ユーザーの判断、2026-10-15)。その間は GPU を使わない調べもの。決定 [0028](decisions/0028-v15-rope-size-dr.md) は決まった (長さ ×0.8/1.0/1.25 × 直径 ×0.4/0.63/1.0 の 3 × 3、実機は直径 8 mm)。
-- v13 は s44 が完走 (model_300.pt)、s43 は学習中 (GPU 0)。v13 s44 の chain 評価をいま回せる。
+- v13 は 2 本とも完走 (model_300.pt)。chain 評価 (it70〜300) は別のセッションが 2026-10-15 16:05 に起動した (GPU 0、`eval_v13_s43_it70-300`・`eval_v13_s44_it70-300`)。
 
 ## 版の状態
 
@@ -30,31 +30,31 @@
 | v10 | chain 評価 済み (seed 43・44、iteration 70 / 90 / 100、GPU 1 枚に 1 本)。v7 を大きく下回った | [2026-10-06_v10_path-stages](experiments/2026-10-06_v10_path-stages.md)、[0023](decisions/0023-v10-path-stages.md) |
 | v11 | chain 評価 済み (seed 43・44、iteration 70〜300、GPU 1 枚に 1 本)。iteration 300 で v7 を上回らなかった。s44 が段 0 で崩れた。s43 は iteration 1000 まで延ばした (chain 評価は it1000 だけ。値は [張り付きの調査](experiments/2026-10-14_action-saturation.md)) | [2026-10-07_v11_dead-end-stages](experiments/2026-10-07_v11_dead-end-stages.md)、[2026-10-09_v11_stage2-archive-loop](experiments/2026-10-09_v11_stage2-archive-loop.md)、[0024](decisions/0024-v11-dead-end-stages.md) |
 | v12 | chain 評価 済み (seed 43・44、iteration 70〜300、GPU 1 枚に 1 本)。s43 は it100 と it300 がほぼ同じ、s44 は it70 の後に崩れた。段 2 のアーカイブは Φ の表にある 1 つの形に 3〜4 割寄った (0025 の予想 1 は外れ) | [2026-10-13_v12_archive-stage-up](experiments/2026-10-13_v12_archive-stage-up.md)、[0025](decisions/0025-archive-save-on-stage-up.md) |
-| v13 | 学習 (seed 43・44、0 -> iteration 300、GPU 1 枚に 1 本、2026-10-14 21:40 起動)。**s44 は完走 (2026-10-15 14:53、model_300.pt)、s43 は学習中**。chain 評価は未実施 | [0026](decisions/0026-v13-action-bounds-loss.md)、[versions/v13](../src/isaac_twisted_rl/tasks/knot_tying/versions/v13/README.md) |
-| v14 | 実装・ゲート・スモークテスト済み (2026-10-14)。**seed 43 を学習中 (2026-10-15 15:07 起動)**、seed 44 は未起動。DR の ζ の範囲は ×1.0〜×2 (他の 5 軸は ×0.5〜×2) | [0027](decisions/0027-v14-s0-reshape-dr-priv-critic.md)、[ゲート](experiments/2026-10-14_v14_physics-gate.md)、[versions/v14](../src/isaac_twisted_rl/tasks/knot_tying/versions/v14/README.md) |
+| v13 | 学習 (seed 43・44、0 -> iteration 300、GPU 1 枚に 1 本、2026-10-14 21:40 起動)。**2 本とも完走 (s44: 2026-10-15 14:53、s43: 16:01、model_300.pt)**。chain 評価は別のセッションが起動した (it70〜300、GPU 0) | [0026](decisions/0026-v13-action-bounds-loss.md)、[versions/v13](../src/isaac_twisted_rl/tasks/knot_tying/versions/v13/README.md) |
+| v14 | 実装・ゲート・スモークテスト済み (2026-10-14)。**seed 43 (GPU 1、2026-10-15 15:07 起動)・seed 44 (GPU 0、16:07 起動) を学習中**。DR の ζ の範囲は ×1.0〜×2 (他の 5 軸は ×0.5〜×2) | [0027](decisions/0027-v14-s0-reshape-dr-priv-critic.md)、[ゲート](experiments/2026-10-14_v14_physics-gate.md)、[versions/v14](../src/isaac_twisted_rl/tasks/knot_tying/versions/v14/README.md) |
 | v15 | 未着手 (v14 + ロープの直径・長さの DR)。決定 [0028](decisions/0028-v15-rope-size-dr.md) は決定済み。v14 の結果を見てから実装する | 「次の作業」4 |
 
 ## 走っているジョブ
 
 | ジョブ | GPU | pid | job のフォルダ | run のフォルダ | 起動 |
 |---|---|---|---|---|---|
-| v13 s43 (0 -> it300) | 0 | 3065134 (親 `run_job.sh` は 3065125) | `outputs/jobs/2026-10-14_21-40-08_v13_s43` | `logs/rsl_rl/knot_tying_v13/2026-10-14_21-40-13_v13_s43` | 2026-10-14 21:40 |
 | v14 s43 (0 -> it300) | 1 | 262619 (`run_job.sh` の timeout 30h) | `outputs/jobs/2026-10-15_15-07-05_v14_s43` | `logs/rsl_rl/knot_tying_v14/2026-10-15_15-07-10_v14_s43` | 2026-10-15 15:07 |
+| v14 s44 (0 -> it300) | 0 | 344651 (`run_job.sh` の timeout 30h) | `outputs/jobs/2026-10-15_16-07-16_v14_s44` | `logs/rsl_rl/knot_tying_v14/` の `*_v14_s44` | 2026-10-15 16:07 |
 
-- v13 s43 の終わりの見込み: 2026-10-15 15:30〜16:00 (300 iteration は約 17〜18 時間。s44 は 17 時間余りで終わった)。完走の確認は `exit.txt` に `signal:` の行が無いことと `model_300.pt`。
+- v13 s43 は完走した (`outputs/jobs/2026-10-14_21-40-08_v13_s43/exit.txt` は `exit: 0`、`signal:` の行なし、`model_300.pt` あり、2026-10-15 16:01)。
 - v13 s44 (pid 3065345) は完走した。`outputs/jobs/2026-10-14_21-40-10_v13_s44/exit.txt` は `exit: 0`、`signal:` の行なし、`logs/rsl_rl/knot_tying_v13/2026-10-14_21-40-15_v13_s44/model_300.pt` がある。job.log の終わりに Kit の終了処理の `post_quit()` の TypeError が出ているが、学習の後の終了の処理でのもの。
-- v14 s43 の終わりの見込み: 2026-10-16 08:00〜09:00 (約 17 時間)。起動のコマンドは v13 と同じで、`--task Isaac-Twisted-RL-Knot-v14 --device cuda:1 --seed 43`・`agent.device=cuda:1`・`--run_name v14_s43`。commit `d8dc8f7`、Hydra の上書きは `agent.*` だけ (評価には何も付けない)。スモークテストは省いた (前日の v14 のスモークテストの後に変えたのは `DR_RANGES` の ζ の数値だけ。単体テストは通した)。
+- v14 の終わりの見込み: s43 は 2026-10-16 08:00〜09:00、s44 は 09:00〜10:00 (約 17 時間。GPU 0 は評価のジョブと共有するので s44 は遅れうる)。起動のコマンドは v13 と同じで、`--task Isaac-Twisted-RL-Knot-v14 --device cuda:1 --seed 43`・`agent.device=cuda:1`・`--run_name v14_s43`。commit `d8dc8f7`、Hydra の上書きは `agent.*` だけ (評価には何も付けない)。スモークテストは省いた (前日の v14 のスモークテストの後に変えたのは `DR_RANGES` の ζ の数値だけ。単体テストは通した)。
 - コマンド (v13): `run_job.sh --name v13_sS --timeout 30h --detach -- uv run train --task Isaac-Twisted-RL-Knot-v13 --headless --device cuda:N --seed S --max_iterations 301 --run_name v13_sS agent.device=cuda:N agent.save_interval=10` (Hydra の上書きは `agent.*` だけ。評価には何も付けない)。commit `a709b49`、`bounds_loss_coef` 0.01 (ユーザーが確かめた)。
-- **他のジョブ (自分が起動していない。触らない)**: pid 248486 (GPU 0、`dump_real_deploy_check.py`、v11 s43 の it100 の観測を書き出す、`outputs/jobs/2026-10-15_14-57-20_dump_v11_s43_it100`)。別のセッションの実機移植の検算 (`~/work/hiro_knot`) の作業。そのスクリプト `src/isaac_twisted_rl/scripts/rsl_rl/dump_real_deploy_check.py` は**未追跡**で、この STATUS の作業とは別。コミットするかは、そのセッションの持ち主に任せる。
+- **他のジョブ (自分が起動していない。触らない)**: pid 341120 / 341424 (GPU 0、`eval_chain.py` で v13 s43・s44 の chain 評価 it70〜300、`outputs/jobs/2026-10-15_16-05-07_eval_v13_s43_it70-300`・`..._16-05-12_eval_v13_s44_it70-300`。別のセッションが起動)。結果は各 run のフォルダの `eval_chain_it*.json`。`dump_real_deploy_check.py` は別セッションが commit した (`ecc6254`)。
 - GPU 0・1 は他のユーザー (ohtsukatakeshi) とも共有している。他の人のジョブがあれば触らない。
 
 ## 次の作業
 
 ### v14 の学習と評価 (仕様は [0027](decisions/0027-v14-s0-reshape-dr-priv-critic.md)、ゲートは [2026-10-14_v14_physics-gate](experiments/2026-10-14_v14_physics-gate.md))
 
-1. **v14 seed 44 を起動する。** GPU 0 の v13 s43 が終わったら (見込み 15:30〜16:00)、同じコマンドで `--seed 44 --device cuda:0 agent.device=cuda:0 --run_name v14_s44`。先に `nvidia-smi` で空きを見る (`dump_real_deploy_check.py` のジョブ pid 248486 が GPU 0 にいることがある。触らない)。v14 s43 の最初の数 iteration のログ (`Loss/bounds`・DR の読み戻しの `[INFO] RandomizeRopePhysics` の範囲の表示・`arc_size_s0` の増加) が正常かも確かめる。
+1. **v14 の学習の経過を確かめる**: 最初の数 iteration のログ (`Loss/bounds`・`arc_size_s0` の増加・`timeout_s0`・`diverged_s0`) が正常か。s43 / s44 とも `exit.txt` に `signal:` の行が無いことと `model_300.pt` で完走を確かめる。GPU 0 は評価のジョブと共有している。
 2. v14 の chain 評価 (公称の物理、Play の既定) を it70 / 100 / 150 / 200 / 250 / 300 で v13 と並べる。DR を付けた評価 (`env.events.rope_dr.params.enabled=true`) を v14 と v13 に。0027 の予想 (段 0 のアーカイブに交差の無い形が溜まり `timeout_s0` が 0.1 を超えない・公称で v13 を 5 ポイント以上下回らない・DR を付けた評価の下がり幅が v13 より小さい) を確かめる。悪いときだけ切り分けの run (DR を切る・特権観測を切る・段 0 の保存を `stage_up` に戻す)。
-3. v13 s44 の chain 評価をいま回せる (GPU 空きがあれば)。seed 7、512 環境、Hydra の上書きなし、it70 / 100 / 150 / 200 / 250 / 300。v12 の同じ seed と並べる。s43 は完走を待って同じ条件で。`action_saturation.py --obs outputs/diag_stage_moves/obs/*.pt --run v13_sS=<run>` で張り付きを数える。0026 の予想 (段 0 の置き方のチャネルの張り付きが 20% を超えない、chain 評価が it70〜100 の後に下がらない、s44 の `timeout_s0` が 0.1 を超えない) を確かめる ([0026](decisions/0026-v13-action-bounds-loss.md))。GPU を使うので、起動の前に `nvidia-smi` とユーザーの了承。
+3. v13 の chain 評価 (別のセッションが起動した、it70〜300) の結果を読む。`eval_chain_it*.json` が揃ったら、v12 の同じ seed と並べる。足りなければ s43・s44 を同じ条件 (seed 7、512 環境、Hydra の上書きなし) で。`action_saturation.py --obs outputs/diag_stage_moves/obs/*.pt --run v13_sS=<run>` で張り付きを数える。0026 の予想 (段 0 の置き方のチャネルの張り付きが 20% を超えない、chain 評価が it70〜100 の後に下がらない、s44 の `timeout_s0` が 0.1 を超えない) を確かめる ([0026](decisions/0026-v13-action-bounds-loss.md))。
 
 ### v15 (v14 + ロープの直径・長さの DR。v14 の結果を見てから。ユーザーの判断、2026-10-15)
 
@@ -63,7 +63,7 @@
 
 ### v7・v11 の比べる相手
 
-6. v7 s44 を iteration 300 まで延ばす (比べる相手を 2 シードにする)。`uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:N --seed 44 --resume --load_run 2026-10-04_22-37-47_v7_s44 --checkpoint model_100.pt --max_iterations 201 --run_name v7_s44_to300 agent.device=cuda:N agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[/home/itoyama/work/isaac_twisted_rl/logs/rsl_rl/knot_tying_v7/2026-10-04_22-37-47_v7_s44/archive.pt]` (`run_job.sh --timeout 20h --detach`)。順番はユーザーが決めた: v13 の 2 本が終わってから起動する。ただし GPU 0 は v14 s44 (上の 1) と取り合うので、どちらを先にするかをユーザーに確かめる。
+6. v7 s44 を iteration 300 まで延ばす (比べる相手を 2 シードにする)。`uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:N --seed 44 --resume --load_run 2026-10-04_22-37-47_v7_s44 --checkpoint model_100.pt --max_iterations 201 --run_name v7_s44_to300 agent.device=cuda:N agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[/home/itoyama/work/isaac_twisted_rl/logs/rsl_rl/knot_tying_v7/2026-10-04_22-37-47_v7_s44/archive.pt]` (`run_job.sh --timeout 20h --detach`)。v13 の 2 本は終わったが、GPU 0 は v14 s44 が使っている。起動は GPU が空いてからで、順番はユーザーに確かめる。
 7. v11 s43 の延長の chain 評価を it400 / 500 / 600 / 700 / 800 で (it1000 は済み)。
 8. v11 s44 の段 0 の崩れ: v12 s44 は段 0 のアーカイブが変わらないまま同じ型に崩れたので、アーカイブの汚れは原因ではない ([v12 の記録](experiments/2026-10-13_v12_archive-stage-up.md))。v13 の結果で張り付きが原因かを見てから、残りの切り分けをユーザーと決める。
 

@@ -53,6 +53,8 @@ v3 の本番の run で確かめた意味 (`docs/experiments/2026-09-28_v3_main.
 | `Curriculum/archive_log/archive_success` | 同じくアーカイブ始まりのエピソード |
 | `Curriculum/topology_log/*` | **1 手あたり・全環境の平均** (アーカイブ始まりを含む)。`div_clsK` は「手を打つ前の段が K で、その手で発散した」環境の割合 (段 K の中での割合ではない) |
 | `Curriculum/stage_log/*` (v4 以降) | 段ごとの成功率と `chain_est`。chain 評価とは始め方も手数も違うので、版の比較に使わない (`docs/system/evaluation.md` §2) |
+| `Loss/bounds` (v13 以降。`BoundedPPO`) | 1 iteration の mini-batch の罰則 Σ max(\|μ\| − 1, 0)² の平均 (係数を掛ける前。全段) |
+| `Loss/value_mean_s{k}`・`Loss/value_over_s{k}` (`BoundedPPO` を使う版。2026-10-15 に追加。v13 の run には無い) | 段 k の rollout の価値 V の平均と、V が 1/γ を**超えた**割合 (`common/policies/value_stats.py`)。`Loss/` の下に出るのは runner が `loss_dict` の全キーをそこへ書くため。段 0 の V は 1 を超えないはずで、膨らむのは段 0 の崩れと同時期に起きた ([2026-10-15_critic-inflation](../experiments/2026-10-15_critic-inflation.md))。崩れの警報にするかは未確認 |
 
 ## 5. `outputs/` の中
 

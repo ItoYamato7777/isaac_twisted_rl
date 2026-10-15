@@ -7,6 +7,7 @@
 ## 要点
 
 - **v14 seed 43 を GPU 1、seed 44 を GPU 0 で学習中** (s43: 2026-10-15 15:07 起動、s44: 16:07 起動。どちらも約 17 時間)。DR の減衰比 ζ の下限は ×1.0 に決めた (ユーザー、commit `d8dc8f7`)。
+- **v13 の次の手は V の膨らみ** (2026-10-15 の調査): 段 0 が崩れた run はどれも critic の V が 1/γ を超えて膨らんでいた ([記録](experiments/2026-10-15_critic-inflation.md))。版の作り方 (A/B/C) はユーザーの判断待ち。
 - v14 の結果が出るまで v15 の実装は後回し (ユーザーの判断、2026-10-15)。その間は GPU を使わない調べもの。決定 [0028](decisions/0028-v15-rope-size-dr.md) は決まった (長さ ×0.8/1.0/1.25 × 直径 ×0.4/0.63/1.0 の 3 × 3、実機は直径 8 mm)。
 - **次は eval_chain.py の改善** (ユーザーの指示、2026-10-15): #0 再現性の確認 (同じ初期状態・決定論的方策で 512 エピソードが独立か) -> #1 段ごとの内訳・#2 評価中の行動の張り付き・#3 再現の情報と物理の照合。「次の作業」1〜4。v13 は chain 評価と実験記録を済ませた (予想 1〜3 は外れ、結論は保留。「次の作業」5)。
 
@@ -66,7 +67,7 @@
 
 ### v13 の結果 (仕様は [0026](decisions/0026-v13-action-bounds-loss.md))
 
-5. v13 の実験記録は書いた ([2026-10-14_v13_bounds-loss](experiments/2026-10-14_v13_bounds-loss.md))。予想 1〜3 はすべて外れ、0026 の取り決めで張り付きが崩れの原因かの結論は保留。次の手 (範囲の外に出ること自体を止める手段か、s44 の価値関数の損失の増加の調査) をユーザーと決める。評価中の張り付きは #2 ができたら数え直せる。
+5. v13 の実験記録は書いた ([2026-10-14_v13_bounds-loss](experiments/2026-10-14_v13_bounds-loss.md))。予想 1〜3 はすべて外れ、0026 の取り決めで張り付きが崩れの原因かの結論は保留。**崩れた run は段 0 の critic の V が 1/γ ≈ 1.05 を超えて膨らんでいた** ([2026-10-15_critic-inflation](experiments/2026-10-15_critic-inflation.md)。相関と時間の順序まで。V が膨らむ原因は不明、学習中の分布での V は未確認)。次の版の候補 (A: 時間切れを終端にする / B: 時間切れの bootstrap の V を 1 で頭打ち / C: critic の出力を [−1, 1] に制限) はユーザーの判断待ち。学習ログに `Loss/value_mean_s{k}`・`Loss/value_over_s{k}` が出る (`BoundedPPO`。v14 の実行中の 2 本には入っていない)。v14 は `timeout_s0` と価値関数の損失で見守る。
 
 ### v14 の学習と評価 (仕様は [0027](decisions/0027-v14-s0-reshape-dr-priv-critic.md)、ゲートは [2026-10-14_v14_physics-gate](experiments/2026-10-14_v14_physics-gate.md))
 
@@ -82,7 +83,7 @@
 
 10. v7 s44 を iteration 300 まで延ばす (比べる相手を 2 シードにする)。`uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:N --seed 44 --resume --load_run 2026-10-04_22-37-47_v7_s44 --checkpoint model_100.pt --max_iterations 201 --run_name v7_s44_to300 agent.device=cuda:N agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[/home/itoyama/work/isaac_twisted_rl/logs/rsl_rl/knot_tying_v7/2026-10-04_22-37-47_v7_s44/archive.pt]` (`run_job.sh --timeout 20h --detach`)。v13 の 2 本は終わったが、GPU 0 は v14 s44 が使っている。起動は GPU が空いてからで、順番はユーザーに確かめる。
 11. v11 s43 の延長の chain 評価を it400 / 500 / 600 / 700 / 800 で (it1000 は済み)。
-12. v11 s44 の段 0 の崩れ: v12 s44 は段 0 のアーカイブが変わらないまま同じ型に崩れたので、アーカイブの汚れは原因ではない ([v12 の記録](experiments/2026-10-13_v12_archive-stage-up.md))。v13 の結果で張り付きが原因かを見てから、残りの切り分けをユーザーと決める。
+12. v11 s44 の段 0 の崩れ: v12 s44 は段 0 のアーカイブが変わらないまま同じ型に崩れたので、アーカイブの汚れは原因ではない ([v12 の記録](experiments/2026-10-13_v12_archive-stage-up.md))。v13 の結果で張り付きが原因かを見てから、残りの切り分けをユーザーと決める。 v13 の結果: 張り付きを抑えても崩れた。V の膨らみとの関係は [2026-10-15_critic-inflation](experiments/2026-10-15_critic-inflation.md)。
 
 ### その他
 

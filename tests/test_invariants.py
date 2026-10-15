@@ -206,7 +206,7 @@ def test_i1_auto_imported_inits_do_not_reach_kit():
 
 def test_i2_pure_layers_do_not_import_kit():
     targets = sorted((KT / "common" / "topology").rglob("*.py")) + [
-        KT / "common" / name for name in ("state_archive.py", "chain_stats.py", "cfg_diff.py")
+        KT / "common" / name for name in ("state_archive.py", "chain_stats.py", "cfg_diff.py", "move_chain.py")
     ]
     violations = []
     for path in targets:

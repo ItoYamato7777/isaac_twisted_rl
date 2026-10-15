@@ -1,19 +1,21 @@
 # 0029 v16 は、段の変化・発散と同じ手では時間切れを立てない (時間切れの bootstrap の不具合を直す)
 
-- 状態: 有効 (v16 以降。2026-10-15 にユーザーが v16 で直すと決めた。**未実装**)
+- 状態: 有効 (v16 以降。2026-10-15 にユーザーが v16 で直すと決めた。**未実装。実装は v15 の結果が出るまで待つ** (継承元をそのとき決める))
 - 読むべき状況: v16 を実装・学習・評価するとき。時間切れ (`time_out`) の終了項や PPO の bootstrap を扱うとき。段 0 の崩れ・critic の V の膨らみを扱うとき
 - 最終更新: 2026-10-15
 
 ## 決定
 
-v16 = v13 + **時間切れの終了項を「同じ手で段の上昇・段の下降・発散が立たないときだけ立つ」項に差し替える** (1 版 1 変数)。
+v16 = 継承元 + **時間切れの終了項を「同じ手で段の上昇・段の下降・発散が立たないときだけ立つ」項に差し替える** (1 版 1 変数)。
 
-- 継承元は v13 (`KnotTyingV13EnvCfg`)。v14 (DR・特権観測の critic・段 0 の保存の変更) と混ぜないため。比べる相手は v13 の同じシード (43 / 44)。
+- **継承元は v15 の結果が出てから決める** (ユーザー、2026-10-15)。v15 (または v14) が v13 より良ければ、それが継承元になりうるため。それまで実装しない。
+  - 候補は v13・v14・v15。比べる相手は継承元の同じシード (43 / 44)。この修正だけの差で比べるため、継承元には他の変更を足さない。
+  - 決めるときに確かめること: 継承元の終了項に `diverged`・`stage_up`・`stage_down` があるか (除く項の名前)。PPO が `BoundedPPO` で `Loss/value_mean_s*` を出すか (v14 の run には無い。無ければ予想 1 は固定した観測での数え方だけで確かめるか、PPO の設定を足すかを決める)。継承元の chain 評価がシード 2 本で揃っているか。
 - 終了項の名前は `time_out` のまま (`ResetToStage` の `outcome_terms`・`Episode_Termination/time_out` のログが名前で引く)。`time_out=True` のまま。
 - 6 手目の手で段の上昇・段の下降・発散のどれかが立てば `terminated` だけが立ち、PPO はその手を bootstrap しない。どれも立たない 6 手目は、今と同じく `truncated` で、γ·V(s) を bootstrap する。
-- **Play (chain 評価) は v13 と同じ時間切れに戻す**。chain 評価の定義 (18 手目に固結びになった手は `knot` と `time_out` の両方に数える) を v13 と揃え、評価の値を版の間で比べられるようにする。
-- PPO (`BoundedPPO`、係数 0.01)・観測・報酬・アーカイブの保存の規則・物理は v13 のまま。
-- 学習: seed 43 / 44 を 0 から iteration 300 まで (v13 と同じ長さ・同じコマンドの形)。GPU は v14 の 2 本が終わってから (2026-10-16 の午後の見込み)。
+- **Play (chain 評価) は継承元と同じ時間切れに戻す**。chain 評価の定義 (18 手目に固結びになった手は `knot` と `time_out` の両方に数える) を継承元と揃え、評価の値を版の間で比べられるようにする。
+- PPO・観測・報酬・アーカイブの保存の規則・物理は継承元のまま。
+- 学習: seed 43 / 44 を 0 から iteration 300 まで (継承元と同じ長さ・同じコマンドの形)。
 
 ## 理由
 
@@ -44,11 +46,12 @@ v16 の 2 シードについて:
 | 時間切れを終端にする (同じく案 A。`time_out=False`) | 待つ得は消えるが、純粋な時間切れの bootstrap もやめる。観測に手の番号が無いので、6 手目の時間切れの 0 が 1〜5 手目の状態の V に混ざり、時間切れの意味が変わる。不具合を直すより大きな変更 |
 | PPO の `process_env_step` で直す (`BoundedPPO` を上書き) | rsl-rl に渡るのは `dones` と `time_outs` だけで、両方が立った手の `terminated` を取り戻せない。ラッパーも変える必要がある |
 | `RslRlVecEnvWrapper` を派生して `time_outs = truncated & ~terminated` を渡す | 動くが、`train.py`・`play.py`・評価のスクリプトのラッパーの作り方を版ごとに変える仕組みが要る。終了項の差し替えなら版の設定だけで済む |
-| v14 を継承する | v14 は 3 つの変更を持ち、結果がまだ無い。v13 を継承すれば、v13 の既存の 2 シードとこの修正だけの差で比べられる。v14 が良ければ、v14 + この修正は別の版で作る |
 
 ## 実装の見通し (推奨。2026-10-15 のコードで確かめた)
 
 (`kt/` = `src/isaac_twisted_rl/tasks/knot_tying/`。手順は skill `add-version`)
+
+**v15 の結果が出て継承元を決めるまで実装しない。** 下の手順は継承元を v13 として書いてある。「v13」は決めた継承元に読み替える。継承元が v14 以降なら、`TerminationsCfg` の項の並び・`play_post_init`・PPO の設定が v13 と違いうるので、手順 1・2・4 を実装の前にそのコードで確かめ直す。
 
 1. **終了項を `common/mdp/terminations.py` に追加する** (既存の項は変えない。`common/mdp/` は追加だけ)。
 
@@ -85,4 +88,4 @@ v16 の 2 シードについて:
 
 - 調査: [2026-10-15_timeout-bootstrap-and-stage2-bottleneck](../experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md)、[2026-10-15_critic-inflation](../experiments/2026-10-15_critic-inflation.md) (冒頭の注記)。
 - コード: `.venv/lib/python3.11/site-packages/isaaclab/source/isaaclab/isaaclab/managers/termination_manager.py:164-170`、`.venv/lib/python3.11/site-packages/isaaclab/source/isaaclab_rl/isaaclab_rl/rsl_rl/vecenv_wrapper.py:163`、`.venv/lib/python3.11/site-packages/rsl_rl/algorithms/ppo.py:161-164`、`kt/versions/v4/env_cfg.py:125-130`。
-- 版の番号 (v16) はユーザーが決めた (2026-10-15)。継承元を v13 にしたのは 2026-10-15 の調査の推奨。
+- 版の番号 (v16) と、継承元を v15 の結果の後に決めることはユーザーが決めた (2026-10-15)。

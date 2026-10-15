@@ -24,6 +24,15 @@ rsl-rl 3.0.1 の `PPO.update` は損失を 1 行で組み、項を足す口が�
   `bounds_loss_coef = 0` でも記録する (勾配は PPO とビット単位で同じ)。
 - 対称性のデータ拡張 (`symmetry_cfg`) とは組み合わせない前提 (v13 は使わない)。拡張した行も罰則に入る。
 
+## 価値の統計の記録 (`value_stats.py`)
+
+`update` の返す `loss_dict` に、段ごとの V の平均 `value_mean_s{k}` と、V が `1/γ` を超えた割合
+`value_over_s{k}` を足す (TensorBoard の `Loss/value_mean_s{k}`・`Loss/value_over_s{k}`)。崩れの早期警報で、
+理由は `value_stats.py` の docstring。更新の前の rollout の `storage.values` を数えるだけで、
+パラメータにも乱数にも触れない (`tests/test_bounded_ppo.py` が、範囲の中の更新が PPO とビット単位で同じことで確かめる)。
+`Loss/` の下に出るのは、runner が `loss_dict` の全キーをそこへ書くため (rsl-rl 3.0.1 に別の口が無い)。
+段ごとの方策 (`StageGatedActorCritic`) でないときは出さない。
+
 ## rsl_rl への登録
 
 `OnPolicyRunner` は `eval(alg_cfg["class_name"])` で algorithm を作る (`on_policy_runner.py:424`)。
@@ -41,6 +50,8 @@ from dataclasses import dataclass
 import torch
 from rsl_rl.algorithms import PPO
 from torch.distributions import Normal
+
+from .value_stats import break_even_value, stage_value_stats
 
 BOUND = 1.0
 """罰則の境目。環境が行動をクリップする値と同じ。"""
@@ -115,10 +126,23 @@ class BoundedPPO(PPO):
         super().__init__(policy, **kwargs)
         self.bounds_loss_coef = bounds_loss_coef
 
+    def _stage_value_stats(self) -> dict[str, float]:
+        """更新の前の rollout の価値の、段ごとの統計 (段ごとの方策でなければ空)。"""
+        actor = getattr(self.policy, "actor", None)
+        if not hasattr(actor, "stage_index"):
+            return {}
+        with torch.no_grad():
+            obs = self.policy.get_actor_obs(self.storage.observations.flatten(0, 1))
+            stage = actor.stage_index(obs)
+            values = self.storage.values.flatten(0, 1)
+        return stage_value_stats(values, stage, self.policy.num_stages, break_even_value(self.gamma))
+
     def update(self):
+        value_stats = self._stage_value_stats()  # update は storage を空にするので、先に数える
         with bounds_loss_on(self.policy, self.bounds_loss_coef) as stats:
             loss_dict = super().update()
         loss_dict["bounds"] = stats.total / max(stats.count, 1)
+        loss_dict.update(value_stats)
         return loss_dict
 
 

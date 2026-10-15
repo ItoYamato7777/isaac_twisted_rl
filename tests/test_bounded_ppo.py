@@ -15,6 +15,8 @@ Isaac Sim を起動せずに走る (torch と rsl_rl だけ)::
 * 平均が範囲の中 (|μ| ≤ 1) なら、更新は PPO とビット単位で同じ。
 * `bounds_loss_coef = 0` なら、平均が範囲の外でも更新は PPO とビット単位で同じ (罰則の値は記録する)。
 * inference mode (rollout の `act`) では分布を作り直さず、罰則も数えない。
+* `update` の返す `loss_dict` に、段ごとの価値の統計 (`value_mean_s*`・`value_over_s*`、`common/policies/value_stats.py`)
+  が入る。値は更新の前の rollout の `storage.values` から数えるので、更新の結果 (パラメータ) は変えない。
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ import pytest
 import torch
 from policies.bounded_ppo import BoundedPPO, bounds_loss_on, bounds_penalty, register_with_rsl_rl
 from policies.stage_gated import StageGatedActorCritic
+from policies.value_stats import stage_value_stats
 from rsl_rl.algorithms import PPO
 from tensordict import TensorDict
 from torch import nn
@@ -32,6 +35,7 @@ from torch import nn
 OBS, ACT, STAGE_DIMS = 12, 6, 4
 GROUPS = {"policy": ["policy"], "critic": ["policy"]}
 NUM_ENVS, STEPS = 16, 4
+_VALUE_KEYS = {f"value_{k}_s{i}" for k in ("mean", "over") for i in range(3)}
 COEF = 0.5  # 罰則の勾配が PPO の勾配に埋もれず、差が目に見える大きさにする
 
 
@@ -193,7 +197,8 @@ def test_update_equals_ppo_plus_penalty_gradient():
     _update(ppo)
     loss_dict = _update(bounded)
     assert loss_dict["bounds"] == pytest.approx(penalty.item(), rel=1e-5)
-    assert set(loss_dict) == {"value_function", "surrogate", "entropy", "bounds"}
+    assert {"value_function", "surrogate", "entropy", "bounds"} <= set(loss_dict)
+    assert set(loss_dict) - {"value_function", "surrogate", "entropy", "bounds"} == _VALUE_KEYS
     for p_ppo, p_b, g in zip(_params(ppo), _params(bounded), pen_grads):
         assert torch.allclose(p_b, p_ppo - lr * COEF * g, atol=1e-6)
     assert "update_distribution" not in vars(bounded.policy)
@@ -218,6 +223,29 @@ def test_coef_zero_equals_ppo():
     assert loss_dict["bounds"] > 0.1  # 係数 0 でも値は記録する
     for a, b in zip(_params(ppo), _params(bounded)):
         assert torch.equal(a, b)
+
+
+def test_loss_dict_has_stage_value_stats_from_rollout_values():
+    ac = _policy(outside=True)
+    gamma = 0.9
+    bounded = _filled(BoundedPPO, ac, bounds_loss_coef=COEF, gamma=gamma)
+    # 更新の前の storage から、直接の式で期待値を作る (update は storage を空にする)。
+    obs = bounded.storage.observations.flatten(0, 1)["policy"]
+    values = bounded.storage.values.flatten(0, 1).squeeze(-1)
+    stage = obs[:, -STAGE_DIMS:].argmax(-1).clamp(max=2)
+    expected = stage_value_stats(values, stage, num_stages=3, threshold=1 / gamma)
+    assert set(expected) == _VALUE_KEYS  # 16 環境 x 4 手の乱数の観測に 3 段とも入っている
+
+    loss_dict = _update(bounded)
+    for k, v in expected.items():
+        assert loss_dict[k] == pytest.approx(v, rel=1e-6)
+    # 数えるだけで更新は変えない: 罰則が 0 になる範囲の中の方策では、PPO とビット単位で同じ。
+    inside = _filled(BoundedPPO, _policy(outside=False), bounds_loss_coef=COEF, gamma=gamma)
+    plain_inside = _filled(PPO, _policy(outside=False), gamma=gamma)
+    _update(inside)
+    _update(plain_inside)
+    for a, b in zip(_params(plain_inside), _params(inside)):
+        assert torch.equal(a, b), "価値の統計を数えても、範囲の中の更新は PPO とビット単位で同じ"
 
 
 def test_rejects_negative_coef():

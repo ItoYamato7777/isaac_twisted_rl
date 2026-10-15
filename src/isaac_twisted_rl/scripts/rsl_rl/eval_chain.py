@@ -164,7 +164,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
 
     param_check = _check_params(env_cfg, resume_path)
     found = {k: param_check[k] for k in ("changed", "only_in_train", "only_in_eval") if param_check.get(k)}
-    param_check["allowed"] = bool(found) and args_cli.allow_param_diff
+    param_check["allow_param_diff"] = args_cli.allow_param_diff
     if "skipped" in param_check:
         print(f"[WARN]: 学習の設定との照合を飛ばした: {param_check['skipped']}")
     elif found:

@@ -161,7 +161,7 @@ def action_saturation(
     num_act = actions.shape[-1]
     if channels is None:
         channels = ACTION_CHANNELS if num_act == len(ACTION_CHANNELS) else tuple(f"ch{i}" for i in range(num_act))
-    a = actions.reshape(-1, num_act).float()
+    a = actions.reshape(-1, num_act).double()  # 割合を JSON に float32 の丸めの誤差なしで書くため
     st = stage.reshape(-1).long()
     keep = active.reshape(-1)
 

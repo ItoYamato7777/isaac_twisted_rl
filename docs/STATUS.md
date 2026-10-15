@@ -8,7 +8,7 @@
 
 - **v14 seed 43 を GPU 1、seed 44 を GPU 0 で学習中** (s43: 2026-10-15 15:07 起動、s44: 16:07 起動。どちらも約 17 時間)。DR の減衰比 ζ の下限は ×1.0 に決めた (ユーザー、commit `d8dc8f7`)。
 - v14 の結果が出るまで v15 の実装は後回し (ユーザーの判断、2026-10-15)。その間は GPU を使わない調べもの。決定 [0028](decisions/0028-v15-rope-size-dr.md) は決まった (長さ ×0.8/1.0/1.25 × 直径 ×0.4/0.63/1.0 の 3 × 3、実機は直径 8 mm)。
-- **次は eval_chain.py の改善** (ユーザーの指示、2026-10-15): #0 再現性の確認 (同じ初期状態・決定論的方策で 512 エピソードが独立か) -> #1 段ごとの内訳・#2 評価中の行動の張り付き・#3 再現の情報と物理の照合。「次の作業」1〜4。v13 は chain 評価の it300 を待って実験記録を書く (「次の作業」5)。
+- **次は eval_chain.py の改善** (ユーザーの指示、2026-10-15): #0 再現性の確認 (同じ初期状態・決定論的方策で 512 エピソードが独立か) -> #1 段ごとの内訳・#2 評価中の行動の張り付き・#3 再現の情報と物理の照合。「次の作業」1〜4。v13 は chain 評価と実験記録を済ませた (予想 1〜3 は外れ、結論は保留。「次の作業」5)。
 
 ## 版の状態
 
@@ -30,7 +30,7 @@
 | v10 | chain 評価 済み (seed 43・44、iteration 70 / 90 / 100、GPU 1 枚に 1 本)。v7 を大きく下回った | [2026-10-06_v10_path-stages](experiments/2026-10-06_v10_path-stages.md)、[0023](decisions/0023-v10-path-stages.md) |
 | v11 | chain 評価 済み (seed 43・44、iteration 70〜300、GPU 1 枚に 1 本)。iteration 300 で v7 を上回らなかった。s44 が段 0 で崩れた。s43 は iteration 1000 まで延ばした (chain 評価は it1000 だけ。値は [張り付きの調査](experiments/2026-10-14_action-saturation.md)) | [2026-10-07_v11_dead-end-stages](experiments/2026-10-07_v11_dead-end-stages.md)、[2026-10-09_v11_stage2-archive-loop](experiments/2026-10-09_v11_stage2-archive-loop.md)、[0024](decisions/0024-v11-dead-end-stages.md) |
 | v12 | chain 評価 済み (seed 43・44、iteration 70〜300、GPU 1 枚に 1 本)。s43 は it100 と it300 がほぼ同じ、s44 は it70 の後に崩れた。段 2 のアーカイブは Φ の表にある 1 つの形に 3〜4 割寄った (0025 の予想 1 は外れ) | [2026-10-13_v12_archive-stage-up](experiments/2026-10-13_v12_archive-stage-up.md)、[0025](decisions/0025-archive-save-on-stage-up.md) |
-| v13 | 学習は 2 本とも完走 (seed 43・44、0 -> iteration 300、GPU 1 枚に 1 本)。chain 評価は it70〜250 が済み、it300 を評価中。実験記録は未作成 (「次の作業」5) | [0026](decisions/0026-v13-action-bounds-loss.md)、[versions/v13](../src/isaac_twisted_rl/tasks/knot_tying/versions/v13/README.md) |
+| v13 | chain 評価 済み (seed 43・44、iteration 70〜300、GPU 1 枚に 1 本)。罰則は範囲の外への出方の大きさを抑えたが割合はあまり減らず (0026 の予想 1 は外れ、結論は保留)、s44 は v12 s44 と同じ型に崩れた。予想 2・3 も外れ | [2026-10-14_v13_bounds-loss](experiments/2026-10-14_v13_bounds-loss.md)、[0026](decisions/0026-v13-action-bounds-loss.md) |
 | v14 | 実装・ゲート・スモークテスト済み (2026-10-14)。**seed 43 (GPU 1、2026-10-15 15:07 起動)・seed 44 (GPU 0、16:07 起動) を学習中**。DR の ζ の範囲は ×1.0〜×2 (他の 5 軸は ×0.5〜×2) | [0027](decisions/0027-v14-s0-reshape-dr-priv-critic.md)、[ゲート](experiments/2026-10-14_v14_physics-gate.md)、[versions/v14](../src/isaac_twisted_rl/tasks/knot_tying/versions/v14/README.md) |
 | v15 | 未着手 (v14 + ロープの直径・長さの DR)。決定 [0028](decisions/0028-v15-rope-size-dr.md) は決定済み。v14 の結果を見てから実装する | 「次の作業」8 |
 
@@ -40,14 +40,12 @@
 |---|---|---|---|---|---|
 | v14 s43 (0 -> it300) | 1 | 262619 (`run_job.sh` の timeout 30h) | `outputs/jobs/2026-10-15_15-07-05_v14_s43` | `logs/rsl_rl/knot_tying_v14/2026-10-15_15-07-10_v14_s43` | 2026-10-15 15:07 |
 | v14 s44 (0 -> it300) | 0 | 344651 (`run_job.sh` の timeout 30h) | `outputs/jobs/2026-10-15_16-07-16_v14_s44` | `logs/rsl_rl/knot_tying_v14/` の `*_v14_s44` | 2026-10-15 16:07 |
-| v13 s43 の chain 評価 (it70〜300) | 0 | 341125 (timeout 4h) | `outputs/jobs/2026-10-15_16-05-07_eval_v13_s43_it70-300` | `logs/rsl_rl/knot_tying_v13/2026-10-14_21-40-13_v13_s43` の `eval_chain_it*.json` | 2026-10-15 16:05 |
-| v13 s44 の chain 評価 (it70〜300) | 0 | 341429 (timeout 4h) | `outputs/jobs/2026-10-15_16-05-12_eval_v13_s44_it70-300` | `logs/rsl_rl/knot_tying_v13/2026-10-14_21-40-15_v13_s44` の `eval_chain_it*.json` | 2026-10-15 16:05 |
 
 - v13 s43 は完走した (`outputs/jobs/2026-10-14_21-40-08_v13_s43/exit.txt` は `exit: 0`、`signal:` の行なし、`model_300.pt` あり、2026-10-15 16:01)。
 - v13 s44 (pid 3065345) は完走した。`outputs/jobs/2026-10-14_21-40-10_v13_s44/exit.txt` は `exit: 0`、`signal:` の行なし、`logs/rsl_rl/knot_tying_v13/2026-10-14_21-40-15_v13_s44/model_300.pt` がある。job.log の終わりに Kit の終了処理の `post_quit()` の TypeError が出ているが、学習の後の終了の処理でのもの。
 - v14 の終わりの見込み: s43 は 2026-10-16 08:00〜09:00、s44 は 09:00〜10:00 (約 17 時間。GPU 0 は評価のジョブと共有するので s44 は遅れうる)。起動のコマンドは v13 と同じで、`--task Isaac-Twisted-RL-Knot-v14 --device cuda:1 --seed 43`・`agent.device=cuda:1`・`--run_name v14_s43`。commit `d8dc8f7`、Hydra の上書きは `agent.*` だけ (評価には何も付けない)。スモークテストは省いた (前日の v14 のスモークテストの後に変えたのは `DR_RANGES` の ζ の数値だけ。単体テストは通した)。
 - コマンド (v13): `run_job.sh --name v13_sS --timeout 30h --detach -- uv run train --task Isaac-Twisted-RL-Knot-v13 --headless --device cuda:N --seed S --max_iterations 301 --run_name v13_sS agent.device=cuda:N agent.save_interval=10` (Hydra の上書きは `agent.*` だけ。評価には何も付けない)。commit `a709b49`、`bounds_loss_coef` 0.01 (ユーザーが確かめた)。
-- v13 の chain 評価: 評価のコマンドは v12 と同じ (`eval_chain.py --task Isaac-Twisted-RL-Knot-Play-v13 --num_envs 512 --headless --device cuda:0 --seed 7 --checkpoint <run>/model_IT.pt agent.device=cuda:0 --out <run>/eval_chain_itIT.json`、IT = 70 / 100 / 150 / 200 / 250 / 300、Hydra の上書きなし)。2 本とも GPU 0 で v14 s44 と共有し、1 チェックポイントに約 23 分。it300 は 2026-10-15 18:30〜18:45 に終わる見込み。完走は `exit.txt` に `signal:` の行が無いことと `eval_chain_it300.json` で確かめる。
+- v13 の chain 評価は 2 本とも終わった (2026-10-15 18:25、`exit.txt` に `signal:` 無し、`eval_chain_it{70,...,300}.json`)。結果は [v13 の記録](experiments/2026-10-14_v13_bounds-loss.md)。
 - **他のジョブ (自分が起動していない。触らない)**: `hiro_knot sim2real replay` (anaconda の python、別のセッションの実機移植の作業)。`dump_real_deploy_check.py` は別セッションが commit した (`ecc6254`)。
 - GPU 0・1 は他のユーザー (ohtsukatakeshi) とも共有している。他の人のジョブがあれば触らない。
 
@@ -68,7 +66,7 @@
 
 ### v13 の結果 (仕様は [0026](decisions/0026-v13-action-bounds-loss.md))
 
-5. **v13 の実験記録を書く** (skill `experiment-record`)。chain 評価の it300 が終わってから (上の「走っているジョブ」)、v12 の同じ seed と並べる。材料: 学習ログの表と固定した観測での罰則は `outputs/v13_analysis/` (README.txt に作り方)、段 0 のチャネルごとの張り付きは `outputs/action_saturation/v13.json`。0026 の予想 1 (段 0 の置き方のチャネルが 20% を超えない) は固定した観測で 2 シードとも外れ、予想 3 (s44 の `timeout_s0` が 0.1 を超えない) は学習ログで外れた。予想 2 (it300 が it70・it100 の高い方から 5 ポイント以上は下がらない) は chain 評価で判定する。0026 の取り決めでは、予想 1 が外れたので張り付きが崩れの原因かの結論は保留 (係数の見直し)。評価中の張り付きは #2 ができたら数え直せる。
+5. v13 の実験記録は書いた ([2026-10-14_v13_bounds-loss](experiments/2026-10-14_v13_bounds-loss.md))。予想 1〜3 はすべて外れ、0026 の取り決めで張り付きが崩れの原因かの結論は保留。次の手 (範囲の外に出ること自体を止める手段か、s44 の価値関数の損失の増加の調査) をユーザーと決める。評価中の張り付きは #2 ができたら数え直せる。
 
 ### v14 の学習と評価 (仕様は [0027](decisions/0027-v14-s0-reshape-dr-priv-critic.md)、ゲートは [2026-10-14_v14_physics-gate](experiments/2026-10-14_v14_physics-gate.md))
 

@@ -6,9 +6,9 @@
 
 ## 要点
 
-- **段 0 の崩れの原因の最有力は、時間切れの bootstrap の不具合** (v4 以降の全版。因果は未確認。[記録](experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md))。直す版は **v15** (ユーザー、2026-10-16。寸法 DR より先に直すため v16 から繰り上げた。仕様と実装の手順は [0028](decisions/0028-v15-timeout-bootstrap-fix.md))。**v15 の学習は v14 の結果が出てから** (継承元をそのとき v13・v14 から決める。コードの実装とテストは先に進めてよい)。
-- **崩れない run の頭打ち (30〜50%) は段 2 の詰まり**でほぼ説明できる (マルコフ連鎖の模型の上。同じ記録)。
-- **v14 は 2 シードとも段 0 で崩れず、公称の chain 評価で it100 以降に v13 を大きく上回った** (it300 で 0.58 / 0.57。[記録](experiments/2026-10-15_v14_s0-reshape-dr-priv-critic.md))。0027 の予想 1・2 は当たり、予想 3 (DR で頑健になる) は外れ。3 つの変更のどれが効いたかは未確認。**次は v15 の継承元をユーザーと決める** (「次の作業」1)。
+- **次は v15 の実装** (v14 + 時間切れの bootstrap の不具合の修正。継承元は v14、v14 の切り分けの run は回さない: ユーザー、2026-10-16)。仕様と手順は [0028](decisions/0028-v15-timeout-bootstrap-fix.md)。
+- **v14 は 2 シードとも段 0 で崩れず、公称の chain 評価で it100 以降に v13 を大きく上回った** ([記録](experiments/2026-10-15_v14_s0-reshape-dr-priv-critic.md))。3 つの変更のどれが効いたかは未確認。DR で頑健になる予想は外れ。
+- 崩れない run の頭打ちは段 2 の詰まりでほぼ説明できる ([記録](experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md)。マルコフ連鎖の模型の上)。
 
 ## 版の状態
 
@@ -25,26 +25,29 @@
 | v12 | chain 評価 済み (seed 43・44、it70〜300)。s43 は横ばい、s44 は段 0 から崩れた | [v12](experiments/2026-10-13_v12_archive-stage-up.md) |
 | v13 | chain 評価 済み (seed 43・44、it70〜300)。罰則は張り付きの割合を減らさず、s44 は v12 s44 と同じ型に崩れた | [v13](experiments/2026-10-14_v13_bounds-loss.md) |
 | v14 | chain 評価 済み (seed 43・44、it70〜300、公称と DR 付き)。2 シードとも崩れず、it100 以降 v13 を大きく上回った。記録のある it300 の値で最も高い | [v14](experiments/2026-10-15_v14_s0-reshape-dr-priv-critic.md)・[0027](decisions/0027-v14-s0-reshape-dr-priv-critic.md)・[ゲート](experiments/2026-10-14_v14_physics-gate.md) |
-| v15 | **未実装** (継承元 + 段の変化・発散と同じ手では時間切れを立てない。時間切れの bootstrap の不具合の修正。継承元は v14 の結果が出てから v13・v14 から決める。コードの実装・テストは先に進めてよい) | [0028](decisions/0028-v15-timeout-bootstrap-fix.md) |
-| v16 | 未着手 (継承元 + ロープの直径・長さの DR。継承元は v15 の結果が出てから決める。2026-10-16 に bootstrap の修正と番号を入れ替えた) | [0029](decisions/0029-v16-rope-size-dr.md) |
+| v15 | **未実装・次に実装する** (v14 + 段の変化・発散と同じ手では時間切れを立てない。時間切れの bootstrap の不具合の修正) | [0028](decisions/0028-v15-timeout-bootstrap-fix.md) |
+| v16 | 未着手 (継承元 + ロープの直径・長さの DR。継承元は v15 の結果が出てから v14・v15 から決める) | [0029](decisions/0029-v16-rope-size-dr.md) |
 
 ## 走っているジョブ
 
-(なし。v14 の学習 2 本と chain 評価 3 ジョブは 10-16 15:53 までにすべて終わった。`exit: 0`、`signal:` なし)
+なし (自分のジョブ)。
 
-- **他のジョブ (触らない)**: anaconda の python の実機の作業 (pid 560983・616313・895144・2892930・876400)。GPU 0・1 は他のユーザーとも共有している。
+- **他のジョブ (触らない)**: 別の Claude session の `bench_step_time.py` (v14、4096 env、GPU 0。`run_job.sh` の timeout pid 2408365、job `outputs/jobs/2026-10-16_16-03-08_bench_n4096_iters_hz`、10-16 16:03 起動、timeout 3h)。anaconda の python の実機の作業 (pid 560983・616313・895144・2892930・876400)。GPU 0・1 は他のユーザーとも共有している。
 
 ## 次の作業
 
-1. **v15 の実装** (コードの実装・テスト・ゲートは先に進めてよい。学習は v14 の結果が出て継承元を決めてから)。仕様・外れと言える予想・実装の手順はすべて [0028](decisions/0028-v15-timeout-bootstrap-fix.md)。学習の前に継承元を v13・v14 から決める (ユーザーと。v14 は崩れず、公称の chain 評価で v13 より大きく上なので v14 が目安。切り分けの run を先に回すかもあわせて決める)。決めたら、継承元の終了項の名前と PPO が `Loss/value_mean_s*` を出すかを確かめ、0028 の手順 (時間切れの項 `time_out_unless_terminated` を `common/mdp/terminations.py` に足す -> skill `add-version` -> テスト -> ゲート -> commit -> seed 43 / 44 を it300) に進む。比べる相手は継承元の同じシード。 実装の入口: 0028 の「実装の見通し」1 (`common/mdp/terminations.py` に追加)。最初に確かめること: `time_out` の項が `stage_up` より先に評価される時点で、`stage_changed` の抽出結果が今の手の後の形か (`get_extractor` の更新の仕組みを読む)。GPU は v14 が 2 枚とも使っているので、Isaac Sim を要るゲート・スモークテストは v14 の終わり (10-16 の 12:30〜15:00 頃) か、空きを見てユーザーに確かめてから。
-2. **v14 の切り分けの run を回すか決める** (ユーザーと): 段 0 の保存の規則 (`env.rewards.record_stage_archive.params.save_on=stage_up`)・DR (`env.events.rope_dr.params.enabled=false`)・特権観測 (`agent.obs_groups.critic=[policy]`) のどれが効いたか。v15 の継承元を v14 にするなら、どれが効いたかを知る価値がある。
-3. DR 付きの評価の内訳を見るなら、`eval_chain.py` に env ごとの倍率の記録を足す (既定の評価とビット単位で一致することを確かめる)。
+1. **v15 の実装** (継承元は v14)。仕様・外れと言える予想・実装の手順は [0028](decisions/0028-v15-timeout-bootstrap-fix.md) の「実装の見通し」(v14 に合わせて書き直し済み): 時間切れの項 `time_out_unless_terminated` を `common/mdp/terminations.py` に足す -> skill `add-version` で `versions/v15/` -> `tests/test_v15_cfg.py` -> テスト・lint -> ゲート (重なりの検査・スモークテスト) -> commit -> seed 43 / 44 を it300 -> chain 評価 (it70〜300) を v14 の同じシードと並べる。
+   - 最初に確かめること: `time_out` の項が `stage_up` より先に評価される時点で、`stage_changed` の抽出結果が今の手の後の形か (`get_extractor` の更新の仕組みを読む)。
+   - v14 の run には `Loss/value_mean_s*` が無い (v15 には出る)。0028 の予想 1 の比べる相手として、v14 のチェックポイントの段 0 の V を `critic_stage_values.py` で数える (0028 の「外れたら仮説が誤りと言える予想」の注記)。
+   - GPU は共有。Isaac Sim を使う前に `nvidia-smi` を見る。
+2. DR 付きの評価の内訳を見るなら、`eval_chain.py` に env ごとの倍率の記録を足す (既定の評価とビット単位で一致することを確かめる)。
+3. 段 0・段 1 から 1 手で固結びに達したエピソード (v14 s44 it100 で 2%・8%) が正しい判定かを、その手の前後の形で確かめる (優先度は低い)。
 4. **頭打ち (段 2) の切り分けの計測** (GPU を使う前にユーザーに確かめる。コマンドの案は[記録](experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md)の「次の作業」): 段 2 の形ごとの最良の 1 手 (`eval_search.py --mode shapes --shape_moves 1`)、6 手目の山がほかの崩れた run にもあるか、36 手の chain 評価。
-5. v16 の実装 ([0029](decisions/0029-v16-rope-size-dr.md) の「実装の順序」に従う。`add-version` -> `physics-check` -> スモークテスト -> commit。v15 の結果が出てから、継承元はそのとき決める)。未確認: `MultiAssetSpawnerCfg` が Articulation で動くか、`replicate_physics=False` での起動時間と学習速度。
+5. v16 の実装 ([0029](decisions/0029-v16-rope-size-dr.md) の「実装の順序」に従う。`add-version` -> `physics-check` -> スモークテスト -> commit。v15 の結果が出てから、継承元を v14・v15 から決める)。未確認: `MultiAssetSpawnerCfg` が Articulation で動くか、`replicate_physics=False` での起動時間と学習速度。
 6. v7 s44 を it300 まで延ばす (比べる相手を 2 シードにする。GPU が空いてから、順番はユーザーに確かめる): `uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:N --seed 44 --resume --load_run 2026-10-04_22-37-47_v7_s44 --checkpoint model_100.pt --max_iterations 201 --run_name v7_s44_to300 agent.device=cuda:N agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[/home/itoyama/work/isaac_twisted_rl/logs/rsl_rl/knot_tying_v7/2026-10-04_22-37-47_v7_s44/archive.pt]` (`run_job.sh --timeout 20h --detach`)。
 7. v11 s43 の延長の chain 評価を it400 / 500 / 600 / 700 / 800 で (it1000 は済み)。
 8. 探索の設定を 1 つずつ比べる (`--slots 8` / `4`、`--rank random`、`--no_mean_first`。v7 s43 / s44 の `model_100.pt`)。
-9. 学習のアルゴリズムの見直しの候補 (効くかは未確認。3 の結果を見てから選ぶ): 離散 2 チャネルをカテゴリカルにする、観測・価値の正規化、探索の結果の蒸留、段が上がった手を次の段の V で bootstrap する。
+9. 学習のアルゴリズムの見直しの候補 (効くかは未確認。4 の結果を見てから選ぶ): 離散 2 チャネルをカテゴリカルにする、観測・価値の正規化、探索の結果の蒸留、段が上がった手を次の段の V で bootstrap する。
 10. 摩擦を意図どおり (ロープ 2.0、指 4.0 の `max`) にする版。skill `physics-check` から ([記録](experiments/2026-10-14_friction-binding.md))。
 11. `run_job.sh` は `bash -c "..."` の中の `--device cuda:N` を読まない。包むときは `--check-gpu N` を付ける (直すかは未定)。
 12. その他の候補: std の下限、形ごとの成功率で優先して引く (0025 の「見込みの弱点」)、v8 の切り分け、P2 の残り ([0022](decisions/0022-p2-one-version-each.md))、めり込み解消速度の中間値。

@@ -49,18 +49,19 @@
    - 終わったら: chain 評価を it70 / 100 / 150 / 200 / 250 / 300 で (`--task Isaac-Twisted-RL-Knot-Play-v15`、標準の条件、Hydra の上書きなし。評価の `params` で Play の `time_out` が `mdp.time_out` に戻っていることも確かめる) -> v14 の同じシード (`2026-10-15_15-07-10_v14_s43`・`2026-10-15_16-07-22_v14_s44` の `eval_chain_it*.json`) と並べる。
    - 予想 2: s44 の it150・it300 で `diag_stage_moves.py --dump_obs`、`chain_moves.py sequences` で、段 0 を初めて上げた手が 6 手目の環境が 5% を超えないか。
    - 予想 1 の固定した観測での数え方: v15 のチェックポイントも `critic_stage_values.py --critic_prefix=0,0,-1,0,0,0` で数え、v14 の値 (ゲートの記録) と並べる。結果は skill `experiment-record`。
-2. DR 付きの評価の内訳を見るなら、`eval_chain.py` に env ごとの倍率の記録を足す (既定の評価とビット単位で一致することを確かめる)。
-3. 段 0・段 1 から 1 手で固結びに達したエピソード (v14 s44 it100 で 2%・8%) が正しい判定かを、その手の前後の形で確かめる (優先度は低い)。
-4. **頭打ち (段 2) の切り分けの計測** (GPU を使う前にユーザーに確かめる。コマンドの案は[記録](experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md)の「次の作業」): 段 2 の形ごとの最良の 1 手 (`eval_search.py --mode shapes --shape_moves 1`)、6 手目の山がほかの崩れた run にもあるか、36 手の chain 評価。
-5. **v17 の実装 (予約。待ちのフェーズの尺を詰めて学習を 1.28 倍に速くする版)**。仕様・予想・手順は [0030](decisions/0030-v17-shorter-wait-phases.md)、根拠の計測は [記録](experiments/2026-10-16_physics-speed.md)。コードの実装・テストは先に進めてよい (版は `durations` を上書きするだけ。継承元は v15 の結果が出てから v14・v15 から決める)。GPU を使うゲート (ゲート 1・`bench_step_time.py`・スモークテスト) は v15 の学習が走っている間はユーザーに確かめてから。最初に確かめること: `bench_step_time.py --task Isaac-Twisted-RL-Knot-v17` の `meta` が `decimation` 591・`max_episode_length` 6 (Play は 18) か (積の浮動小数の誤差で 1 手増える事故)。速さの次の候補: 反復 6 (Hydra の上書きで学習できる。D4 とは別の学習で確かめる)、環境数 (2048・8192) を変えたときの速さ (GPU が空いたとき)。
-6. v16 の実装 ([0029](decisions/0029-v16-rope-size-dr.md) の「実装の順序」に従う。`add-version` -> `physics-check` -> スモークテスト -> commit。v15 の結果が出てから、継承元を v14・v15 から決める)。未確認: `MultiAssetSpawnerCfg` が Articulation で動くか、`replicate_physics=False` での起動時間と学習速度。
-7. v7 s44 を it300 まで延ばす (比べる相手を 2 シードにする。GPU が空いてから、順番はユーザーに確かめる): `uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:N --seed 44 --resume --load_run 2026-10-04_22-37-47_v7_s44 --checkpoint model_100.pt --max_iterations 201 --run_name v7_s44_to300 agent.device=cuda:N agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[/home/itoyama/work/isaac_twisted_rl/logs/rsl_rl/knot_tying_v7/2026-10-04_22-37-47_v7_s44/archive.pt]` (`run_job.sh --timeout 20h --detach`)。
-8. v11 s43 の延長の chain 評価を it400 / 500 / 600 / 700 / 800 で (it1000 は済み)。
-9. 探索の設定を 1 つずつ比べる (`--slots 8` / `4`、`--rank random`、`--no_mean_first`。v7 s43 / s44 の `model_100.pt`)。
-10. 学習のアルゴリズムの見直しの候補 (効くかは未確認。4 の結果を見てから選ぶ): 離散 2 チャネルをカテゴリカルにする、観測・価値の正規化、探索の結果の蒸留、段が上がった手を次の段の V で bootstrap する。
-11. 摩擦を意図どおり (ロープ 2.0、指 4.0 の `max`) にする版。skill `physics-check` から ([記録](experiments/2026-10-14_friction-binding.md))。
-12. `run_job.sh` は `bash -c "..."` の中の `--device cuda:N` を読まない。包むときは `--check-gpu N` を付ける (直すかは未定)。
-13. その他の候補: std の下限、形ごとの成功率で優先して引く (0025 の「見込みの弱点」)、v8 の切り分け、P2 の残り ([0022](decisions/0022-p2-one-version-each.md))、めり込み解消速度の中間値。
+2. **chain 評価の動画 (方針は決定、未実装)**。chain 評価を回すときに評価したエピソードの動画も `video/` に残す。仕様・ゲート・手順は [0031](decisions/0031-eval-chain-video.md)。v15 の評価 (1) の前に入れられれば入れる。ゲートは「`--video` 付きで v14 s43 it300 を評価して既存の JSON と全キーが一致」。GPU を使う確認は v15 の学習中はユーザーに確かめてから。ルート直下の `knot_*_mock.mp4` と `README.md` の未コミットの変更はユーザーのもの (触らない・commit に混ぜない)。
+3. DR 付きの評価の内訳を見るなら、`eval_chain.py` に env ごとの倍率の記録を足す (既定の評価とビット単位で一致することを確かめる)。
+4. 段 0・段 1 から 1 手で固結びに達したエピソード (v14 s44 it100 で 2%・8%) が正しい判定かを、その手の前後の形で確かめる (優先度は低い)。
+5. **頭打ち (段 2) の切り分けの計測** (GPU を使う前にユーザーに確かめる。コマンドの案は[記録](experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md)の「次の作業」): 段 2 の形ごとの最良の 1 手 (`eval_search.py --mode shapes --shape_moves 1`)、6 手目の山がほかの崩れた run にもあるか、36 手の chain 評価。
+6. **v17 の実装 (予約。待ちのフェーズの尺を詰めて学習を 1.28 倍に速くする版)**。仕様・予想・手順は [0030](decisions/0030-v17-shorter-wait-phases.md)、根拠の計測は [記録](experiments/2026-10-16_physics-speed.md)。コードの実装・テストは先に進めてよい (版は `durations` を上書きするだけ。継承元は v15 の結果が出てから v14・v15 から決める)。GPU を使うゲート (ゲート 1・`bench_step_time.py`・スモークテスト) は v15 の学習が走っている間はユーザーに確かめてから。最初に確かめること: `bench_step_time.py --task Isaac-Twisted-RL-Knot-v17` の `meta` が `decimation` 591・`max_episode_length` 6 (Play は 18) か (積の浮動小数の誤差で 1 手増える事故)。速さの次の候補: 反復 6 (Hydra の上書きで学習できる。D4 とは別の学習で確かめる)、環境数 (2048・8192) を変えたときの速さ (GPU が空いたとき)。
+7. v16 の実装 ([0029](decisions/0029-v16-rope-size-dr.md) の「実装の順序」に従う。`add-version` -> `physics-check` -> スモークテスト -> commit。v15 の結果が出てから、継承元を v14・v15 から決める)。未確認: `MultiAssetSpawnerCfg` が Articulation で動くか、`replicate_physics=False` での起動時間と学習速度。
+8. v7 s44 を it300 まで延ばす (比べる相手を 2 シードにする。GPU が空いてから、順番はユーザーに確かめる): `uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:N --seed 44 --resume --load_run 2026-10-04_22-37-47_v7_s44 --checkpoint model_100.pt --max_iterations 201 --run_name v7_s44_to300 agent.device=cuda:N agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[/home/itoyama/work/isaac_twisted_rl/logs/rsl_rl/knot_tying_v7/2026-10-04_22-37-47_v7_s44/archive.pt]` (`run_job.sh --timeout 20h --detach`)。
+9. v11 s43 の延長の chain 評価を it400 / 500 / 600 / 700 / 800 で (it1000 は済み)。
+10. 探索の設定を 1 つずつ比べる (`--slots 8` / `4`、`--rank random`、`--no_mean_first`。v7 s43 / s44 の `model_100.pt`)。
+11. 学習のアルゴリズムの見直しの候補 (効くかは未確認。5 の結果を見てから選ぶ): 離散 2 チャネルをカテゴリカルにする、観測・価値の正規化、探索の結果の蒸留、段が上がった手を次の段の V で bootstrap する。
+12. 摩擦を意図どおり (ロープ 2.0、指 4.0 の `max`) にする版。skill `physics-check` から ([記録](experiments/2026-10-14_friction-binding.md))。
+13. `run_job.sh` は `bash -c "..."` の中の `--device cuda:N` を読まない。包むときは `--check-gpu N` を付ける (直すかは未定)。
+14. その他の候補: std の下限、形ごとの成功率で優先して引く (0025 の「見込みの弱点」)、v8 の切り分け、P2 の残り ([0022](decisions/0022-p2-one-version-each.md))、めり込み解消速度の中間値。
 
 ## 保留
 

@@ -38,6 +38,7 @@ run のフォルダは `logs/rsl_rl/` の下 (git の管理外)。日時付き�
 | 2026-10-15 | 段 0 の critic の価値 V の膨らみと段 0 の崩れ (v7・v11・v12・v13 の事後調査) | 凍結 | 崩れた 4 本の run は段 0 の V の平均が 1/γ を超えて 2〜15 まで膨らみ、崩れなかった 3 本は最大 1.05。V と段 0 の時間切れの増加は 10〜40 iteration で重なる (因果は未確認)。V が膨らむ原因は不明 | `knot_tying_v7/`・`v11/`・`v12/`・`v13/` (出力は `outputs/critic_stage_values/`) | [2026-10-15_critic-inflation.md](2026-10-15_critic-inflation.md) |
 | 2026-10-15 | chain 評価が頭打ちになる原因の事後調査 (時間切れの bootstrap の不具合と段 2 の詰まり) | 凍結 | 6 手目に段が上がると時間切れも立ち、PPO が +1 の手にも γ·V を足す不具合がある (v4 以降の全版)。崩れた方策はまっすぐなロープから 6 手目に段 0 を上げていた (因果は未確認)。崩れない run の頭打ちは、段 2 の 1 手の成功の低さと下降の多さでほぼ説明できる (マルコフ連鎖の模型の上)。チェックポイントの間の揺れは二項の見積りの約 4 倍 | `knot_tying_v7/`〜`v13/` (出力は `outputs/chain_moves/`) | [2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md](2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md) |
 | 2026-10-15 | chain 評価の再現性 (測り直し・`--seed`・GPU で値が変わるか) | 凍結 | chain 評価は決定論的。測り直し・`--seed`・GPU を変えても全キーがビット単位で同じ。512 の結末は同じ初期状態から物理の増幅で分かれる。揺らぎの組を引き直したときの揺れは未実測 | `outputs/eval_repro/` | [2026-10-15_eval-chain-repro.md](2026-10-15_eval-chain-repro.md) |
+| 2026-10-15 | v14 (v13 + 段 0 の形を変えた手の保存・ロープの物理の DR・critic の特権観測) の学習 (seed 43 / 44、iteration 300) と chain 評価 (公称と DR 付き) | 凍結 | 2 シードとも段 0 で崩れず、公称の chain 評価で it100 以降に v13 を大きく上回り、it300 まで下がらなかった (0027 の予想 1・2 は当たり)。DR 付きの評価での下がり幅は v14 の方が大きい (予想 3 は外れ)。3 つの変更のどれが効いたかは未確認 | `knot_tying_v14/` (v13 の方策を v14 の Play で測った値は `outputs/eval_v14env/`) | [2026-10-15_v14_s0-reshape-dr-priv-critic.md](2026-10-15_v14_s0-reshape-dr-priv-critic.md) |
 
 ## v0〜v6 と、打ち切り中の研究
 

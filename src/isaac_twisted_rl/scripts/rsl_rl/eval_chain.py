@@ -34,15 +34,21 @@
 * `param_check`: チェックポイントの run の `params/env.yaml` と評価の環境の設定の違い (Play が意図して変える
   項を除く)。違いがあれば評価の前に止める (`--allow_param_diff` で続ける)。学習の Hydra の上書きを評価に
   付け忘れると、違う物理のまま、エラーも出ずに測ってしまうため
+* `video` (`--video` のときだけ): 撮ったか・出力先・撮らなかった理由。動画は同じ評価の環境の最初の
+  エピソードを撮ったもの (`video_recorder.py`、`docs/system/video.md`)。`--video` を付けても上のキーの値は
+  変えない (`docs/decisions/0031-eval-chain-video.md` のゲート)。GPU の空きが `--video_min_free_mib` より
+  少なければ撮らずに評価だけを回す
 """
 
 import argparse
 import os
+import subprocess
 import sys
 
 from isaaclab.app import AppLauncher
 
 from isaac_twisted_rl.scripts.rsl_rl import cli_args  # isort: skip
+from isaac_twisted_rl.scripts.rsl_rl import video_layout  # isort: skip
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), *[".."] * 4))
 
@@ -74,11 +80,53 @@ parser.add_argument(
     default=False,
     help="Continue even if the env cfg differs from the run's params/env.yaml beyond the Play changes.",
 )
+parser.add_argument(
+    "--video", action="store_true", default=False, help="Also record the first episode of some envs (video/sim/)."
+)
+parser.add_argument("--video_envs", type=str, default="8", help="Envs to record: a count (first N) or ids '0,5,9'.")
+parser.add_argument("--video_every", type=int, default=8, help="Physics steps per frame (8 at 240 Hz = 30 fps).")
+parser.add_argument("--video_res", type=str, default="960x540", help="Video resolution <width>x<height>.")
+parser.add_argument(
+    "--video_min_free_mib",
+    type=int,
+    default=6000,
+    help="Skip recording (evaluate only) if the GPU has less free memory than this before launch.",
+)
 cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 _ARGV = list(sys.argv)
 args_cli, hydra_args = parser.parse_known_args()
 sys.argv = [sys.argv[0]] + hydra_args
+
+
+def _gpu_free_mib() -> int | None:
+    """評価に使う GPU の空き [MiB] (nvidia-smi)。読めなければ None。"""
+    idx = video_layout.gpu_index(args_cli.device or "cuda:0", os.environ.get("CUDA_VISIBLE_DEVICES"))
+    if idx is None:
+        return None
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-gpu=index,memory.free", "--format=csv,noheader,nounits"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return video_layout.parse_free_mib(out, idx)
+
+
+# 撮るかは Kit を起動する前に決める (撮るときだけ描画を有効にする)
+_VIDEO_FREE_MIB: int | None = None
+_VIDEO_SKIP: str | None = None
+if args_cli.video:
+    _VIDEO_FREE_MIB = _gpu_free_mib()
+    _VIDEO_SKIP = video_layout.video_decision(_VIDEO_FREE_MIB, args_cli.video_min_free_mib)
+    if _VIDEO_SKIP is None:
+        args_cli.enable_cameras = True
+    else:
+        print(f"[WARN]: 動画は撮らずに評価だけを回す: {_VIDEO_SKIP}")
 
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
@@ -86,7 +134,6 @@ simulation_app = app_launcher.app
 import datetime
 import hashlib
 import json
-import subprocess
 import tempfile
 
 import gymnasium as gym
@@ -253,6 +300,23 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     dev = unwrapped.device
     names = list(tm.active_terms)
 
+    recorder = None
+    video_dir = video_layout.clip_dir(_REPO_ROOT, resume_path, args_cli.out) if args_cli.video else None
+    if args_cli.video and _VIDEO_SKIP is None:
+        from isaac_twisted_rl.scripts.rsl_rl.video_recorder import EvalVideoRecorder
+
+        recorder = EvalVideoRecorder(
+            unwrapped,
+            runner.alg.policy,
+            video_layout.parse_env_ids(args_cli.video_envs, n),
+            video_dir,
+            video_layout.parse_resolution(args_cli.video_res),
+            args_cli.video_every,
+            video_layout.run_of_checkpoint(resume_path)[1],
+            video_layout.iteration_of(resume_path),
+        )
+    video_stats: dict = {}
+
     counted = torch.zeros(n, dtype=torch.bool, device=dev)
     outcome = {k: torch.zeros(n, dtype=torch.bool, device=dev) for k in names}
     strict = torch.zeros(n, dtype=torch.bool, device=dev)
@@ -266,33 +330,41 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     rec_actions: list[torch.Tensor] = []
 
     obs = env.get_observations()
-    with torch.inference_mode():
-        for _ in range(args_cli.steps):
-            pobs = obs["policy"] if not torch.is_tensor(obs) else obs
-            stage = pobs[:, -_STAGE_DIMS:].argmax(dim=-1)
-            ep_max_stage = torch.maximum(ep_max_stage, stage)
-            actions = policy(obs)
-            rec_stage.append(stage.clone())
-            rec_active.append(~counted)
-            rec_actions.append(actions.clone())
-            obs, _, dones, _ = env.step(actions)
-            ep_len += 1
-            done = dones.bool() & ~counted
-            for k in names:
-                outcome[k] |= done & tm.get_term(k)
-            transition = last_stage_transition(unwrapped)
-            if transition is None:
-                raise RuntimeError("stage_transition のキャッシュが無い (段の終了項 stage_up が配線されていない?)")
-            strict |= done & tm.get_term("stage_up") & tp.strict_goal_mask(transition["key_after"])
-            # 固結び (stage_up) で終わった手は観測が次のエピソードに替わっているので 3 を入れる。
-            final_stage = torch.where(tm.get_term("stage_up"), torch.full_like(ep_max_stage, 3), ep_max_stage)
-            max_stage = torch.where(done, final_stage, max_stage)
-            length = torch.where(done, ep_len, length)
-            counted |= done
-            ep_max_stage = torch.where(dones.bool(), torch.zeros_like(ep_max_stage), ep_max_stage)
-            ep_len = torch.where(dones.bool(), torch.zeros_like(ep_len), ep_len)
-            if bool(counted.all()):
-                break
+    try:
+        with torch.inference_mode():
+            for _ in range(args_cli.steps):
+                pobs = obs["policy"] if not torch.is_tensor(obs) else obs
+                stage = pobs[:, -_STAGE_DIMS:].argmax(dim=-1)
+                ep_max_stage = torch.maximum(ep_max_stage, stage)
+                actions = policy(obs)
+                rec_stage.append(stage.clone())
+                rec_active.append(~counted)
+                rec_actions.append(actions.clone())
+                if recorder is not None:
+                    recorder.before_step(obs, stage)
+                obs, _, dones, _ = env.step(actions)
+                ep_len += 1
+                done = dones.bool() & ~counted
+                for k in names:
+                    outcome[k] |= done & tm.get_term(k)
+                transition = last_stage_transition(unwrapped)
+                if transition is None:
+                    raise RuntimeError("stage_transition のキャッシュが無い (段の終了項 stage_up が配線されていない?)")
+                strict |= done & tm.get_term("stage_up") & tp.strict_goal_mask(transition["key_after"])
+                # 固結び (stage_up) で終わった手は観測が次のエピソードに替わっているので 3 を入れる。
+                final_stage = torch.where(tm.get_term("stage_up"), torch.full_like(ep_max_stage, 3), ep_max_stage)
+                max_stage = torch.where(done, final_stage, max_stage)
+                length = torch.where(done, ep_len, length)
+                if recorder is not None:
+                    recorder.after_step(done, {k: tm.get_term(k) for k in names}, length)
+                counted |= done
+                ep_max_stage = torch.where(dones.bool(), torch.zeros_like(ep_max_stage), ep_max_stage)
+                ep_len = torch.where(dones.bool(), torch.zeros_like(ep_len), ep_len)
+                if bool(counted.all()):
+                    break
+    finally:
+        if recorder is not None:
+            video_stats = recorder.close()
 
     m = int(counted.sum())
     knot = outcome["stage_up"] & counted
@@ -333,13 +405,51 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     }
     summary["start"] = start_info
     summary["param_check"] = param_check
+    if args_cli.video:
+        summary["video"] = {
+            "recorded": recorder is not None,
+            "dir": os.path.relpath(video_dir, _REPO_ROOT),
+            "skipped": _VIDEO_SKIP,
+            "free_mib_before": _VIDEO_FREE_MIB,
+            "clips": len(video_stats.get("clips", [])),
+        }
     print("\n=== chain evaluation ===")
     for k, v in summary.items():
         print(f"{k}: {json.dumps(v, ensure_ascii=False, default=str) if isinstance(v, (dict, list)) else v}")
     if args_cli.out:
         with open(args_cli.out, "w") as f:
             json.dump(summary, f, indent=2)
+    if args_cli.video:
+        _write_video_manifest(video_dir, resume_path, git, recorder, video_stats)
     env.close()
+
+
+def _write_video_manifest(video_dir: str, resume_path: str, git: dict, recorder, video_stats: dict) -> None:
+    """動画のフォルダに `manifest.json` を書く。撮らなかったときも理由を残すために書く。"""
+    with open(resume_path, "rb") as f:
+        sha = hashlib.sha256(f.read()).hexdigest()
+    stats = {k: v for k, v in video_stats.items() if k != "clips"}
+    manifest = video_layout.build_manifest(
+        eval_json=os.path.relpath(os.path.abspath(args_cli.out), _REPO_ROOT) if args_cli.out else None,
+        argv=_ARGV,
+        hydra_overrides=hydra_args,
+        checkpoint=os.path.relpath(os.path.abspath(resume_path), _REPO_ROOT),
+        checkpoint_sha256=sha,
+        git=git,
+        plan=recorder.plan if recorder is not None else None,
+        resolution=recorder.resolution if recorder is not None else None,
+        clips=video_stats.get("clips", []),
+        stats=stats,
+        free_mib_before=_VIDEO_FREE_MIB,
+        skipped=_VIDEO_SKIP,
+    )
+    os.makedirs(video_dir, exist_ok=True)
+    path = os.path.join(video_dir, video_layout.MANIFEST)
+    with open(path, "w") as f:
+        json.dump(manifest, f, indent=2, ensure_ascii=False)
+    print(f"[INFO]: 動画の manifest: {path}")
+    for c in manifest["clips"]:
+        print(f"  {c['file']}  ({c['frames']} コマ)")
 
 
 if __name__ == "__main__":

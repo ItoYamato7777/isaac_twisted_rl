@@ -1,15 +1,15 @@
-# 0029 v16 は、段の変化・発散と同じ手では時間切れを立てない (時間切れの bootstrap の不具合を直す)
+# 0028 v15 は、段の変化・発散と同じ手では時間切れを立てない (時間切れの bootstrap の不具合を直す)
 
-- 状態: 有効 (v16 以降。2026-10-15 にユーザーが v16 で直すと決めた。**未実装。実装は v15 の結果が出るまで待つ** (継承元をそのとき決める))
-- 読むべき状況: v16 を実装・学習・評価するとき。時間切れ (`time_out`) の終了項や PPO の bootstrap を扱うとき。段 0 の崩れ・critic の V の膨らみを扱うとき
-- 最終更新: 2026-10-15
+- 状態: 有効 (v15 以降。2026-10-15 にユーザーが v16 で直すと決め、2026-10-16 に **v15 へ繰り上げた** (寸法 DR より先に直す)。**未実装。実装は v14 の結果が出るまで待つ** (継承元をそのとき決める))
+- 読むべき状況: v15 を実装・学習・評価するとき。時間切れ (`time_out`) の終了項や PPO の bootstrap を扱うとき。段 0 の崩れ・critic の V の膨らみを扱うとき
+- 最終更新: 2026-10-16
 
 ## 決定
 
-v16 = 継承元 + **時間切れの終了項を「同じ手で段の上昇・段の下降・発散が立たないときだけ立つ」項に差し替える** (1 版 1 変数)。
+v15 = 継承元 + **時間切れの終了項を「同じ手で段の上昇・段の下降・発散が立たないときだけ立つ」項に差し替える** (1 版 1 変数)。
 
-- **継承元は v15 の結果が出てから決める** (ユーザー、2026-10-15)。v15 (または v14) が v13 より良ければ、それが継承元になりうるため。それまで実装しない。
-  - 候補は v13・v14・v15。比べる相手は継承元の同じシード (43 / 44)。この修正だけの差で比べるため、継承元には他の変更を足さない。
+- **継承元は v14 の結果が出てから決める** (ユーザー、2026-10-15。番号を v16 から v15 へ繰り上げたのは 2026-10-16。寸法 DR ([0029](0029-v16-rope-size-dr.md)) は v16 に回した)。v14 が v13 より良ければ v14 が継承元になりうるため。v14 の学習 (seed 43 / 44) が終わり chain 評価が揃うまで実装しない (学習は GPU が空いてから)。
+  - 候補は v13・v14。比べる相手は継承元の同じシード (43 / 44)。この修正だけの差で比べるため、継承元には他の変更を足さない。
   - 決めるときに確かめること: 継承元の終了項に `diverged`・`stage_up`・`stage_down` があるか (除く項の名前)。PPO が `BoundedPPO` で `Loss/value_mean_s*` を出すか (v14 の run には無い。無ければ予想 1 は固定した観測での数え方だけで確かめるか、PPO の設定を足すかを決める)。継承元の chain 評価がシード 2 本で揃っているか。
 - 終了項の名前は `time_out` のまま (`ResetToStage` の `outcome_terms`・`Episode_Termination/time_out` のログが名前で引く)。`time_out=True` のまま。
 - 6 手目の手で段の上昇・段の下降・発散のどれかが立てば `terminated` だけが立ち、PPO はその手を bootstrap しない。どれも立たない 6 手目は、今と同じく `truncated` で、γ·V(s) を bootstrap する。
@@ -28,7 +28,7 @@ v16 = 継承元 + **時間切れの終了項を「同じ手で段の上昇・段
 
 ## 外れたら仮説が誤りと言える予想
 
-v16 の 2 シードについて:
+v15 の 2 シードについて:
 
 1. **V が膨らまない**: 学習ログの `Loss/value_mean_s0` (`BoundedPPO` が出す段 0 の V の平均。10 iteration の平均) が it300 まで 1/γ = 1.053 を超えない。固定した観測での数え方 (`critic_stage_values.py`、[critic-inflation の記録](../experiments/2026-10-15_critic-inflation.md)) でも、段 0 の V の平均が全チェックポイントで 1.053 を超えない。
 2. **6 手目に段 0 を上げる山が出ない**: s44 の it150・it300 で `diag_stage_moves.py --dump_obs` を回し、`chain_moves.py sequences` で、段 0 を初めて上げた手が 6 手目の環境が 5% を超えない (v12 s44 it150 は 490 / 512)。
@@ -51,7 +51,7 @@ v16 の 2 シードについて:
 
 (`kt/` = `src/isaac_twisted_rl/tasks/knot_tying/`。手順は skill `add-version`)
 
-**v15 の結果が出て継承元を決めるまで実装しない。** 下の手順は継承元を v13 として書いてある。「v13」は決めた継承元に読み替える。継承元が v14 以降なら、`TerminationsCfg` の項の並び・`play_post_init`・PPO の設定が v13 と違いうるので、手順 1・2・4 を実装の前にそのコードで確かめ直す。
+**v14 の結果が出て継承元を決めるまで学習しない (コードの実装とテストは先に進めてよい)。** 下の手順は継承元を v13 として書いてある。「v13」は決めた継承元に読み替える。継承元が v14 なら、`TerminationsCfg` の項の並び・`play_post_init`・PPO の設定が v13 と違いうるので、手順 1・2・4 を実装の前にそのコードで確かめ直す。
 
 1. **終了項を `common/mdp/terminations.py` に追加する** (既存の項は変えない。`common/mdp/` は追加だけ)。
 
@@ -59,8 +59,8 @@ v16 の 2 シードについて:
    def time_out_unless_terminated(
        env: ManagerBasedRLEnv, exclude_terms: tuple[str, ...] = ("diverged", "stage_up", "stage_down")
    ) -> torch.Tensor:
-       """時間切れ `(num_envs,)`。ただし同じ手で `exclude_terms` のどれかが立つなら False。v16 で追加。
-       (docstring に「なぜ」を書く: 不具合の仕組み・PPO の側で直せない理由・0029 へのリンク)"""
+       """時間切れ `(num_envs,)`。ただし同じ手で `exclude_terms` のどれかが立つなら False。v15 で追加。
+       (docstring に「なぜ」を書く: 不具合の仕組み・PPO の側で直せない理由・0028 へのリンク)"""
        out = isaaclab.envs.mdp.time_out(env)          # episode_length_buf >= max_episode_length
        for name in exclude_terms:
            cfg = env.termination_manager.get_term_cfg(name)
@@ -69,23 +69,23 @@ v16 の 2 シードについて:
    ```
 
    - `get_term()` は使わない (`_term_dones` は前のエピソードの値が残る。`diverged_now` の docstring と同じ理由)。終了項の関数を params ごと呼び直す (`diverged_now` と同じ方法。発散は `diverged_now(env, "diverged")` でキャッシュを使ってもよい)。
-   - `time_out` は終了項の並びの先頭なので、`stage_up` などより先に呼ばれる。`stage_changed` は `stage_transition` を env ステップ (`common_step_counter`) と抽出結果 (`extractor.batch`) でキャッシュするので、先に呼んでも同じ値になるはず。**実装のときに確かめる**: 抽出結果がこの時点で今の手の後の形に更新されているか (`get_extractor` の更新の仕組みを読む)。更新が遅れるなら、`time_out` の項を `stage_down` の後ろへ並べ替える (v16 の `TerminationsCfg` で項を定義し直す) か、抽出を先に起こす。
+   - `time_out` は終了項の並びの先頭なので、`stage_up` などより先に呼ばれる。`stage_changed` は `stage_transition` を env ステップ (`common_step_counter`) と抽出結果 (`extractor.batch`) でキャッシュするので、先に呼んでも同じ値になるはず。**実装のときに確かめる**: 抽出結果がこの時点で今の手の後の形に更新されているか (`get_extractor` の更新の仕組みを読む)。更新が遅れるなら、`time_out` の項を `stage_down` の後ろへ並べ替える (v15 の `TerminationsCfg` で項を定義し直す) か、抽出を先に起こす。
    - `exclude_terms` に無い名前があれば (`get_term_cfg` が `ValueError`)、そのまま落とす (配線の誤りを黙って通さない)。
-2. **`versions/v16/`** を作る (`__init__.py`・`agents/__init__.py` は docstring だけ)。
+2. **`versions/v15/`** を作る (`__init__.py`・`agents/__init__.py` は docstring だけ)。
    - `env_cfg.py`: `KnotTyingV16EnvCfg(KnotTyingV13EnvCfg)` の `__post_init__` で、`super().__post_init__()` の後に `self.terminations.time_out = DoneTerm(func=mdp.time_out_unless_terminated, time_out=True, params={"exclude_terms": ("diverged", "stage_up", "stage_down")})` だけを書く。既存の属性への代入なので、終了項の並びは変わらない (`params/env.yaml` で確かめる)。
    - `play_post_init(cfg)`: v13 の `play_post_init(cfg)` を呼んだ後に、`cfg.terminations.time_out = DoneTerm(func=mdp.time_out, time_out=True)` に戻す (Play の chain 評価を v13 と同じ定義にする)。`make_preset_cfgs(KnotTyingV16EnvCfg, __name__, play_post_init=play_post_init)`。
-   - `agents/rsl_rl_ppo_cfg.py`: v13 の Runner を継承し、`experiment_name = "knot_tying_v16"` だけを書く (`BoundedPPO` と係数 0.01 は v13 のまま。`Loss/value_mean_s*`・`Loss/value_over_s*` が学習ログに出る)。
+   - `agents/rsl_rl_ppo_cfg.py`: v13 の Runner を継承し、`experiment_name = "knot_tying_v15"` だけを書く (`BoundedPPO` と係数 0.01 は v13 のまま。`Loss/value_mean_s*`・`Loss/value_over_s*` が学習ログに出る)。
    - `README.md`: この文書の「決定」と「理由」の要約 (結果は書かない)。
-3. **登録と一覧**: `kt/__init__.py` の `_VERSIONS` に `"v16"`、`kt/versions/__init__.py` の docstring の一覧と `kt/README.md` の版の系譜に 1 行ずつ。v15 は未実装のまま番号を飛ばす (0028 が v15 を予約している。番号は使い直さない)。版の一覧の検査 (`tests/test_invariants.py` など) が番号の連続を前提にしていないかを確かめる。
-4. **テスト**: `tests/test_v16_cfg.py` (手本は `tests/test_v13_cfg.py`。`ast` で静的に): env の設定は v13 のクラスだけを継承し、`__post_init__` は `terminations.time_out` の差し替えだけ。Play は v13 の `play_post_init` を呼んで `time_out` を `mdp.time_out` に戻すだけ。PPO の設定は v13 を継承してログ名だけ。終了項の関数そのものは Isaac Sim が要るので、下のゲートで確かめる。
+3. **登録と一覧**: `kt/__init__.py` の `_VERSIONS` に `"v15"`、`kt/versions/__init__.py` の docstring の一覧と `kt/README.md` の版の系譜に 1 行ずつ。番号は v15 (v14 の次。寸法 DR は v16 に回した)。版の一覧の検査 (`tests/test_invariants.py` など) が番号の連続を前提にしていないかを確かめる。
+4. **テスト**: `tests/test_v15_cfg.py` (手本は `tests/test_v13_cfg.py`。`ast` で静的に): env の設定は v13 のクラスだけを継承し、`__post_init__` は `terminations.time_out` の差し替えだけ。Play は v13 の `play_post_init` を呼んで `time_out` を `mdp.time_out` に戻すだけ。PPO の設定は v13 を継承してログ名だけ。終了項の関数そのものは Isaac Sim が要るので、下のゲートで確かめる。
 5. **ゲート (Isaac Sim。学習の前)**:
-   - 重なりの検査: v13 と v16 の学習用のタスクで、v12 s44 の `model_150.pt` (6 手目に段 0 を上げる方策) を 64 環境 × 13 手打ち、`env.step` が返す `terminated & truncated` の数を数える。v13 では 0 より大きく、v16 では 0 になること。小さな確認のスクリプトを `scripts/rsl_rl/` に足すか、スモークテストの run で `Episode_Termination/time_out` と `stage_up` を v13 と比べる (どちらで確かめたかを実験記録に書く)。
+   - 重なりの検査: v13 と v15 の学習用のタスクで、v12 s44 の `model_150.pt` (6 手目に段 0 を上げる方策) を 64 環境 × 13 手打ち、`env.step` が返す `terminated & truncated` の数を数える。v13 では 0 より大きく、v15 では 0 になること。小さな確認のスクリプトを `scripts/rsl_rl/` に足すか、スモークテストの run で `Episode_Termination/time_out` と `stage_up` を v13 と比べる (どちらで確かめたかを実験記録に書く)。
    - スモークテスト (skill `train-eval`、2 iteration): `params/env.yaml` の `terminations.time_out.func` が `time_out_unless_terminated`、Play の `params` では `time_out` に戻っていること、`Loss/value_mean_s0` が TensorBoard に出ること。
-6. commit してから学習する。学習のコマンドは v13 と同じ形: `src/isaac_twisted_rl/scripts/run_job.sh --name v16_sS --timeout 30h --detach -- uv run train --task Isaac-Twisted-RL-Knot-v16 --headless --device cuda:N --seed S --max_iterations 301 --run_name v16_sS agent.device=cuda:N agent.save_interval=10` (S = 43 / 44。起動の前に `nvidia-smi` を見る)。
-7. 評価: chain 評価を it70 / 100 / 150 / 200 / 250 / 300 で (`--task Isaac-Twisted-RL-Knot-Play-v16`、標準の条件、Hydra の上書きなし)、v13 の同じシードと並べる。予想 2 のための `diag_stage_moves.py --dump_obs` (s44 の it150・it300 と s43 の it300)。結果は skill `experiment-record`。
+6. commit してから学習する。学習のコマンドは v13 と同じ形: `src/isaac_twisted_rl/scripts/run_job.sh --name v15_sS --timeout 30h --detach -- uv run train --task Isaac-Twisted-RL-Knot-v15 --headless --device cuda:N --seed S --max_iterations 301 --run_name v15_sS agent.device=cuda:N agent.save_interval=10` (S = 43 / 44。起動の前に `nvidia-smi` を見る)。
+7. 評価: chain 評価を it70 / 100 / 150 / 200 / 250 / 300 で (`--task Isaac-Twisted-RL-Knot-Play-v15`、標準の条件、Hydra の上書きなし)、v13 の同じシードと並べる。予想 2 のための `diag_stage_moves.py --dump_obs` (s44 の it150・it300 と s43 の it300)。結果は skill `experiment-record`。
 
 ## 出典
 
 - 調査: [2026-10-15_timeout-bootstrap-and-stage2-bottleneck](../experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md)、[2026-10-15_critic-inflation](../experiments/2026-10-15_critic-inflation.md) (冒頭の注記)。
 - コード: `.venv/lib/python3.11/site-packages/isaaclab/source/isaaclab/isaaclab/managers/termination_manager.py:164-170`、`.venv/lib/python3.11/site-packages/isaaclab/source/isaaclab_rl/isaaclab_rl/rsl_rl/vecenv_wrapper.py:163`、`.venv/lib/python3.11/site-packages/rsl_rl/algorithms/ppo.py:161-164`、`kt/versions/v4/env_cfg.py:125-130`。
-- 版の番号 (v16) と、継承元を v15 の結果の後に決めることはユーザーが決めた (2026-10-15)。
+- 継承元を結果の後に決めることはユーザーが決めた (2026-10-15)。bootstrap の修正を v15・寸法 DR を v16 に入れ替えることはユーザーが決めた (2026-10-16)。

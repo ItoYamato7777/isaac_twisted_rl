@@ -8,7 +8,7 @@
 
 - **段 0 の崩れの原因の最有力は、時間切れの bootstrap の不具合** (v4 以降の全版。因果は未確認。[記録](experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md))。直す版は **v15** (ユーザー、2026-10-16。寸法 DR より先に直すため v16 から繰り上げた。仕様と実装の手順は [0028](decisions/0028-v15-timeout-bootstrap-fix.md))。**v15 の学習は v14 の結果が出てから** (継承元をそのとき v13・v14 から決める。コードの実装とテストは先に進めてよい)。
 - **崩れない run の頭打ち (30〜50%) は段 2 の詰まり**でほぼ説明できる (マルコフ連鎖の模型の上。同じ記録)。
-- v14 seed 43 (GPU 1)・seed 44 (GPU 0) を学習中。どちらも不具合を持つので、it100〜150 の崩れを見守る。
+- v14 seed 43 (GPU 1)・seed 44 (GPU 0) を学習中 (どちらも不具合を持つので、it100〜150 の崩れを見守る)。**次の session は v15 のコード実装から** (「次の作業」1。学習は v14 の結果が出て継承元を決めてから)。
 
 ## 版の状態
 
@@ -37,14 +37,14 @@
 
 - コマンド: `--task Isaac-Twisted-RL-Knot-v14 --device cuda:N --seed S --max_iterations 301 --run_name v14_sS agent.device=cuda:N agent.save_interval=10`。commit `d8dc8f7`。Hydra の上書きは `agent.*` だけ (評価には何も付けない)。この run には `Loss/value_mean_s*` が無い。
 - 学習ログは it70〜90 まで健全 (`timeout_s0` 0.01〜0.02、v13 s44 の同じ時期と同じ水準)。
-- **他のジョブ (触らない)**: anaconda の python の実機の作業 (pid 560983・616313・895144・2892930・876400)。GPU 0・1 は他のユーザーとも共有している。
+- **他のジョブ (触らない)**: anaconda の python の実機の作業 (pid 560983・616313・895144・2892930・876400)。GPU 0・1 は他のユーザーとも共有している。 別の Claude session の `smoke_v13_in_v14env` (`run_job.sh` pid 2044855、python pid 2044864、GPU 0、`eval_chain.py` v13 のチェックポイントを v14 の環境で 16 環境、timeout 40m。2026-10-16 11:51 起動)。
 
 ## 次の作業
 
-1. **v14 の見守り**: it100〜150 で `timeout_s0` が 0.1 を超えないか (v12 s44 は it100 前後、v13 s44 は it120 前後で超えた)。崩れたら、そのチェックポイントで `diag_stage_moves.py --dump_obs` -> `chain_moves.py sequences` で 6 手目の山を数える。完走は 2 本とも `exit.txt` に `signal:` の行が無いことと `model_300.pt` で確かめる。
-2. **v14 の chain 評価**を it70 / 100 / 150 / 200 / 250 / 300 で v13 と並べる (公称の物理と、`env.events.rope_dr.params.enabled=true` の DR 付き)。0027 の予想を確かめる。1 点の差で結論しない (隣のチェックポイントと平均 9 ポイント揺れる)。内訳を並べるなら v13 も測り直す。
-3. **頭打ち (段 2) の切り分けの計測** (GPU を使う前にユーザーに確かめる。コマンドの案は[記録](experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md)の「次の作業」): 段 2 の形ごとの最良の 1 手 (`eval_search.py --mode shapes --shape_moves 1`)、6 手目の山がほかの崩れた run にもあるか、36 手の chain 評価。
-4. **v15 の実装** (コードの実装・テスト・ゲートは先に進めてよい。学習は v14 の結果が出て継承元を決めてから)。仕様・外れと言える予想・実装の手順はすべて [0028](decisions/0028-v15-timeout-bootstrap-fix.md)。学習の前に継承元を v13・v14 から決める (ユーザーと。v14 が崩れず v13 より良ければ v14、崩れれば v13 が目安)。決めたら、継承元の終了項の名前と PPO が `Loss/value_mean_s*` を出すかを確かめ、0028 の手順 (時間切れの項 `time_out_unless_terminated` を `common/mdp/terminations.py` に足す -> skill `add-version` -> テスト -> ゲート -> commit -> seed 43 / 44 を it300) に進む。比べる相手は継承元の同じシード。
+1. **v15 の実装** (コードの実装・テスト・ゲートは先に進めてよい。学習は v14 の結果が出て継承元を決めてから)。仕様・外れと言える予想・実装の手順はすべて [0028](decisions/0028-v15-timeout-bootstrap-fix.md)。学習の前に継承元を v13・v14 から決める (ユーザーと。v14 が崩れず v13 より良ければ v14、崩れれば v13 が目安)。決めたら、継承元の終了項の名前と PPO が `Loss/value_mean_s*` を出すかを確かめ、0028 の手順 (時間切れの項 `time_out_unless_terminated` を `common/mdp/terminations.py` に足す -> skill `add-version` -> テスト -> ゲート -> commit -> seed 43 / 44 を it300) に進む。比べる相手は継承元の同じシード。 実装の入口: 0028 の「実装の見通し」1 (`common/mdp/terminations.py` に追加)。最初に確かめること: `time_out` の項が `stage_up` より先に評価される時点で、`stage_changed` の抽出結果が今の手の後の形か (`get_extractor` の更新の仕組みを読む)。GPU は v14 が 2 枚とも使っているので、Isaac Sim を要るゲート・スモークテストは v14 の終わり (10-16 の 12:30〜15:00 頃) か、空きを見てユーザーに確かめてから。
+2. **v14 の見守り**: it100〜150 で `timeout_s0` が 0.1 を超えないか (v12 s44 は it100 前後、v13 s44 は it120 前後で超えた)。崩れたら、そのチェックポイントで `diag_stage_moves.py --dump_obs` -> `chain_moves.py sequences` で 6 手目の山を数える。完走は 2 本とも `exit.txt` に `signal:` の行が無いことと `model_300.pt` で確かめる。
+3. **v14 の chain 評価**を it70 / 100 / 150 / 200 / 250 / 300 で v13 と並べる (公称の物理と、`env.events.rope_dr.params.enabled=true` の DR 付き)。0027 の予想を確かめる。1 点の差で結論しない (隣のチェックポイントと平均 9 ポイント揺れる)。内訳を並べるなら v13 も測り直す。
+4. **頭打ち (段 2) の切り分けの計測** (GPU を使う前にユーザーに確かめる。コマンドの案は[記録](experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md)の「次の作業」): 段 2 の形ごとの最良の 1 手 (`eval_search.py --mode shapes --shape_moves 1`)、6 手目の山がほかの崩れた run にもあるか、36 手の chain 評価。
 5. v16 の実装 ([0029](decisions/0029-v16-rope-size-dr.md) の「実装の順序」に従う。`add-version` -> `physics-check` -> スモークテスト -> commit。v15 の結果が出てから、継承元はそのとき決める)。未確認: `MultiAssetSpawnerCfg` が Articulation で動くか、`replicate_physics=False` での起動時間と学習速度。
 6. v7 s44 を it300 まで延ばす (比べる相手を 2 シードにする。GPU が空いてから、順番はユーザーに確かめる): `uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:N --seed 44 --resume --load_run 2026-10-04_22-37-47_v7_s44 --checkpoint model_100.pt --max_iterations 201 --run_name v7_s44_to300 agent.device=cuda:N agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[/home/itoyama/work/isaac_twisted_rl/logs/rsl_rl/knot_tying_v7/2026-10-04_22-37-47_v7_s44/archive.pt]` (`run_job.sh --timeout 20h --detach`)。
 7. v11 s43 の延長の chain 評価を it400 / 500 / 600 / 700 / 800 で (it1000 は済み)。

@@ -5,6 +5,7 @@
 | `train.py` / `play.py` | 学習と再生 (`uv run train` / `uv run play`) |
 | `eval_chain.py` | v4 以降の **chain 評価**: Play 環境でまっすぐなロープから 18 手以内に固結びを結べるか。各環境の最初の 1 エピソードを数える。段ごとの内訳 (結末 x 最後の段・段に着いた手数・条件付きの成功率・Wilson 区間)、評価中の行動の張り付き (段 x チャネル)、再現の情報 (`meta`) も出す。評価の前に run の `params/env.yaml` と設定を照合し、Play の意図した変更以外の違いがあれば止める (`--allow_param_diff` で続ける)。キーの一覧は [`docs/system/evaluation.md`](../../../../docs/system/evaluation.md) §1 |
 | `diag_stage_moves.py` | chain モードで、手の前の段ごとに手の結果 (段が上がった・下がった・形が変わらない・ロープが床に落ちていない・発散) の割合と、その手の行動の平均を数える。段で詰まる方策が何をしているかを見る |
+| `check_timeout_overlap.py` | 学習用のタスクで方策を走らせ、同じ手で `terminated` と `truncated` が両方立った数を、立った項ごとに数える (v15 のゲート。両方が立った手は PPO が γ·V(s) を bootstrap する: [0028](../../../../docs/decisions/0028-v15-timeout-bootstrap-fix.md)) |
 | `export_policy.py` | 段ごとの方策のチェックポイントを TorchScript / ONNX に書き出す (Isaac Sim なし、CPU)。出力は `play.py` と同じ `<run>/exported/policy.{pt,onnx}` と、どのチェックポイントかを書いた `export_info.json`。書き出した後に元の方策との一致を確かめる |
 | `eval_search.py` | **推論時探索の評価**: 同じチェックポイントに「探索ありの成功率」を付ける (この README の本題) |
 | `summarize_search.py` | `eval_chain.py` / `eval_search.py` の JSON から版ごとの比較表 (Markdown) を出す |

@@ -37,11 +37,14 @@
 """
 
 import argparse
+import os
 import sys
 
 from isaaclab.app import AppLauncher
 
 from isaac_twisted_rl.scripts.rsl_rl import cli_args  # isort: skip
+
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), *[".."] * 4))
 
 parser = argparse.ArgumentParser(description="Evaluate a checkpoint per episode in chain mode.")
 parser.add_argument("--num_envs", type=int, default=1024, help="Number of environments (= episodes counted).")
@@ -53,6 +56,18 @@ parser.add_argument("--seed", type=int, default=None, help="Seed used for the en
 parser.add_argument("--steps", type=int, default=19, help="env.step() calls (>= the Play episode length).")
 parser.add_argument("--stochastic", action="store_true", default=False, help="Sample actions with the policy std.")
 parser.add_argument("--out", type=str, default=None, help="Write the summary as JSON here.")
+parser.add_argument(
+    "--start",
+    choices=("straight", "curved"),
+    default="straight",
+    help="Initial rope shape: straight (default, the standard chain evaluation) or curved (non-crossing bent shapes).",
+)
+parser.add_argument(
+    "--curved_archive",
+    type=str,
+    default=os.path.join(_REPO_ROOT, "outputs", "archive_eval", "curved_{num_links}links.pt"),
+    help="Stage-0 archive made by demos/make_curved_archive.py (used with --start curved).",
+)
 parser.add_argument(
     "--allow_param_diff",
     action="store_true",
@@ -69,8 +84,8 @@ app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
 import datetime
+import hashlib
 import json
-import os
 import subprocess
 import tempfile
 
@@ -151,6 +166,46 @@ def _check_params(env_cfg: ManagerBasedRLEnvCfg, resume_path: str) -> dict:
     return out | {"train_task": train_task, **diff}
 
 
+_RESET_TERM = "reset_to_stage"
+
+
+def _apply_start(env_cfg: ManagerBasedRLEnvCfg) -> dict:
+    """`--start` に応じて初期形状の選び方を変える。`_check_params` の後で呼ぶ (意図した変更として扱うため)。
+
+    straight は Play の既定のまま (何も変えない。既存の JSON とビット単位で一致させる)。curved は段 0 のアーカイブ
+    (交差のない曲がった形。`demos/make_curved_archive.py`) だけを読み、まっすぐなロープを使わない。
+    アーカイブの読み込みは、ファイルが無いと警告だけで飛ばす (`ResetToStage`) ので、環境を作った後に
+    `_check_curved_loaded` で読めたことを確かめる (リンク数が決まるのは環境を作った後)。
+    """
+    info: dict = {"start": args_cli.start}
+    if args_cli.start == "straight":
+        return info
+    term = getattr(env_cfg.events, _RESET_TERM, None)
+    if term is None:
+        raise RuntimeError(f"{args_cli.task} に event 項 {_RESET_TERM} が無く、--start curved は使えない")
+    n_stages = len(term.params.get("stage_weights", (1.0,)))
+    term.params["load_paths"] = (args_cli.curved_archive,)
+    term.params["stage_weights"] = (1.0,) + (0.0,) * (n_stages - 1)
+    term.params["straight_prob"] = 0.0
+    return info
+
+
+def _check_curved_loaded(unwrapped) -> dict:
+    """段 0 のアーカイブが読めたことを確かめ、ファイルの sha256 を返す。
+
+    空だと `ResetToStage` は黙ってまっすぐなロープにするので、評価がまっすぐのまま走るのを防ぐ。
+    """
+    path = args_cli.curved_archive.format(num_links=unwrapped.scene["rope"].num_bodies)
+    sizes = unwrapped.event_manager.get_term_cfg(_RESET_TERM).func.archive.sizes()
+    if not os.path.isfile(path) or sizes.get(0, 0) == 0:
+        raise RuntimeError(
+            f"曲がった形のアーカイブが読めていない: {path} (段ごとの件数 {sizes})。demos/make_curved_archive.py で作る"
+        )
+    with open(path, "rb") as f:
+        sha = hashlib.sha256(f.read()).hexdigest()
+    return {"curved_archive": path, "curved_archive_sha256": sha, "curved_archive_count": sizes[0]}
+
+
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     agent_cfg = cli_args.update_rsl_rl_cfg(agent_cfg, args_cli)
@@ -176,7 +231,11 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
                 "学習の Hydra の上書きを評価に付け忘れていないかを確かめる。意図した違いなら --allow_param_diff を付ける"
             )
 
+    start_info = _apply_start(env_cfg)
+
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
+    if args_cli.start == "curved":
+        start_info |= _check_curved_loaded(env.unwrapped)
     env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
@@ -272,6 +331,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
         "started": started,
         "finished": _now(),
     }
+    summary["start"] = start_info
     summary["param_check"] = param_check
     print("\n=== chain evaluation ===")
     for k, v in summary.items():

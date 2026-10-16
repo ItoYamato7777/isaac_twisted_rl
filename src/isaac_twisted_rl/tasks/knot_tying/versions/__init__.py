@@ -19,6 +19,7 @@
     v12/    v7 + 到達状態アーカイブに「段が上がった手の後の形」だけを保存する (v8〜v11 は継承しない)
     v13/    v12 + PPO の損失に方策の平均が行動の範囲 [−1, 1] の外へ出た分の罰則 (環境は v12 のまま)
     v14/    v13 + 段 0 の形を変えた手の保存 + ロープの物理の DR + critic の特権観測
+    v15/    v14 + 段の変化・発散と同じ手では時間切れを立てない (時間切れの bootstrap の不具合の修正)
 
 バージョンの増やし方は skill `add-version` (`.claude/skills/add-version/SKILL.md`)。この一覧は
 `tests/test_docs.py` が `versions/` のフォルダと `_VERSIONS` に照らして検査する。

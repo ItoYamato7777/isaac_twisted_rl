@@ -136,3 +136,37 @@ def ladder_class_reached(
     if diverged_term is not None:
         done &= ~diverged_now(env, diverged_term)
     return done
+
+
+def time_out_unless_terminated(
+    env: ManagerBasedRLEnv, exclude_terms: tuple[str, ...] = ("diverged", "stage_up", "stage_down")
+) -> torch.Tensor:
+    """時間切れ `(num_envs,)`。ただし同じ手で `exclude_terms` の終了項のどれかが立つなら False。v15 で追加。
+
+    `time_out=True` で使う (`isaaclab.envs.mdp.time_out` の置き換え)。
+
+    ## なぜ要るか
+
+    `TerminationManager.compute` は `time_out=True` の項を `truncated`、それ以外を `terminated` に別々に OR
+    するので、最後の手で段が上がると両方が立つ。rsl-rl 3.0.1 の `PPO.process_env_step` は
+    `extras["time_outs"]` (= `truncated`) の手の報酬に `terminated` を見ずに γ·V(s) を足すので、最後の手で
+    段を上げた手の目標が 1 + γ·V(s) になり、最後の手まで待つ得が生まれる (V の不動点は上限 1/(1 − γ))。
+    rsl-rl に渡るのは `dones = terminated | truncated` と `time_outs = truncated` だけで、両方が立った手の
+    `terminated` を PPO の側から取り戻せないので、終了項の側で直す。段も変わらず発散もしない純粋な
+    時間切れは今までどおり bootstrap する。経緯と数値は `docs/decisions/0028-v15-timeout-bootstrap-fix.md`。
+
+    ## 実装の注意
+
+    - `termination_manager.get_term()` は使わない (`_term_dones` は前のエピソードの値が残る。`diverged_now`
+      の docstring)。終了項の関数を params ごと呼び直す。
+    - この項は終了項の並びで `stage_up` などより先に呼ばれるが、`ManagerBasedRLEnv.step()` は
+      `common_step_counter` を進めてから終了判定に入り、`get_extractor` はその見張り番で抽出し直すので、
+      ここで見る形は今の手の後の形になる (`stage_transition` のキャッシュも同じ見張り番)。
+    - `exclude_terms` に無い名前があれば `get_term_cfg` の `ValueError` でそのまま落とす (配線の誤りを
+      黙って通さない)。
+    """
+    out = env.episode_length_buf >= env.max_episode_length
+    for name in exclude_terms:
+        cfg = env.termination_manager.get_term_cfg(name)
+        out = out & ~cfg.func(env, **cfg.params)
+    return out

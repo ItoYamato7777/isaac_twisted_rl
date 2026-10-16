@@ -40,6 +40,7 @@ run のフォルダは `logs/rsl_rl/` の下 (git の管理外)。日時付き�
 | 2026-10-15 | chain 評価の再現性 (測り直し・`--seed`・GPU で値が変わるか) | 凍結 | chain 評価は決定論的。測り直し・`--seed`・GPU を変えても全キーがビット単位で同じ。512 の結末は同じ初期状態から物理の増幅で分かれる。揺らぎの組を引き直したときの揺れは未実測 | `outputs/eval_repro/` | [2026-10-15_eval-chain-repro.md](2026-10-15_eval-chain-repro.md) |
 | 2026-10-15 | v14 (v13 + 段 0 の形を変えた手の保存・ロープの物理の DR・critic の特権観測) の学習 (seed 43 / 44、iteration 300) と chain 評価 (公称と DR 付き) | 凍結 | 2 シードとも段 0 で崩れず、公称の chain 評価で it100 以降に v13 を大きく上回り、it300 まで下がらなかった (0027 の予想 1・2 は当たり)。DR 付きの評価での下がり幅は v14 の方が大きい (予想 3 は外れ)。3 つの変更のどれが効いたかは未確認 | `knot_tying_v14/` (v13 の方策を v14 の Play で測った値は `outputs/eval_v14env/`) | [2026-10-15_v14_s0-reshape-dr-priv-critic.md](2026-10-15_v14_s0-reshape-dr-priv-critic.md) |
 | 2026-10-16 | v15 の学習の前のゲート (terminated と truncated の重なり) と、v14 の段 0 の V | 凍結 | v14 では両方が立つ手が 124 / 6144 手、v15 では 0。純粋な時間切れは残る。v14 の段 0 の V は固定した観測で 1/γ をやや超える点があるが膨らみは無い。2 iteration のスモークテストは別には回していない | (学習の run は `knot_tying_v15/`) | [2026-10-16_v15_timeout-gate.md](2026-10-16_v15_timeout-gate.md) |
+| 2026-10-16 | 学習の速さのために v14 の物理の設定 (ソルバの反復・dt・待ちのフェーズの尺) を軽くできるかの計測 | 凍結 | 時間のほぼ全部が PhysX。v14 の方策を軽い物理で chain 評価すると、待ちの尺を詰めた D4 は質がほぼ落ちず、反復 6 は少し、dt・反復 4・組み合わせは大きく落ちた。ゼロからの学習での確認は未実施 | `outputs/bench_step_time/`・`outputs/eval_physics_speed/`・`outputs/overhand_script/speed/` | [2026-10-16_physics-speed.md](2026-10-16_physics-speed.md) |
 
 ## v0〜v6 と、打ち切り中の研究
 

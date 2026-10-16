@@ -19,13 +19,13 @@ resets from an archive of reached states. See [`knot_tying/README.md`](src/isaac
 
 ![Training](video/highlights/knot_training_mock.webp)
 
-[Full-quality mp4](video/highlights/knot_training_mock.mp4)
+<!-- [Full-quality mp4](video/highlights/knot_training_mock.mp4) -->
 
 ## Play
 
 ![Play](video/highlights/knot_playing_mock.webp)
 
-[Full-quality mp4](video/highlights/knot_playing_mock.mp4)
+<!-- [Full-quality mp4](video/highlights/knot_playing_mock.mp4) -->
 
 <!--
 

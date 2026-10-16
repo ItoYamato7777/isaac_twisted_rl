@@ -13,7 +13,9 @@
    報酬・観測・終了の項ごとの時間を、前後で `torch.cuda.synchronize()` して測る。同期の分だけ素の速さより遅い。
    PhysX の時間は 1 手の中の物理ステップの番号ごとにも残し、フェーズ (`PhaseDurations`) ごとに足す。
    PhysX の 1 ステップの重さが、ロープを掴んで動かしている区間と待ちの区間で違うかを見るため。
-3. **1 手あたりの発散率**: 終了の項 `diverged` が立った割合 (両方の計測の手を合わせる)。
+3. **1 手あたりの発散率**: 終了の項 `diverged` が立った割合 (両方の計測の手を合わせる)。項の返り値をその場で
+   捕まえて数える。`TerminationManager.get_term()` は立った環境の値しか書き換えず reset でも消えないので、
+   手の後に読むと前の手の発散を数え直してしまう (`.claude/rules/mdp.md`)。
 
 行動はランダム (`N(0, 0.5)` を [−1, 1] に切る。`rope_study/bench_physics.py` の `random` と同じ)。学習済みの
 方策の手とは接触の数や reset の頻度が違うので、発散率の絶対値は学習のログと比べない。条件どうしの比で読む。
@@ -21,6 +23,11 @@
 PPO の更新の時間はここでは測らない (学習ログの `Perf/learning_time` にある)。
 
 ## 設定の上書き
+
+`--sim_hz` と `--durations "relax=0.25,settle_out=0.2"` は、物理の刻みとフェーズの尺を変え、それに従う値
+(`decimation`・`episode_length_s`・`render_interval`・行動の項のフェーズの尺・報酬の重みの `step_dt` のスケール) を
+`KnotTyingEnvCfg.__post_init__` と同じ式で計算し直す。めり込み解消速度は再スケールしないので、変えるなら `--cfg` で
+`scene.rope.spawn.rigid_props.max_depenetration_velocity` を書く (`--cfg` はこの 2 つの後に効く)。
 
 `--cfg "a.b=値;c.d=値"` は環境設定の `__post_init__` の **後** に書き込む (値は Python リテラル)。学習の Hydra の
 上書き (`env.a.b=値`) と同じ時点なので、同じ上書きを学習に付ければ同じ物理になる。ただし `durations`・
@@ -48,6 +55,8 @@ parser.add_argument("--num_envs", type=int, default=1024)
 parser.add_argument("--warmup", type=int, default=2, help="計時しない最初の手の数。")
 parser.add_argument("--moves", type=int, default=6, help="素の速さ・内訳のそれぞれで打つ手の数。")
 parser.add_argument("--seed", type=int, default=0)
+parser.add_argument("--sim_hz", type=float, default=0.0, help="物理の刻み [Hz]。0 なら設定のまま。")
+parser.add_argument("--durations", type=str, default="", help="フェーズの尺の上書き 'relax=0.25,settle_out=0.2' [s]。")
 parser.add_argument("--cfg", type=str, default="", help="環境設定の上書き 'a.b=値;...' (値は Python リテラル)。")
 parser.add_argument("--no_breakdown", action="store_true", help="内訳を測らない (素の速さと発散率だけ)。")
 parser.add_argument("--label", type=str, default="")
@@ -82,6 +91,23 @@ def _set_cfg(cfg, spec: str):
             obj[parts[-1]] = v
         else:
             setattr(obj, parts[-1], v)
+
+
+def _retime(cfg, sim_hz: float, durations: str):
+    """刻みと尺を変え、それに従う値を `KnotTyingEnvCfg.__post_init__` と同じ式で計算し直す。"""
+    if not sim_hz and not durations:
+        return
+    if sim_hz:
+        cfg.sim.dt = 1.0 / sim_hz
+    for item in filter(None, (s.strip() for s in durations.split(","))):
+        k, v = item.split("=")
+        setattr(cfg.durations, k.strip(), float(v))
+    cfg.actions.pick_place.durations = cfg.durations
+    cfg.decimation = cfg.durations.decimation(cfg.sim.dt)
+    # 積のままだと浮動小数の誤差で手数が 1 つ増えることがある (`demos/divergence_bench.py` と同じ対処)
+    cfg.episode_length_s = (cfg.actions_per_episode - 0.5) * cfg.decimation * cfg.sim.dt
+    cfg.sim.render_interval = cfg.decimation
+    cfg._rescale_reward_weights()
 
 
 def _gpu_snapshot() -> list[str]:
@@ -181,6 +207,7 @@ def main():
     cfg.rewards.record_stage_archive.params["save_every"] = 0
     if "history_every" in cfg.rewards.record_stage_archive.params:
         cfg.rewards.record_stage_archive.params["history_every"] = 0
+    _retime(cfg, args_cli.sim_hz, args_cli.durations)
     if args_cli.cfg:
         _set_cfg(cfg, args_cli.cfg)
     env = gym.make(args_cli.task, cfg=cfg)
@@ -192,6 +219,8 @@ def main():
         "task": args_cli.task,
         "num_envs": n,
         "cfg_override": args_cli.cfg,
+        "sim_hz_override": args_cli.sim_hz,
+        "durations_override": args_cli.durations,
         "sim_dt": u.physics_dt,
         "decimation": u.cfg.decimation,
         "step_dt": u.step_dt,
@@ -217,11 +246,23 @@ def main():
     g = torch.Generator(device=dev).manual_seed(args_cli.seed)
     adim = u.action_manager.total_action_dim
     div_flags = []
+    # 発散の項の返り値をその場で捕まえる (docstring の 3)
+    tm = u.termination_manager
+    div_cfg = tm._term_cfgs[tm._term_names.index("diverged")]
+    div_now = {}
+    raw_div = div_cfg.func
+
+    def div_capture(*a, **k):
+        out = raw_div(*a, **k)
+        div_now["v"] = out.clone()
+        return out
+
+    div_cfg.func = div_capture
 
     def move():
         a = (0.5 * torch.randn(n, adim, device=dev, generator=g)).clamp(-1, 1)
         env.step(a)
-        div_flags.append(u.termination_manager.get_term("diverged").float().mean().item())
+        div_flags.append(div_now.pop("v").float().mean().item())
         return a
 
     with torch.inference_mode():

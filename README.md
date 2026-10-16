@@ -17,11 +17,15 @@ resets from an archive of reached states. See [`knot_tying/README.md`](src/isaac
 
 ## Train
 
-<video src="https://github.com/ItoYamato7777/isaac_twisted_rl/raw/main/video/highlights/knot_training_mock.mp4" controls muted width="640"></video>
+![Training](video/highlights/knot_training_mock.webp)
+
+[Full-quality mp4](video/highlights/knot_training_mock.mp4)
 
 ## Play
 
-<video src="https://github.com/ItoYamato7777/isaac_twisted_rl/raw/main/video/highlights/knot_playing_mock.mp4" controls muted width="640"></video>
+![Play](video/highlights/knot_playing_mock.webp)
+
+[Full-quality mp4](video/highlights/knot_playing_mock.mp4)
 
 <!--
 

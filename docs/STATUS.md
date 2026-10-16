@@ -33,11 +33,12 @@
 | ジョブ | GPU | pid | job のフォルダ | run のフォルダ | 起動 | 終わりの見込み |
 |---|---|---|---|---|---|---|
 | v14 s43 (0 -> it300) | 1 | 262619 (`run_job.sh`、timeout 30h) | `outputs/jobs/2026-10-15_15-07-05_v14_s43` | `logs/rsl_rl/knot_tying_v14/2026-10-15_15-07-10_v14_s43` | 10-15 15:07 | 10-16 12:30 頃 (約 4.3 分/iteration) |
-| v14 s44 (0 -> it300) | 0 | 344651 (同上) | `outputs/jobs/2026-10-15_16-07-16_v14_s44` | `logs/rsl_rl/knot_tying_v14/2026-10-15_16-07-22_v14_s44` | 10-15 16:07 | 10-16 15:00 頃 (約 4.6 分/iteration) |
+| v14 s44 (0 -> it300) | 0 | 完走 (`exit: 0`、`signal:` なし、`model_300.pt`) | `outputs/jobs/2026-10-15_16-07-16_v14_s44` | `logs/rsl_rl/knot_tying_v14/2026-10-15_16-07-22_v14_s44` | 10-15 16:07 | 10-16 12:31 に終了 |
+| v14 s44 の chain 評価 (11 本を順に) | 0 | 2145604 (`run_job.sh`、timeout 8h) | `outputs/jobs/2026-10-16_13-02-09_eval_v14_s44` (コマンドは `cmd.txt`) | 出力は v14 s44 の run の `eval_chain_it{70..300}.json`・`eval_chain_dr_it{100,300}.json`、v13 s44 の方策を v14 の Play で測った `outputs/eval_v14env/*.json` | 10-16 13:02 | 10-16 17:00 頃 |
 
 - コマンド: `--task Isaac-Twisted-RL-Knot-v14 --device cuda:N --seed S --max_iterations 301 --run_name v14_sS agent.device=cuda:N agent.save_interval=10`。commit `d8dc8f7`。Hydra の上書きは `agent.*` だけ (評価には何も付けない)。この run には `Loss/value_mean_s*` が無い。
 - 学習ログは it70〜90 まで健全 (`timeout_s0` 0.01〜0.02、v13 s44 の同じ時期と同じ水準)。
-- **他のジョブ (触らない)**: anaconda の python の実機の作業 (pid 560983・616313・895144・2892930・876400)。GPU 0・1 は他のユーザーとも共有している。 別の Claude session の `smoke_v13_in_v14env` (`run_job.sh` pid 2044855、python pid 2044864、GPU 0、`eval_chain.py` v13 のチェックポイントを v14 の環境で 16 環境、timeout 40m。2026-10-16 11:51 起動)。
+- **他のジョブ (触らない)**: anaconda の python の実機の作業 (pid 560983・616313・895144・2892930・876400)。GPU 0・1 は他のユーザーとも共有している。
 
 ## 次の作業
 

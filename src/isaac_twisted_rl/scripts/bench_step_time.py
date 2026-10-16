@@ -16,6 +16,10 @@
 3. **1 手あたりの発散率**: 終了の項 `diverged` が立った割合 (両方の計測の手を合わせる)。項の返り値をその場で
    捕まえて数える。`TerminationManager.get_term()` は立った環境の値しか書き換えず reset でも消えないので、
    手の後に読むと前の手の発散を数え直してしまう (`.claude/rules/mdp.md`)。
+4. **ロープの速さの推移** (`speed_profile`): 物理ステップごとに、環境ごとのリンクの最大速度を取り、1 手の中の
+   ステップの番号ごとに環境の中央値・90 パーセンタイル・0.05 m/s を超える割合を残す (内訳の手で集める)。
+   待ちのフェーズ (relax・settle_out など) の終わりにロープが止まっているか、どこまで詰められるかを見るため。
+   発散した環境は値が大きく外れるので、分位点で読む。
 
 行動はランダム (`N(0, 0.5)` を [−1, 1] に切る。`rope_study/bench_physics.py` の `random` と同じ)。学習済みの
 方策の手とは接触の数や reset の頻度が違うので、発散率の絶対値は学習のログと比べない。条件どうしの比で読む。
@@ -153,13 +157,23 @@ class Timer:
         return wrapped
 
 
-def instrument(u, T: Timer, physx_per_step: list):
+def instrument(u, T: Timer, physx_per_step: list, speeds: list):
     """env の各処理を計時の包みに差し替える (インスタンスの属性を上書きするだけで、クラスには触れない)。"""
     am, sc, sim = u.action_manager, u.scene, u.sim
     am.process_action = T.wrap("process_action", am.process_action)
     am.apply_action = T.wrap("apply_action", am.apply_action)
     sc.write_data_to_sim = T.wrap("write_data_to_sim", sc.write_data_to_sim)
-    sc.update = T.wrap("scene_update", sc.update)
+    timed_update = T.wrap("scene_update", sc.update)
+    rope = sc["rope"]
+
+    def update(*a, **k):
+        out = timed_update(*a, **k)
+        if T.enabled:
+            v = torch.nan_to_num(rope.data.body_lin_vel_w.norm(dim=-1), nan=1e3).amax(dim=1)
+            speeds.append(torch.stack([v.median(), v.quantile(0.9), (v > 0.05).float().mean()]))
+        return out
+
+    sc.update = update
 
     raw_step = sim.step
 
@@ -242,7 +256,8 @@ def main():
 
     T = Timer()
     physx_per_step: list[float] = []
-    instrument(u, T, physx_per_step)
+    speeds: list[torch.Tensor] = []
+    instrument(u, T, physx_per_step, speeds)
     g = torch.Generator(device=dev).manual_seed(args_cli.seed)
     adim = u.action_manager.total_action_dim
     div_flags = []
@@ -297,7 +312,21 @@ def main():
                 seg = steps[i : i + k]
                 by_phase[name] = {"steps": k, "sec": float(seg.sum()), "ms_per_step": float(seg.mean() * 1e3)}
                 i += k
+            sp = torch.stack(speeds).view(args_cli.moves, dec, 3).mean(0).cpu()
+            speed_profile, i = {}, 0
+            for name, k in zip(phases.PHASE_NAMES, cfg.durations.step_counts(u.physics_dt)):
+                seg = sp[i : i + k]
+                # フェーズの中の 4 点 (始め・1/3・2/3・終わり)
+                idx = sorted({0, k // 3, (2 * k) // 3, k - 1})
+                speed_profile[name] = {
+                    "at_step": idx,
+                    "median": [round(float(seg[j, 0]), 4) for j in idx],
+                    "p90": [round(float(seg[j, 1]), 4) for j in idx],
+                    "frac_gt_5cm_s": [round(float(seg[j, 2]), 4) for j in idx],
+                }
+                i += k
             bd = {
+                "speed_profile": speed_profile,
                 "sec_per_move_synced": bd_sec,
                 "sec_per_move_by_part": per_move,
                 "physx_ms_per_step": float(steps.mean() * 1e3),

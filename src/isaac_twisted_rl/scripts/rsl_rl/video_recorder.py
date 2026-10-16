@@ -40,7 +40,9 @@ from isaac_twisted_rl.scripts.rsl_rl.stage_colors import STAGE_COLORS, GripperSt
 
 _CAM_ROOT = "/World/VideoCams"
 _FOCAL_LENGTH = 18.15
-"""Kit の既定の viewer (`/OmniverseKit_Persp`) と同じ画角 (横 60° 弱)。`viewer.eye` の距離で環境が収まる。"""
+"""Kit の既定の viewer (`/OmniverseKit_Persp`) と同じ画角 (横 60° 弱)。"""
+_EYE_SCALE = 1.25
+"""注視点からカメラまでを `viewer.eye` の何倍にするか。等倍だと手で運んだロープが画面の端に出る (スモークテストで見た)。"""
 _WARMUP_RENDERS = 4
 """render product を作った直後は空のコマが返る (`manager_based_rl_env.py` の `render()` の注)。"""
 _ENDING_S = 1.0
@@ -115,10 +117,14 @@ class EvalVideoRecorder:
             for p in old:
                 os.remove(p)
 
-        # -- カメラ: 環境の原点 + viewer の eye / lookat。向きは Camera.set_world_poses_from_view と同じ (OpenGL)
+        # -- カメラ: 撮り始めのロープのリンクの重心を見る。viewer の lookat (環境の原点) はロープの根元で、
+        #    ロープは原点から片側へ伸びる (`rope_task_cfg.py` の init_state) ので、原点を見ると半分が画面の外に出る。
+        #    カメラはその後動かさない (ロープが流れたらそのまま映す)。向きは Camera.set_world_poses_from_view と同じ
         origins = env.scene.env_origins[self._ids_t].detach().cpu().float()
-        eyes = origins + torch.tensor(env.cfg.viewer.eye, dtype=torch.float32)
-        targets = origins + torch.tensor(env.cfg.viewer.lookat, dtype=torch.float32)
+        centroid = env.scene["rope"].data.body_pos_w[self._ids_t].detach().cpu().float().mean(dim=1)
+        targets = centroid.clone()
+        targets[:, 2] = origins[:, 2] + env.cfg.viewer.lookat[2]
+        eyes = targets + _EYE_SCALE * torch.tensor(env.cfg.viewer.eye, dtype=torch.float32)
         quats = quat_from_matrix(create_rotation_matrix_from_view(eyes, targets, up_axis="Z"))
         cam_cfg = sim_utils.PinholeCameraCfg(focal_length=_FOCAL_LENGTH, clipping_range=(0.01, 100.0))
         self._render_products = []
@@ -214,7 +220,7 @@ class EvalVideoRecorder:
                 self._finish(j, vl.UNFINISHED, int(moves[j]))
         for ann, rp in zip(self._annotators, self._render_products):
             try:
-                ann.detach([rp])
+                ann.detach([rp.path])
                 rp.destroy()
             except Exception as e:  # noqa: BLE001  後片付けの失敗で評価の結果を捨てない
                 print(f"[WARN] render product の後片付けに失敗: {e}")

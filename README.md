@@ -14,6 +14,26 @@ In the current design (v4 and later), one RL step is one whole pick&place move; 
 (`round(3Φ)`: 0 = trivial, 3 = knot) has its own policy head; an episode is one stage transition; and training
 resets from an archive of reached states. See [`knot_tying/README.md`](src/isaac_twisted_rl/tasks/knot_tying/README.md).
 
+
+## Train
+
+<video src="https://github.com/ItoYamato7777/isaac_twisted_rl/raw/main/video/highlights/knot_training_mock.mp4" controls muted width="640"></video>
+
+## Play
+
+<video src="https://github.com/ItoYamato7777/isaac_twisted_rl/raw/main/video/highlights/knot_playing_mock.mp4" controls muted width="640"></video>
+
+<!--
+
+## Sim2Real Transfer
+
+_Work in progress._
+
+
+
+-->
+
+
 ## Installation
 
 Install uv.
@@ -158,14 +178,6 @@ Documentation is in Japanese.
 | [`docs/decisions/`](docs/decisions/README.md) | design decisions across versions |
 | [`docs/experiments/`](docs/experiments/README.md) | experiment records and results |
 | [`CLAUDE.md`](CLAUDE.md) | development rules for contributors (including Claude Code) |
-
-<!-- ## Sim2Real Transfer
-
-_Work in progress._
-
-## Results
-
-![rl-video-step-0](https://github.com/user-attachments/assets/890e3a9d-5cbd-46a5-9317-37d0f2511684) -->
 
 ## Acknowledgements
 

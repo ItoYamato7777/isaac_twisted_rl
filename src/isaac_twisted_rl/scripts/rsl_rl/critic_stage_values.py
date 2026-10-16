@@ -15,8 +15,13 @@ bootstrap (γ·V) が +1 を上回る。段 0 が崩れた run は、どれも V
 
 観測は `diag_stage_moves.py --dump_obs` が chain モードで保存したもの (actor の入力そのもの) を固定して使う。
 どの run のチェックポイントにも同じ観測を入れるので、run どうし・iteration どうしを比べられるが、各 run が
-実際に訪れる状態での V ではない。critic の入力が actor と同じ観測の版 (v12 まで・v13) にだけ使える。
-v14 の critic は特権観測 (`rope_params`) を見るので入力の次元が違い、止める。
+実際に訪れる状態での V ではない。
+
+v14 以降の critic は特権観測 (`rope_params`、6 次元) を actor の観測の前に見るので、入力の次元が違う。
+`--critic_prefix` で、固定した観測の前に同じ 6 次元を足して測る。公称の物理 (Play・chain 評価の既定) は
+v14 の `DR_RANGES` で `0,0,-1,0,0,0` (`domain_rand.normalize` で倍率 1 を写した値。ζ だけ範囲の下端)。
+観測の保存は公称の物理の chain 評価で作ったものなので、公称の値を足すのが観測と揃う。
+`--critic_prefix` が無く次元が違えば止める (黙って測らない)。
 
 ## 出す指標 (段ごと。`stages`)
 
@@ -58,11 +63,19 @@ def load_critic(path: str, num_obs: int) -> GatedMLP:
     if critic_obs != num_obs:
         raise ValueError(
             f"{path}: critic の入力は {critic_obs} 次元で、固定した観測 ({num_obs} 次元) と違う。"
-            "特権観測を使う版 (v14 以降) の critic は、この観測では測れない"
+            "特権観測を使う版 (v14 以降) の critic は --critic_prefix で特権観測を足して測る"
         )
     critic = GatedMLP([MLP(num_obs, 1, HIDDEN, "elu") for _ in range(len(heads))], STAGE_DIMS)
     critic.load_state_dict({k[len("critic.") :]: v for k, v in sd.items() if k.startswith("critic.")})
     return critic.eval()
+
+
+def with_prefix(obs: torch.Tensor, prefix: list[float] | None) -> torch.Tensor:
+    """critic の入力: 固定した観測の前に、全行で同じ特権観測 `prefix` を足す (段の one-hot は最後のまま)。"""
+    if not prefix:
+        return obs
+    head = torch.tensor(prefix, dtype=obs.dtype).expand(obs.shape[0], -1)
+    return torch.cat([head, obs], dim=-1)
 
 
 def stage_stats(critic: GatedMLP, obs: torch.Tensor, threshold: float) -> dict[str, dict[str, float]]:
@@ -114,13 +127,25 @@ def main() -> None:
     parser.add_argument("--every", type=int, default=10, help="Use checkpoints whose iteration is a multiple of this.")
     parser.add_argument("--gamma", type=float, default=0.95, help="Threshold is 1/gamma (PPO gamma of the run).")
     parser.add_argument("--by_outcome", action="store_true", help="Also group stage-0 V by the saved move outcome.")
+    parser.add_argument(
+        "--critic_prefix",
+        type=lambda s: [float(v) for v in s.split(",")],
+        default=None,
+        help="Privileged critic obs prepended to every row (v14+: nominal physics is 0,0,-1,0,0,0).",
+    )
     parser.add_argument("--out", type=str, required=True)
     args = parser.parse_args()
 
     dumps = [torch.load(p, map_location="cpu", weights_only=False) for p in args.obs]
-    obs = torch.cat([d["actor_obs"] for d in dumps])
+    obs = with_prefix(torch.cat([d["actor_obs"] for d in dumps]), args.critic_prefix)
     threshold = break_even_value(args.gamma)
-    result: dict = {"obs_files": args.obs, "num_obs": int(obs.shape[0]), "threshold": threshold, "runs": {}}
+    result: dict = {
+        "obs_files": args.obs,
+        "num_obs": int(obs.shape[0]),
+        "critic_prefix": args.critic_prefix,
+        "threshold": threshold,
+        "runs": {},
+    }
     if args.by_outcome:
         names = dumps[0]["outcomes"]
         if any(d["outcomes"] != names for d in dumps):

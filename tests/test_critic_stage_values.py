@@ -4,18 +4,24 @@
 
 * チェックポイントから作った critic の出力が、学習側 (`StageGatedActorCritic`) の critic と同じになる。
 * critic の入力の次元が固定した観測と違う (v14 の特権観測) ときは、黙って測らず例外にする。
+* `--critic_prefix` で特権観測を前に足すと v14 以降の critic を測れ、段の振り分けは変わらない。公称の物理の値は
+  v14 の `DR_RANGES` で `0,0,-1,0,0,0`。
 * 段ごとの統計が `value_stats.stage_value_stats` と同じ数え方 (1/γ を**超えた**割合) になる。
 * `tb_table.window_mean` の窓の端 (両端を含む・欠けた点は飛ばす・点が無ければ None)。
 """
 
 from __future__ import annotations
 
+import ast
+
+import domain_rand as dr
 import pytest
 import torch
 from policies.stage_gated import StageGatedActorCritic
 from policies.value_stats import break_even_value, stage_value_stats
+from test_v9_cfg import _module_assign, _parse
 
-from isaac_twisted_rl.scripts.rsl_rl.critic_stage_values import load_critic, stage0_by_outcome, stage_stats
+from isaac_twisted_rl.scripts.rsl_rl.critic_stage_values import load_critic, stage0_by_outcome, stage_stats, with_prefix
 from isaac_twisted_rl.scripts.rsl_rl.tb_table import window_mean
 
 OBS, ACT, STAGE_DIMS = 12, 6, 4
@@ -72,6 +78,24 @@ def test_load_critic_rejects_different_input_dim(tmp_path):
     _, path = _checkpoint(tmp_path, critic_obs_dim=OBS + 8)
     with pytest.raises(ValueError, match="入力は"):
         load_critic(path, OBS)
+
+
+def test_prefix_lets_privileged_critic_be_measured(tmp_path):
+    _, path = _checkpoint(tmp_path, critic_obs_dim=OBS + 6)
+    x = _obs(32, seed=4)
+    prefix = [0.0, 0.0, -1.0, 0.0, 0.0, 0.0]
+    xp = with_prefix(x, prefix)
+    assert xp.shape == (32, OBS + 6)
+    assert torch.equal(xp[:, 6:], x) and torch.equal(xp[:, :6], torch.tensor(prefix).expand(32, -1))
+    critic = load_critic(path, OBS + 6)
+    assert torch.equal(critic.stage_index(xp), critic.stage_index(x))  # 段は最後の 4 列のまま
+    assert with_prefix(x, None) is x
+
+
+def test_nominal_prefix_matches_v14_dr_ranges():
+    ranges = ast.literal_eval(_module_assign(_parse("v14/env_cfg.py"), "DR_RANGES"))
+    nominal = dr.normalize(torch.ones(1, len(dr.AXES)), ranges)
+    assert nominal.squeeze(0).tolist() == [0.0, 0.0, -1.0, 0.0, 0.0, 0.0]
 
 
 def test_stage_stats_use_value_stats_counting(tmp_path):

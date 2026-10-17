@@ -35,6 +35,12 @@ parser.add_argument("--num_envs", type=int, default=4096)
 parser.add_argument("--sizes", choices=("grid", "nominal", "none"), default="grid")
 parser.add_argument("--moves", type=int, default=3, help="計時する手の数 (最初の 1 手は計時しない)。")
 parser.add_argument("--seed", type=int, default=0)
+parser.add_argument(
+    "--found_lost_pairs",
+    type=int,
+    default=0,
+    help="PhysX の gpu_found_lost_aggregate_pairs_capacity の上書き (0 なら設定のまま)。replicate なしのあふれの確認用。",
+)
 parser.add_argument("--label", type=str, default="")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -78,6 +84,8 @@ def main():
         apply_rope_sizes(cfg, "knot", [(ls, ds) for ls in SIZE_LENGTH_SCALES for ds in SIZE_DIAMETER_SCALES])
     elif args_cli.sizes == "nominal":
         apply_rope_sizes(cfg, "knot", [(1.0, 1.0)])
+    if args_cli.found_lost_pairs > 0:
+        cfg.sim.physx.gpu_found_lost_aggregate_pairs_capacity = args_cli.found_lost_pairs
 
     t_make0 = time.perf_counter()
     env = gym.make(args_cli.task, cfg=cfg)
@@ -149,6 +157,8 @@ def main():
         "sizes": args_cli.sizes,
         "num_envs": n,
         "replicate_physics": bool(cfg.scene.replicate_physics),
+        "gpu_found_lost_aggregate_pairs_capacity": cfg.sim.physx.gpu_found_lost_aggregate_pairs_capacity,
+        "gpu_total_aggregate_pairs_capacity": cfg.sim.physx.gpu_total_aggregate_pairs_capacity,
         "app_launch_sec": t_make0 - t_launch,
         "gym_make_sec": t_make,
         "reset_sec": t_reset,

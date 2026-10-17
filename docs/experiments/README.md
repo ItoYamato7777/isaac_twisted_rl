@@ -2,7 +2,7 @@
 
 - 状態: 現行 (記録を足すたびに 1 行足す)
 - 読むべき状況: 過去の学習・評価・計測の結果を探すとき。数値の正本は各記録で、この一覧には数値を書かない
-- 最終更新: 2026-10-17
+- 最終更新: 2026-10-18
 
 各記録は凍結 (本文を書き換えない)。後で分かったことは、冒頭の引用ブロックの注記か新しい記録で足す。書き方は skill `experiment-record`。
 評価の定義は [`docs/system/evaluation.md`](../system/evaluation.md)、ログのフォルダ名・run 名・チェックポイントの意味は [`docs/system/logs.md`](../system/logs.md)。
@@ -44,6 +44,7 @@ run のフォルダは `logs/rsl_rl/` の下 (git の管理外)。日時付き�
 | 2026-10-16 | 学習の速さのために v14 の物理の設定 (ソルバの反復・dt・待ちのフェーズの尺) を軽くできるかの計測 | 凍結 | 時間のほぼ全部が PhysX。v14 の方策を軽い物理で chain 評価すると、待ちの尺を詰めた D4 は質がほぼ落ちず、反復 6 は少し、dt・反復 4・組み合わせは大きく落ちた。ゼロからの学習での確認は未実施 | `outputs/bench_step_time/`・`outputs/eval_physics_speed/`・`outputs/overhand_script/speed/` | [2026-10-16_physics-speed.md](2026-10-16_physics-speed.md) |
 | 2026-10-17 | v16 の寸法の DR: MultiAssetSpawnerCfg でロープを spawn できるか、起動・速さ・PhysX のバッファ | 凍結 | 寸法の 9 組の USD を env ごとに spawn でき、割り当ては全 env で一致。replicate なしで起動が少し長くなり、PhysX の aggregate pairs のバッファがあふれるので、寸法の DR のときだけ上限を上げた | なし (`outputs/rope_size_spawn_check/`) | [2026-10-17_v16_rope-size-spawn.md](2026-10-17_v16_rope-size-spawn.md) |
 | 2026-10-17 | v16 の寸法の組ごとの物理のゲート (ゲート 1・発散・把持) | 凍結 | 今の紐モデルで台本が結べるのは直径 ×1.0 の 3 組だけ。直径 ×0.4 (実機の太さ) は掴めず、指のゲインを下げると発散する。寸法を混ぜると公称の組の発散も増える (アーカイブの書き戻しと推測) | なし (`outputs/overhand_script/v16_*`、`outputs/divergence_bench/v16_*`) | [2026-10-17_v16_size-gate.md](2026-10-17_v16_size-gate.md) |
+| 2026-10-17 | v16 の長さの組 (角度制限 ±60° に揃えた ×0.8 / 1.0 / 1.25 と ×1.1) のゲート 1・発散・スモークテスト | 凍結 | 角度制限を揃えて直径を ×1.0 に限ると、寸法を混ぜても公称の組の発散は公称だけのときに近い。×1.25 は台本・発散とも悪く ×1.1 に替えた。×1.1 は通ったが発散は公称より多い。スモークテストが通り、学習を始めた | `knot_tying_v16/` (smoke の 2 run。ほかは `outputs/overhand_script/v16_{len,l110}_*`、`outputs/divergence_bench/v16_{len,l110}_*`) | [2026-10-17_v16_length-gate.md](2026-10-17_v16_length-gate.md) |
 
 ## v0〜v6 と、打ち切り中の研究
 

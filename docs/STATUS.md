@@ -2,12 +2,12 @@
 
 - 状態: 現行。上書きで更新する (追記しない。手順は skill `handoff`)
 - 読むべき状況: セッションの始め。今どこにいて、次に何をするかを知るとき
-- 最終更新: 2026-10-18 (v16 の組を長さ ×0.8/1.0/1.1・角度制限 ±60° にして、ゲートの測り直しとスモークテストを走らせたまま session を区切った)
+- 最終更新: 2026-10-18 (v16 の長さの組のゲートを記録し、v16 の学習 (seed 43 / 44) を始めた)
 
 ## 要点
 
-- **v16 = v15 + ロープの長さの DR (×0.8 / 1.0 / 1.1、直径 ×1.0、関節の角度制限は 3 組とも公称の曲げ ±60°・捩り ±90°)。実装は commit `cf83e83` (未学習)**。直径も振る 0029 の格子は物理のゲートで外し、角度制限を揃えて寸法を混ぜたときの発散の増加を直した ([ゲートの記録](experiments/2026-10-17_v16_size-gate.md)、[spawn の記録](experiments/2026-10-17_v16_rope-size-spawn.md))。
-- **×0.8 / 1.0 / 1.1 のゲート 1・発散の測り直しとスモークテストが走っている** (下の「走っているジョブ」)。結果を記録し、通れば学習 (seed 43 / 44、it300) を始める。**学習の開始はユーザーが了承済み (2026-10-17)。起動の前に `nvidia-smi` で空きを見る**。
+- **v16 (v15 + ロープの長さの DR ×0.8 / 1.0 / 1.1、角度制限は 3 組とも公称) の学習 (seed 43 / 44、it300) が走っている** (2026-10-18 02:08 起動、下の「走っているジョブ」)。ゲートとスモークテストは通った ([記録](experiments/2026-10-17_v16_length-gate.md))。×1.1 の組の発散は公称の約 2.7 倍のまま。
+- 学習が終わったら chain 評価 (公称の寸法と寸法を振った評価、`--video` 付き) で v15 の同じ seed と比べる。終わる見込みは 2026-10-19 の昼〜夜 (v15 は 18.6 h・22.7 h、v16 は遅い見込み)。
 
 ## 版の状態
 
@@ -25,33 +25,31 @@
 | v13 | chain 評価 済み (seed 43・44、it70〜300)。罰則は張り付きの割合を減らさず、s44 は v12 s44 と同じ型に崩れた | [v13](experiments/2026-10-14_v13_bounds-loss.md) |
 | v14 | chain 評価 済み (seed 43・44、it70〜300、公称と DR 付き)。2 シードとも崩れず、it100 以降 v13 を大きく上回った。記録のある it300 の値で最も高い | [v14](experiments/2026-10-15_v14_s0-reshape-dr-priv-critic.md)・[0027](decisions/0027-v14-s0-reshape-dr-priv-critic.md)・[ゲート](experiments/2026-10-14_v14_physics-gate.md) |
 | v15 | chain 評価 済み (seed 43・44、it70〜300、公称)。崩れず V は膨らまない。it200〜300 の 2 シード平均は v14 より高いが s43 に集中、it70・100 は低い。DR 付きの評価は未実施 | [記録](experiments/2026-10-16_v15_timeout-bootstrap-fix.md)・[ゲート](experiments/2026-10-16_v15_timeout-gate.md)・[0028](decisions/0028-v15-timeout-bootstrap-fix.md) |
-| v16 | **実装済み・未学習。長さ ×0.8/1.0/1.1 のゲートとスモークテストの結果待ち** (v15 + ロープの長さの DR。継承元は v15: ユーザー、2026-10-17) | [0029](decisions/0029-v16-rope-size-dr.md)・[spawn](experiments/2026-10-17_v16_rope-size-spawn.md)・[ゲート](experiments/2026-10-17_v16_size-gate.md)・[README](../src/isaac_twisted_rl/tasks/knot_tying/versions/v16/README.md) |
+| v16 | **学習中 (seed 43 / 44、it300、2026-10-18 02:08 起動)**。長さ ×0.8/1.0/1.1 のゲートとスモークテストは通った (v15 + ロープの長さの DR。継承元は v15: ユーザー、2026-10-17) | [0029](decisions/0029-v16-rope-size-dr.md)・[spawn](experiments/2026-10-17_v16_rope-size-spawn.md)・[ゲート (9 組)](experiments/2026-10-17_v16_size-gate.md)・[ゲート (長さ)](experiments/2026-10-17_v16_length-gate.md)・[README](../src/isaac_twisted_rl/tasks/knot_tying/versions/v16/README.md) |
 | v17 | **実装の予約のみ** (継承元 + 待ちのフェーズの尺を詰める。1 手 759 → 591 ステップで 1.28 倍の見込み。物理は変えない。継承元は未確認: v16 と同じ v15 にするかはユーザーに確かめる) | [0030](decisions/0030-v17-shorter-wait-phases.md)・[計測](experiments/2026-10-16_physics-speed.md) |
 
 ## 走っているジョブ
 
-自分のジョブ (2026-10-18 01:11 に起動、commit `cf83e83`。止めるなら job の pid に SIGTERM):
+自分のジョブ (2026-10-18 02:08 に起動、commit `75bd47e` = 実装 `cf83e83` + 文書。未コミットの差分は実験記録の文書だけ。止めるなら job の pid に SIGTERM):
 
-- GPU 0: `outputs/jobs/2026-10-18_01-11-24_gate1_smoke_v16_l110` (pid 154745)。ゲート 1 (384 env、物理の DR なし -> あり。出力 `outputs/overhand_script/v16_l110_{nominal_phys,dr}`) の後に、スモークテスト (`uv run train --task Isaac-Twisted-RL-Knot-v16 --headless --device cuda:0 --seed 42 --max_iterations 2 --run_name smoke_v16_l110 agent.device=cuda:0 env.rewards.record_stage_archive.params.history_every=4`)。1 時間以内に終わる見込み。
-- GPU 1: `outputs/jobs/2026-10-18_01-11-24_div_v16_l110` (pid 154655)。発散の計測 (3072 env × 24 手、物理の DR なし -> あり。出力 `outputs/divergence_bench/v16_l110_{nominal_phys,dr}/`)。1 時間ほどで終わる見込み。
-
-- **他のジョブ (触らない)**: anaconda の python の実機の作業 (pid 560983・616313・895144・2892930・876400)。GPU 0・1 は他のユーザーとも共有している。
+- GPU 0: v16 s43。job `outputs/jobs/2026-10-18_02-08-29_v16_s43` (pid 206471)、run `logs/rsl_rl/knot_tying_v16/2026-10-18_02-08-35_v16_s43`。
+- GPU 1: v16 s44。job `outputs/jobs/2026-10-18_02-08-30_v16_s44` (pid 206563)、run `logs/rsl_rl/knot_tying_v16/2026-10-18_02-08-35_v16_s44`。
+- コマンド: `run_job.sh --name v16_s<seed> --timeout 40h --detach -- uv run train --task Isaac-Twisted-RL-Knot-v16 --headless --device cuda:N --seed <seed> --max_iterations 300 --run_name v16_s<seed> agent.device=cuda:N agent.save_interval=10` (Hydra の上書きは `agent.*` だけ。評価に足す物理の上書きはない)。
+- 使わない run: `logs/rsl_rl/knot_tying_v16/2026-10-18_01-45-40_v16_s{43,44}` (`--timeout 20h` で起動し、上限が足りないと見て 20 分で止めた。`model_0.pt` だけ)。`_invalid/` に退避するかはユーザーに確かめる。
+- **他のジョブ (触らない)**: anaconda の python の実機の作業 (pid 876400・895144・2892930)。GPU 0・1 は他のユーザーとも共有している。
 
 ## 次の作業
 
-1. **v16 の測り直しの結果を確かめて記録し、学習を始める** (学習の開始はユーザーが了承済み、2026-10-17)。
-   - 確かめる: 両 job の `exit.txt` と、`job.log` の `PhysX error`・`Traceback` の数 (スモークテストの最後の `TypeError: post_quit()` は無視してよい)。`check_rope_sizes` の行 (寸法・角度制限の照合)。スモークテストの `logs/rsl_rl/knot_tying_v16/*_smoke_v16_l110/model_1.pt` と、critic の入力が 205 次元か (`params/env.yaml` の `rope_size` の params も)。
-   - 組ごとの値: ゲート 1 は `job.log` の `[size]` の行。発散と把持は `moves.pt` を `size_index` で分ける (1 手目と 9 手目以降も。分け方は [ゲートの記録](experiments/2026-10-17_v16_size-gate.md) の表と同じ)。比べる値: 長さ ×0.8・×1.0 は前の測り直し (×1.25 の組と混ぜたもの) でゲート 1 が 122・125/128、発散 (物理の DR なし / あり) 1.35% / 2.44%・3.04% / 3.50%。×1.25 は 25/128、14.7% / 12.6%。公称だけの v16 は 2.83% (`outputs/divergence_bench/v16_nominal_only_nominal_phys`)。
-   - 記録: 前の測り直し (×0.8/1.0/1.25、job `outputs/jobs/2026-10-17_21-34-5{6,7}_*`、出力 `outputs/overhand_script/v16_len_*`・`outputs/divergence_bench/v16_len_*`、commit `37d30ce`) と今回 (×1.1) を、新しい実験記録 1 つにまとめる (skill `experiment-record`)。前のスモークテスト (×1.25 の設定) は `logs/rsl_rl/knot_tying_v16/2026-10-17_21-50-04_smoke_v16` で 2 iteration 走った。
-   - 学習: skill `train-eval`。`run_job.sh --name v16_s43 --timeout 20h --detach -- uv run train --task Isaac-Twisted-RL-Knot-v16 --headless --device cuda:0 --seed 43 --max_iterations 300 --run_name v16_s43 agent.device=cuda:0 agent.save_interval=10` (s44 は cuda:1)。起動したら pid・run のフォルダをここに書く。学習のログで `PhysX error` (aggregate pairs のあふれ) が 0 か確かめる。
-   - 評価: chain 評価 (公称の寸法、`--video` 付きで 1 回) を v15 の同じ seed (`logs/rsl_rl/knot_tying_v15/2026-10-16_17-07-55_v15_s{43,44}` の `eval_chain_it*.json`) と比べる。寸法を振った評価は `env.scene.rope.spawn.scales="[[0.8,1.0],[1.0,1.0],[1.1,1.0]]"`。**動画の中身は見ない・判断しない**。
-   - v16 は replicate_physics なしなので、起動が約 20 s 長く、ランダムな手では 1 手の時間が v15 より遅かった (9 組で 77%)。学習の 1 iteration の時間を v15 と比べて記録する。
-
+1. **v16 の学習の終わりを確かめ、chain 評価で v15 と比べる** (skill `train-eval`)。
+   - 学習中に見る: `job.log` の `PhysX error` (aggregate pairs のあふれ) が 0 か。1 iteration の時間を v15 (`outputs/jobs/2026-10-16_17-07-47_v15_s{43,44}`、平均 223 s・271 s、2 本を同時) と比べて記録する。段 0 の崩れの予兆 (`timeout_s0`・`Loss/value_mean_s0` > 1.053)。
+   - 終わったら: `exit.txt` に `signal:` の行が無いこと、`model_300.pt` があることを `ls` で確かめる。
+   - 評価: chain 評価を固定の点 (it70 / 100 / 150 / 200 / 250 / 300) で、公称の寸法 (`Isaac-Twisted-RL-Knot-Play-v16`、`--video` 付きで 1 回) と、寸法を振った評価 (`env.scene.rope.spawn.scales="[[0.8,1.0],[1.0,1.0],[1.1,1.0]]"`)。比べる相手は v15 の同じ seed (`logs/rsl_rl/knot_tying_v15/2026-10-16_17-07-55_v15_s{43,44}` の `eval_chain_it*.json`)。**動画の中身は見ない・判断しない**。
+   - 仮説: 長さの DR を入れても公称の寸法の `knot` は v15 から大きく落ちない。寸法を振った評価では ×1.1 の組の発散が足を引っ張る (推測)。
 2. **chain 評価の動画 (実装済み。評価は `--video` 付きの 1 回だけ。動画なしの 2 回目は回さない)**。0031 のゲート 4 は v15 s44 の it300 で通った (動画ありなしで 23 キー一致)。**動画は撮るが、中身は Claude が見ない・判断しない (ユーザーが判断する。`CLAUDE.md`・0031 の決定 3)**。v15 s44 の it300 の動画はあるが未確認 (`video/sim/knot_tying_v15/2026-10-16_17-07-55_v15_s44/eval_chain_it300_video/`)。ルート直下の `knot_*_mock.mp4` と `README.md` の変更はユーザーのもの (触らない)。
 3. DR 付きの評価の内訳を見るなら、`eval_chain.py` に env ごとの倍率の記録を足す (既定の評価とビット単位で一致することを確かめる)。
 4. 段 0・段 1 から 1 手で固結びに達したエピソード (v14 s44 it100 で 2%・8%) が正しい判定かを、その手の前後の形で確かめる (優先度は低い)。
 5. **頭打ち (段 2) の切り分けの計測** (GPU を使う前にユーザーに確かめる。コマンドの案は[記録](experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md)の「次の作業」): 段 2 の形ごとの最良の 1 手 (`eval_search.py --mode shapes --shape_moves 1`)、6 手目の山がほかの崩れた run にもあるか、36 手の chain 評価。
-6. **v17 の実装 (予約。待ちのフェーズの尺を詰めて学習を 1.28 倍に速くする版)**。仕様・予想・手順は [0030](decisions/0030-v17-shorter-wait-phases.md)、根拠の計測は [記録](experiments/2026-10-16_physics-speed.md)。コードの実装・テストは先に進めてよい (版は `durations` を上書きするだけ。継承元は未確認 (v16 と同じ v15 にするかをユーザーに確かめる))。GPU は v15 の学習が終わったので空いているが、共有なので `nvidia-smi` を見てから。最初に確かめること: `bench_step_time.py --task Isaac-Twisted-RL-Knot-v17` の `meta` が `decimation` 591・`max_episode_length` 6 (Play は 18) か (積の浮動小数の誤差で 1 手増える事故)。速さの次の候補: 反復 6 (Hydra の上書きで学習できる。D4 とは別の学習で確かめる)、環境数 (2048・8192) を変えたときの速さ (GPU が空いたとき)。
+6. **v17 の実装 (予約。待ちのフェーズの尺を詰めて学習を 1.28 倍に速くする版)**。仕様・予想・手順は [0030](decisions/0030-v17-shorter-wait-phases.md)、根拠の計測は [記録](experiments/2026-10-16_physics-speed.md)。コードの実装・テストは先に進めてよい (版は `durations` を上書きするだけ。継承元は未確認 (v16 と同じ v15 にするかをユーザーに確かめる))。GPU は v16 の学習が使っている (2 枚とも)。計測は学習が終わってから、`nvidia-smi` を見て。最初に確かめること: `bench_step_time.py --task Isaac-Twisted-RL-Knot-v17` の `meta` が `decimation` 591・`max_episode_length` 6 (Play は 18) か (積の浮動小数の誤差で 1 手増える事故)。速さの次の候補: 反復 6 (Hydra の上書きで学習できる。D4 とは別の学習で確かめる)、環境数 (2048・8192) を変えたときの速さ (GPU が空いたとき)。
 7. v7 s44 を it300 まで延ばす (比べる相手を 2 シードにする。GPU が空いてから、順番はユーザーに確かめる): `uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:N --seed 44 --resume --load_run 2026-10-04_22-37-47_v7_s44 --checkpoint model_100.pt --max_iterations 201 --run_name v7_s44_to300 agent.device=cuda:N agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[/home/itoyama/work/isaac_twisted_rl/logs/rsl_rl/knot_tying_v7/2026-10-04_22-37-47_v7_s44/archive.pt]` (`run_job.sh --timeout 20h --detach`)。
 8. v11 s43 の延長の chain 評価を it400 / 500 / 600 / 700 / 800 で (it1000 は済み)。
 9. 探索の設定を 1 つずつ比べる (`--slots 8` / `4`、`--rank random`、`--no_mean_first`。v7 s43 / s44 の `model_100.pt`)。

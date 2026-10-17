@@ -27,6 +27,7 @@ Isaac Lab 上で、ロボットハンドがロープを固結び (overhand knot)
 
 - 版どうしの比較は chain 評価 (定義: `docs/system/evaluation.md`) で、シード 2 本以上。学習ログの段ごとの成功率や `chain_est` で比べない。
 - 学習・評価の前にコードを commit する。未追跡のファイルは run のフォルダの `git/*.diff` に残らず、run を再現できなくなる。
+- chain 評価には `--video` を付けて動画を `video/sim/` に残すが、**動画の中身は見ない・判断しない。動画の判断はユーザーがする** (ユーザーが「動画も踏まえて評価して」と明示したときだけ見る)。評価・考察は JSON の数値で書き、実験記録の動画の欄には場所と `manifest.json` の事実 (撮れたか・クリップ数・結末・手数) だけを書く。`docs/decisions/0031-eval-chain-video.md` の決定 3。
 - 学習ログや代理の指標だけで出した結論は「推測」と書く。事実として commit メッセージや README に書かない。
 - 評価には学習と同じ Hydra の上書きを付ける (付けないと違う物理で評価され、エラーは出ない)。GPU を指定するときは `--device cuda:N` と `agent.device=cuda:N` を揃える (`--device` だけでは PPO が `cuda:0` に残る)。
 - 最後のチェックポイントの番号は `ls` で確かめる (rope study の run は `model_99.pt` で、`model_100.pt` は無い)。

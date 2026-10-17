@@ -17,6 +17,7 @@ description: 学習・評価・計測の結果を docs/experiments/ に実験記
 | num_envs・プリセット・物理の上書き | run の `params/env.yaml` |
 | コマンド | 学習と評価のコマンドを、Hydra の上書きを含めてそのまま |
 | 評価 JSON | `eval_chain_it<it>.json` などのパス |
+| 動画 | `--video` で撮ったなら `video/sim/<ログ名>/<run>/<JSON の名前>/` と `manifest.json` の事実 (撮れたか・クリップ数・撮らなかった理由)。**動画の中身の考察・「観察」は書かない** (動画の判断はユーザー。ユーザーが明示したときだけ。`CLAUDE.md`・0031) |
 
 分からない項目は空欄にせず「記録なし」と書く。
 
@@ -49,6 +50,7 @@ description: 学習・評価・計測の結果を docs/experiments/ に実験記
 | 評価のコマンド | |
 | run のフォルダ | logs/rsl_rl/<ログ名>/<日時>_<run 名> (シードごと) |
 | 評価 JSON | |
+| 動画 | (場所と manifest の事実だけ。中身の考察は書かない) |
 | 無効にした run | (あれば。退避先と理由) |
 ## ゲート (学習の前の確認)
 ## 結果

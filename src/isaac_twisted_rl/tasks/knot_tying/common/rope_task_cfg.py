@@ -125,10 +125,17 @@ def _apply_rope(cfg: KnotTyingEnvCfg, rope_name: str) -> RopeSpec:
     return spec
 
 
-SIZE_DR_AGGREGATE_PAIRS_CAPACITY = 2**20
+SIZE_DR_TOTAL_AGGREGATE_PAIRS_CAPACITY = 2**20
 """寸法の DR (replicate_physics なし) の PhysX の `gpu_total_aggregate_pairs_capacity`。実測の必要量 (約 1.8 万) の 50 倍超。
 
 Isaac Lab の既定 (2**21) より小さい。基底 (`KnotTyingEnvCfg.__post_init__`) の 16384 は replicate_physics ありでは足りていた。
+"""
+
+SIZE_DR_FOUND_LOST_AGGREGATE_PAIRS_CAPACITY = 2**27
+"""寸法の DR の PhysX の `gpu_found_lost_aggregate_pairs_capacity` (基底は 2**22)。
+
+4096 env・ランダムな手 (発散 1 手あたり約 13%) で PhysX が要求した最大は約 9800 万。2**27 (1.34 億) でエラーは出ず、
+GPU のメモリの最大は 12.1 GB だった。必要量は飛んだロープの数で決まるので、学習のログの `PhysX error` を確かめる。
 """
 
 
@@ -157,12 +164,17 @@ def apply_rope_sizes(cfg: KnotTyingEnvCfg, rope_name: str, scales) -> None:
     )
     # env ごとに違う USD を PhysX に読ませる (Isaac Lab の `InteractiveScene` の注意)。
     cfg.scene.replicate_physics = False
-    # replicate_physics を切ると、PhysX の GPU の集約 (aggregate) のペアの数が基底の上限 16384 を超え、PhysX が
-    # 「interactions を取りこぼす」とエラーを出す (4096 env、ランダムな手で 9 組 18379・公称の 1 組でも 16652。
-    # `docs/experiments/2026-10-17_v16_rope-size-spawn.md`)。取りこぼすと寸法に関係なく発散が増えるので、上限を上げる。
-    # バッファの大きさだけで、あふれない限り物理は変わらない。
-    cfg.sim.physx.gpu_total_aggregate_pairs_capacity = max(
-        cfg.sim.physx.gpu_total_aggregate_pairs_capacity, SIZE_DR_AGGREGATE_PAIRS_CAPACITY
+    # replicate_physics を切ると、PhysX の GPU の集約 (aggregate) のペアのバッファが基底の上限を超え、PhysX が
+    # 「interactions を取りこぼす」とエラーを出す (`docs/experiments/2026-10-17_v16_rope-size-spawn.md`)。replicate なしでは
+    # Isaac Lab は env の ID を PhysX に渡さず、env どうしの接触を collision group で切る。group の判定は broadphase の
+    # 後なので、発散して飛んだロープの AABB が他の env と重なるたびに、env をまたぐペアがバッファに入る。上限を上げる
+    # だけで、あふれない限り物理は変わらない。
+    physx = cfg.sim.physx
+    physx.gpu_total_aggregate_pairs_capacity = max(
+        physx.gpu_total_aggregate_pairs_capacity, SIZE_DR_TOTAL_AGGREGATE_PAIRS_CAPACITY
+    )
+    physx.gpu_found_lost_aggregate_pairs_capacity = max(
+        physx.gpu_found_lost_aggregate_pairs_capacity, SIZE_DR_FOUND_LOST_AGGREGATE_PAIRS_CAPACITY
     )
 
 

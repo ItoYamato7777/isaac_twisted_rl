@@ -81,7 +81,7 @@ def test_bend_limit_is_removed_only_where_it_saturates():
     assert free == {"knot_l080_d040", "knot_l100_d040", "knot_l125_d040"}
 
 
-@pytest.mark.parametrize("ls", rs.SIZE_LENGTH_SCALES)
+@pytest.mark.parametrize("ls", rs.LENGTH_VARIANT_LEVELS)
 def test_length_variants_keep_nominal_joint_limits(ls):
     # v16 の学習の組 (ユーザー、2026-10-17): 長さだけを振り、曲げ ±60°・捩り ±90° を全組で揃える。
     knot = rs.get_spec("knot")
@@ -92,7 +92,7 @@ def test_length_variants_keep_nominal_joint_limits(ls):
     assert spec.bend_limit_deg == knot.bend_limit_deg
     assert spec.twist_limit_deg == knot.twist_limit_deg == 90.0
     # ばね・減衰・質量は角度制限を導出する組と同じ (変えたのは角度制限だけ)。
-    derived = rs.get_spec(rs.size_variant_name("knot", ls, 1.0))
+    derived = rs.make_size_variant(knot, ls, 1.0)
     for field in (
         "capsule_radius",
         "capsule_half_length",
@@ -107,7 +107,7 @@ def test_length_variants_keep_nominal_joint_limits(ls):
 
 
 def test_kept_limits_only_for_length_only():
-    assert set(rs.LENGTH_VARIANT_SCALES) == {"knot_l080", "knot", "knot_l125"}
+    assert set(rs.LENGTH_VARIANT_SCALES) == {"knot_l080", "knot", "knot_l110", "knot_l125"}
     with pytest.raises(ValueError):
         rs.size_variant_name("knot", 0.8, 0.4, keep_joint_limits=True)
 
@@ -150,6 +150,16 @@ def test_normalize_size_maps_grid_range_to_unit_interval():
     assert out[3, 1] == pytest.approx((math.log2(0.63) - 0.5 * math.log2(0.4)) / (-0.5 * math.log2(0.4)), abs=1e-6)
     # 範囲が 1 点の軸は 0。
     assert torch.all(dr.normalize_size(s, torch.tensor([1.0, 0.4]), torch.tensor([1.0, 1.0]))[:, 0] == 0)
+
+
+def test_v16_size_observation_values():
+    # v16 の範囲: 長さ ×0.8 -> −1、×1.1 -> +1、公称は log2 の中点からの位置、直径は常に 0。
+    lo, hi = torch.tensor([0.8, 1.0]), torch.tensor([1.1, 1.0])
+    out = dr.normalize_size(torch.tensor([[0.8, 1.0], [1.0, 1.0], [1.1, 1.0]]), lo, hi)
+    assert torch.allclose(
+        out[:, 0], torch.tensor([-1.0, (0.0 - 0.5 * math.log2(0.88)) / (0.5 * math.log2(1.375)), 1.0])
+    )
+    assert torch.all(out[:, 1] == 0)
 
 
 def test_rescale_rel_pose_roundtrip_and_orientation():
@@ -208,16 +218,19 @@ def test_v16_env_cfg_adds_only_size_dr():
     assert [ast.unparse(b) for b in obs.bases] == ["V14ObservationsCfg"]
     inner = next(n for n in obs.body if isinstance(n, ast.ClassDef))
     assert [ast.unparse(b) for b in inner.bases] == ["V14ObservationsCfg.RopeParamsCfg"]
+    # 正規化の範囲は学習の組 (長さ ×0.8〜×1.1、直径は 1 点 = 0)。
     assert [ast.unparse(s) for s in _body_without_docstring(inner)] == [
-        "rope_size = ObsTerm(func=mdp.rope_size_params)"
+        "rope_size = ObsTerm(func=mdp.rope_size_params, params={'length_range': (min(LENGTH_SCALES), "
+        "max(LENGTH_SCALES)), 'diameter_range': (1.0, 1.0)})"
     ]
 
 
 def test_v16_size_grid_and_play():
     tree = _parse("v16/env_cfg.py")
     src = ast.unparse(tree)
-    # 長さの 3 組・直径 ×1.0・角度制限は公称のまま (ユーザー、2026-10-17)。
-    assert "ROPE_SIZE_SCALES = tuple(((ls, 1.0) for ls in SIZE_LENGTH_SCALES))" in src
+    # 長さ ×0.8 / 1.0 / 1.1・直径 ×1.0・角度制限は公称のまま (ユーザー、2026-10-17)。
+    assert "LENGTH_SCALES = (0.8, 1.0, 1.1)" in src
+    assert "ROPE_SIZE_SCALES = tuple(((ls, 1.0) for ls in LENGTH_SCALES))" in src
     assert "KEEP_JOINT_LIMITS = True" in src
     fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "play_post_init")
     assert [ast.unparse(s) for s in _body_without_docstring(fn)] == [

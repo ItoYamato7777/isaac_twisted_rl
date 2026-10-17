@@ -17,7 +17,7 @@ v15 の設定クラスを継承して、次の 3 つを足す (1 版 1 変数: �
 ので、ここでは何も書かない。物理の DR (6 軸)・段 0 の保存の規則・時間切れの項・PPO は v15 のまま。
 
 Play (chain 評価) は v15 と同じ設定に、寸法を公称の 1 組にする設定を足す (v15 と同じロープで比べるため)。寸法を振った
-評価は Hydra の `env.scene.rope.spawn.scales=[[0.8,1.0],[1.0,1.0],[1.25,1.0]]` で行う。
+評価は Hydra の `env.scene.rope.spawn.scales=[[0.8,1.0],[1.0,1.0],[1.1,1.0]]` で行う。
 """
 
 from __future__ import annotations
@@ -27,21 +27,31 @@ from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.utils import configclass
 
 from ...common import mdp
-from ...common.rope_model.rope_specs import SIZE_LENGTH_SCALES
 from ...common.rope_task_cfg import make_preset_cfgs
 from ..v14.env_cfg import EventCfg as V14EventCfg
 from ..v14.env_cfg import ObservationsCfg as V14ObservationsCfg
 from ..v15.env_cfg import KnotTyingV15EnvCfg
 from ..v15.env_cfg import play_post_init as _v15_play_post_init
 
-__all__ = ["KEEP_JOINT_LIMITS", "NOMINAL_SIZE", "ROPE_SIZE_SCALES", "KnotTyingV16EnvCfg", "play_post_init"]
+__all__ = [
+    "KEEP_JOINT_LIMITS",
+    "LENGTH_SCALES",
+    "NOMINAL_SIZE",
+    "ROPE_SIZE_SCALES",
+    "KnotTyingV16EnvCfg",
+    "play_post_init",
+]
 
-ROPE_SIZE_SCALES = tuple((ls, 1.0) for ls in SIZE_LENGTH_SCALES)
-"""学習で env に割り当てる (長さの倍率, 直径の倍率) の組。長さ ×0.8/1.0/1.25、直径 ×1.0 の 3 組 (ユーザー、2026-10-17)。
+LENGTH_SCALES = (0.8, 1.0, 1.1)
+"""学習で env に割り当てる長さの倍率 (ユーザー、2026-10-17)。直径は ×1.0。
 
 0029 の格子 (直径 ×0.4/0.63/1.0 も振る 9 組) は、物理のゲートで直径 ×0.4・×0.63 の台本が結べず外した
-(`docs/experiments/2026-10-17_v16_size-gate.md`)。4096 env なら 1 組あたり 1365〜1366 env。
+(`docs/experiments/2026-10-17_v16_size-gate.md`)。長さ ×1.25 は角度制限を ±60° に揃えると台本・発散とも悪く、×1.1 に替えた。
+実機の紐 (×0.895) は範囲の中。
 """
+
+ROPE_SIZE_SCALES = tuple((ls, 1.0) for ls in LENGTH_SCALES)
+"""env に割り当てる (長さの倍率, 直径の倍率) の組。4096 env なら 1 組あたり 1365〜1366 env。"""
 
 KEEP_JOINT_LIMITS = True
 """長さの組の関節の角度制限を公称 (曲げ ±60°・捩り ±90°) に揃える (ユーザー、2026-10-17。`rope_specs.make_size_variant`)。
@@ -68,7 +78,10 @@ class ObservationsCfg(V14ObservationsCfg):
     class RopeParamsCfg(V14ObservationsCfg.RopeParamsCfg):
         """物理の倍率 6 次元 (`domain_rand.AXES` の順) + 寸法の倍率 2 次元 (`domain_rand.SIZE_AXES` の順)。どれも [−1, 1]。"""
 
-        rope_size = ObsTerm(func=mdp.rope_size_params)
+        rope_size = ObsTerm(
+            func=mdp.rope_size_params,
+            params={"length_range": (min(LENGTH_SCALES), max(LENGTH_SCALES)), "diameter_range": (1.0, 1.0)},
+        )
 
     rope_params: RopeParamsCfg = RopeParamsCfg()
 

@@ -124,16 +124,20 @@ def size_scales(env: ManagerBasedRLEnv) -> torch.Tensor:
     return torch.stack([sizes.length_scale, sizes.diameter_scale], dim=-1)
 
 
-def rope_size_params(env: ManagerBasedRLEnv) -> torch.Tensor:
-    """観測: 寸法の倍率の log2 を、格子の範囲で [−1, 1] に写した `(N, 2)` (長さ、直径)。
+def rope_size_params(
+    env: ManagerBasedRLEnv,
+    length_range: tuple[float, float] = (min(SIZE_LENGTH_SCALES), max(SIZE_LENGTH_SCALES)),
+    diameter_range: tuple[float, float] = (min(SIZE_DIAMETER_SCALES), max(SIZE_DIAMETER_SCALES)),
+) -> torch.Tensor:
+    """観測: 寸法の倍率の log2 を、範囲 `length_range`・`diameter_range` で [−1, 1] に写した `(N, 2)` (長さ、直径)。
 
-    範囲は格子の最小と最大 (長さ ×0.8〜×1.25、直径 ×0.4〜×1.0)。公称の寸法は長さ 0 (0.8 × 1.25 = 1)・直径 +1 になる
-    (直径の範囲は公称を上端にしたため)。使う組を Hydra で絞っても同じ写し方なので、公称だけの評価でも
-    学習のときと同じ値が critic に入る。
+    既定の範囲は 0029 の格子の最小と最大 (長さ ×0.8〜×1.25、直径 ×0.4〜×1.0)。範囲が 1 点の軸は 0。範囲は版が学習で
+    使う組に合わせて params で渡す (v16 は長さ ×0.8〜×1.1・直径 ×1.0)。env に割り当てた組から決めないのは、Hydra で組を
+    絞って評価しても (公称だけなど)、学習のときと同じ値が critic に入るようにするため。
     """
     dev = env.device
-    lo = torch.tensor([min(SIZE_LENGTH_SCALES), min(SIZE_DIAMETER_SCALES)], device=dev)
-    hi = torch.tensor([max(SIZE_LENGTH_SCALES), max(SIZE_DIAMETER_SCALES)], device=dev)
+    lo = torch.tensor([float(length_range[0]), float(diameter_range[0])], device=dev)
+    hi = torch.tensor([float(length_range[1]), float(diameter_range[1])], device=dev)
     return dr.normalize_size(size_scales(env), lo, hi)
 
 

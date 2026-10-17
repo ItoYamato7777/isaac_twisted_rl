@@ -682,15 +682,22 @@ v16 の物理のゲートで測っただけで、学習には使わない (直�
 `docs/experiments/2026-10-17_v16_size-gate.md`)。
 """
 
+LENGTH_VARIANT_LEVELS = (0.8, 1.0, 1.1, 1.25)
+"""角度制限を揃えた長さだけの組の長さの倍率。v16 の学習は ×0.8 / 1.0 / 1.1 (ユーザー、2026-10-17)。
+
+×1.25 (`knot_l125`) は角度制限を ±60° に揃えると台本が 25/128 しか結べず、1 手あたりの発散が 14.7% (公称 3.0%) で、
+×1.1 に替えた (`docs/experiments/2026-10-17_v16_size-gate.md` の後の記録)。測った条件として残す。
+"""
+
 _LENGTH_VARIANTS = tuple(
-    make_size_variant(_KNOT, ls, 1.0, keep_joint_limits=True) for ls in SIZE_LENGTH_SCALES if ls != 1.0
+    make_size_variant(_KNOT, ls, 1.0, keep_joint_limits=True) for ls in LENGTH_VARIANT_LEVELS if ls != 1.0
 )
-"""`knot` の長さだけの組 (`knot_l080`・`knot_l125`。角度制限は公称の ±60°)。v16 の学習に使う (ユーザー、2026-10-17)。"""
+"""`knot` の長さだけの組 (`knot_l080`・`knot_l110`・`knot_l125`。角度制限は公称の ±60°)。"""
 
 LENGTH_VARIANT_SCALES: dict[str, tuple[float, float]] = {
-    size_variant_name("knot", ls, 1.0, keep_joint_limits=True): (ls, 1.0) for ls in SIZE_LENGTH_SCALES
+    size_variant_name("knot", ls, 1.0, keep_joint_limits=True): (ls, 1.0) for ls in LENGTH_VARIANT_LEVELS
 }
-"""角度制限を揃えた長さだけの組のプリセット名 -> (長さの倍率, 直径の倍率)。公称 (`knot`) を含む 3 組。"""
+"""角度制限を揃えた長さだけの組のプリセット名 -> (長さの倍率, 直径の倍率)。公称 (`knot`) を含む。"""
 
 SIZE_SCALES: dict[str, tuple[float, float]] = {
     size_variant_name("knot", ls, ds): (ls, ds) for ls in SIZE_LENGTH_SCALES for ds in SIZE_DIAMETER_SCALES

@@ -29,7 +29,7 @@ resets from an archive of reached states. See [`knot_tying/README.md`](src/isaac
 
 ## Sim2Real Transfer
 
-Left: the real robot. Right: the same motion in simulation (all five environments of the recording are shown).
+Left: the real robot. Right: the same motion in simulation (all four environments of the recording are shown).
 The real robot performs the same motion as in simulation. The real footage is played at 2.5x and the simulation
 at 0.5x so that the two have the same length.
 

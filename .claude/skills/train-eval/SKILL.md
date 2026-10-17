@@ -54,10 +54,20 @@ src/isaac_twisted_rl/scripts/run_job.sh --name eval_<略>_s42_it<it> --timeout <
     uv run python src/isaac_twisted_rl/scripts/rsl_rl/eval_chain.py --task Isaac-Twisted-RL-Knot-Play-vN \
     --num_envs 512 --headless --device cuda:0 --seed 7 \
     --checkpoint logs/rsl_rl/<ログ名>/<run>/model_<it>.pt agent.device=cuda:0 <学習と同じ Hydra の上書き> \
-    --out logs/rsl_rl/<ログ名>/<run>/eval_chain_it<it>.json
+    --out logs/rsl_rl/<ログ名>/<run>/eval_chain_it<it>.json --video
 ```
 
 JSON にはシードと Hydra の上書きが入らない。評価のコマンドをそのまま実験記録に書く。
+
+### 動画 (`--video`)
+
+chain 評価には `--video` を付ける ([0031](../../../docs/decisions/0031-eval-chain-video.md))。評価したエピソードのうち先頭 8 環境の 1 手の中を撮り、
+`video/sim/<ログ名>/<run>/<JSON の名前>/` に mp4 と `manifest.json` を置く (動画は git の管理外)。目的は、報酬のハックや物理的におかしい挙動を目で見つけること。
+
+- **動画は結論の根拠にしない。** 動画で見たことは実験記録に「観察 (推測)」と書き、数で確かめるまで事実にしない。
+- GPU の空きが `--video_min_free_mib` (既定 6000 MiB) より少なければ、動画なしで評価だけが走り、JSON の `video` キーに撮らなかった理由が入る。その場合は実験記録に「撮らなかった」と書く。
+- 撮影の分、評価が延びる (VRAM が約 5 GB 以上増え、描画の時間が足される)。所要時間は初回の実測で下の欄を埋める。
+- **未確認 (0031 のゲート 4)**: `--video` を付けても JSON の値が変わらないことは、512 環境ではまだ確かめていない (`--enable_cameras` で Kit の設定が変わる)。確かめるまでは、動画付きの評価の値と、付けなかった評価の値 (v14 など) を並べるときに「動画付き」と書く。
 
 ## 4. 集計
 

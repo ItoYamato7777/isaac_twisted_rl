@@ -43,6 +43,7 @@ run のフォルダは `logs/rsl_rl/` の下 (git の管理外)。日時付き�
 | 2026-10-16 | v15 (v14 + 時間切れの bootstrap の修正) の学習 (seed 43 / 44) と chain 評価、v14 との比較 | 凍結 | 2 シードとも崩れず V は 1/γ を超えない。`knot` の 2 シード平均は it200〜300 で v14 を上回るが、増加は s43 に集中し、it70・100 では下回る。動画は s44 it300 だけ撮った (中身は見ていない) | `knot_tying_v15/` | [2026-10-16_v15_timeout-bootstrap-fix.md](2026-10-16_v15_timeout-bootstrap-fix.md) |
 | 2026-10-16 | 学習の速さのために v14 の物理の設定 (ソルバの反復・dt・待ちのフェーズの尺) を軽くできるかの計測 | 凍結 | 時間のほぼ全部が PhysX。v14 の方策を軽い物理で chain 評価すると、待ちの尺を詰めた D4 は質がほぼ落ちず、反復 6 は少し、dt・反復 4・組み合わせは大きく落ちた。ゼロからの学習での確認は未実施 | `outputs/bench_step_time/`・`outputs/eval_physics_speed/`・`outputs/overhand_script/speed/` | [2026-10-16_physics-speed.md](2026-10-16_physics-speed.md) |
 | 2026-10-17 | v16 の寸法の DR: MultiAssetSpawnerCfg でロープを spawn できるか、起動・速さ・PhysX のバッファ | 凍結 | 寸法の 9 組の USD を env ごとに spawn でき、割り当ては全 env で一致。replicate なしで起動が少し長くなり、PhysX の aggregate pairs のバッファがあふれるので、寸法の DR のときだけ上限を上げた | なし (`outputs/rope_size_spawn_check/`) | [2026-10-17_v16_rope-size-spawn.md](2026-10-17_v16_rope-size-spawn.md) |
+| 2026-10-17 | v16 の寸法の組ごとの物理のゲート (ゲート 1・発散・把持) | 凍結 | 今の紐モデルで台本が結べるのは直径 ×1.0 の 3 組だけ。直径 ×0.4 (実機の太さ) は掴めず、指のゲインを下げると発散する。寸法を混ぜると公称の組の発散も増える (アーカイブの書き戻しと推測) | なし (`outputs/overhand_script/v16_*`、`outputs/divergence_bench/v16_*`) | [2026-10-17_v16_size-gate.md](2026-10-17_v16_size-gate.md) |
 
 ## v0〜v6 と、打ち切り中の研究
 

@@ -2,7 +2,7 @@
 
 - 状態: 現行 (記録を足すたびに 1 行足す)
 - 読むべき状況: 過去の学習・評価・計測の結果を探すとき。数値の正本は各記録で、この一覧には数値を書かない
-- 最終更新: 2026-10-16
+- 最終更新: 2026-10-17
 
 各記録は凍結 (本文を書き換えない)。後で分かったことは、冒頭の引用ブロックの注記か新しい記録で足す。書き方は skill `experiment-record`。
 評価の定義は [`docs/system/evaluation.md`](../system/evaluation.md)、ログのフォルダ名・run 名・チェックポイントの意味は [`docs/system/logs.md`](../system/logs.md)。
@@ -42,6 +42,7 @@ run のフォルダは `logs/rsl_rl/` の下 (git の管理外)。日時付き�
 | 2026-10-16 | v15 の学習の前のゲート (terminated と truncated の重なり) と、v14 の段 0 の V | 凍結 | v14 では両方が立つ手が 124 / 6144 手、v15 では 0。純粋な時間切れは残る。v14 の段 0 の V は固定した観測で 1/γ をやや超える点があるが膨らみは無い。2 iteration のスモークテストは別には回していない | (学習の run は `knot_tying_v15/`) | [2026-10-16_v15_timeout-gate.md](2026-10-16_v15_timeout-gate.md) |
 | 2026-10-16 | v15 (v14 + 時間切れの bootstrap の修正) の学習 (seed 43 / 44) と chain 評価、v14 との比較 | 凍結 | 2 シードとも崩れず V は 1/γ を超えない。`knot` の 2 シード平均は it200〜300 で v14 を上回るが、増加は s43 に集中し、it70・100 では下回る。動画は s44 it300 だけ撮った (中身は見ていない) | `knot_tying_v15/` | [2026-10-16_v15_timeout-bootstrap-fix.md](2026-10-16_v15_timeout-bootstrap-fix.md) |
 | 2026-10-16 | 学習の速さのために v14 の物理の設定 (ソルバの反復・dt・待ちのフェーズの尺) を軽くできるかの計測 | 凍結 | 時間のほぼ全部が PhysX。v14 の方策を軽い物理で chain 評価すると、待ちの尺を詰めた D4 は質がほぼ落ちず、反復 6 は少し、dt・反復 4・組み合わせは大きく落ちた。ゼロからの学習での確認は未実施 | `outputs/bench_step_time/`・`outputs/eval_physics_speed/`・`outputs/overhand_script/speed/` | [2026-10-16_physics-speed.md](2026-10-16_physics-speed.md) |
+| 2026-10-17 | v16 の寸法の DR: MultiAssetSpawnerCfg でロープを spawn できるか、起動・速さ・PhysX のバッファ | 凍結 | 寸法の 9 組の USD を env ごとに spawn でき、割り当ては全 env で一致。replicate なしで起動が少し長くなり、PhysX の aggregate pairs のバッファがあふれるので、寸法の DR のときだけ上限を上げた | なし (`outputs/rope_size_spawn_check/`) | [2026-10-17_v16_rope-size-spawn.md](2026-10-17_v16_rope-size-spawn.md) |
 
 ## v0〜v6 と、打ち切り中の研究
 

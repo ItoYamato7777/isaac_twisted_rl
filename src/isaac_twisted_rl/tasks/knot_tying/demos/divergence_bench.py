@@ -384,11 +384,19 @@ def _run(env, log: Log, out_dir: str) -> None:
     log(f"    durations={uenv.cfg.durations} ({uenv.cfg.durations.total:.3f} s/手)")
     log(f"    limits={term.cfg.limits}")
     rope_spawn = uenv.cfg.scene.rope.spawn
-    log(
-        f"    rope: max_depenetration_velocity={rope_spawn.rigid_props.max_depenetration_velocity} "
-        f"solver_position_iteration_count={rope_spawn.articulation_props.solver_position_iteration_count} "
-        f"contact_offset={rope_spawn.collision_props.contact_offset}"
-    )
+    if hasattr(
+        rope_spawn, "scales"
+    ):  # v16 の寸法の DR (`RopeSizeSpawnerCfg`)。接触の設定は組ごとの USD の spawn 設定が持つ
+        log(
+            f"    rope: sizes={list(rope_spawn.scales)} max_depenetration_velocity={rope_spawn.max_depenetration_velocity} "
+            f"solver_position_iteration_count={rope_spawn.solver_position_iteration_count} contact_offset=組ごと (0.4 x 半径)"
+        )
+    else:
+        log(
+            f"    rope: max_depenetration_velocity={rope_spawn.rigid_props.max_depenetration_velocity} "
+            f"solver_position_iteration_count={rope_spawn.articulation_props.solver_position_iteration_count} "
+            f"contact_offset={rope_spawn.collision_props.contact_offset}"
+        )
 
     policy = None
     if args_cli.policy == "ckpt":

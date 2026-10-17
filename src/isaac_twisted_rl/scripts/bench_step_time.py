@@ -228,7 +228,9 @@ def main():
     u = env.unwrapped
     n = u.num_envs
     dev = u.device
-    rope_ap = cfg.scene.rope.spawn.articulation_props
+    rope_spawn = cfg.scene.rope.spawn
+    sized = hasattr(rope_spawn, "scales")  # v16 の寸法の DR (`RopeSizeSpawnerCfg`)。組ごとの設定は spawn の時点で作る
+    rope_ap = None if sized else rope_spawn.articulation_props
     meta = {
         "task": args_cli.task,
         "num_envs": n,
@@ -241,12 +243,17 @@ def main():
         "actions_per_episode": u.cfg.actions_per_episode,
         "max_episode_length": int(u.max_episode_length),
         "phase_steps": dict(zip(phases.PHASE_NAMES, cfg.durations.step_counts(u.physics_dt))),
-        "rope_solver_pos_iters": rope_ap.solver_position_iteration_count,
-        "rope_solver_vel_iters": rope_ap.solver_velocity_iteration_count,
+        "rope_sizes": [list(p) for p in rope_spawn.scales] if sized else None,
+        "rope_solver_pos_iters": rope_spawn.solver_position_iteration_count
+        if sized
+        else rope_ap.solver_position_iteration_count,
+        "rope_solver_vel_iters": None if sized else rope_ap.solver_velocity_iteration_count,
         "gripper_solver_pos_iters": cfg.scene.gripper.spawn.articulation_props.solver_position_iteration_count,
-        "rope_max_depenetration_velocity": cfg.scene.rope.spawn.rigid_props.max_depenetration_velocity,
-        "rope_contact_offset": cfg.scene.rope.spawn.collision_props.contact_offset,
-        "rope_self_collisions": rope_ap.enabled_self_collisions,
+        "rope_max_depenetration_velocity": rope_spawn.max_depenetration_velocity
+        if sized
+        else rope_spawn.rigid_props.max_depenetration_velocity,
+        "rope_contact_offset": None if sized else rope_spawn.collision_props.contact_offset,
+        "rope_self_collisions": None if sized else rope_ap.enabled_self_collisions,
         "physx_solver_type": cfg.sim.physx.solver_type,
         "bounce_threshold_velocity": cfg.sim.physx.bounce_threshold_velocity,
         "gravity": list(cfg.sim.gravity),

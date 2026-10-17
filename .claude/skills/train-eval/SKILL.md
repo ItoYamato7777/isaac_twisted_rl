@@ -49,6 +49,15 @@ src/isaac_twisted_rl/scripts/run_job.sh --name <略>_s42 --timeout <上限> --de
 
 シードごと・評価する iteration ごとに 1 回。最後のチェックポイントの番号は `ls logs/rsl_rl/<ログ名>/<run>/` で確かめる。
 
+### どの iteration を評価するか
+
+- **固定の点**: it70 / 100 / 150 / 200 / 250 / 300 と最後のチェックポイント (it300 より短い学習は、あるものだけ)。版どうしを並べる基準で、全 run に同じ点を使う。it10〜50 の早い点は足さない (ユーザーが決めた、2026-10-17)。
+- **動的な点**: 学習ログ (TensorBoard) を見て、**そのつど判断して**足す。診断用で、**版の比較には使わない** (固定の点だけで比べる。動的な点は別の表に置く)。**1 run あたり最大 8 点。** 足すなら、GPU を使う前にユーザーに確かめる。
+  - 見る信号の例 (固定の規則ではなく、判断の材料): 段 0 の崩れの予兆 (`timeout_s0` の上昇・`Loss/value_mean_s0` が 1/γ = 1.053 を超える)、学習ログの成功率が最高の iteration、固定の点の間で `knot` が大きく動いた区間 (10 刻みで絞る)、`Loss/bounds`・発散率などの急変。
+  - 何を知りたくて足すのかを、足す前に 1 文で決める (崩れの時期を絞る・ピークの方策を動画で見る、など)。
+  - 学習ログの最高点は、選んだ点なので高く出る (選択バイアス)。ピークの評価値は版の比較に使わず、「参考」と書く。
+  - 根拠: 崩れた run の `knot` の最高点は崩れる直前 (v12 s44・v13 s44 は it70) にあり、固定の点だけでは崩れの時期が it70〜100 のどこかとしか分からない ([timeout-bootstrap の記録](../../../docs/experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md))。
+
 ```bash
 src/isaac_twisted_rl/scripts/run_job.sh --name eval_<略>_s42_it<it> --timeout <上限> --detach -- \
     uv run python src/isaac_twisted_rl/scripts/rsl_rl/eval_chain.py --task Isaac-Twisted-RL-Knot-Play-vN \

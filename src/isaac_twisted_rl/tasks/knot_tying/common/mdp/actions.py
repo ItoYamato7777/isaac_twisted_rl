@@ -69,6 +69,7 @@ from isaaclab.utils import configclass
 from ..rope_state import resolve_rope_bodies
 from . import phases
 from .finger_geometry import finger_footprint_top, rope_sample_points
+from .rope_size import get_rope_sizes
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -131,6 +132,16 @@ class PickPlaceAction(ActionTerm):
         self._drop_xy_max = lim.drop_xy_rel_frac * self._rope_length
         self._drop_z_max = lim.drop_z_diameters * self._diameter
         self._clear_dist = lim.clear_diameters * self._diameter
+        # 寸法の DR (v16): env ごとの全長・直径 (`mdp.get_rope_sizes`) に置き換える。形は使う側の演算に合わせる:
+        # xy に掛ける量は (N, 1)、z の量は (N,)、点列 (N, P) と比べる直径・半径は (N, 1)。
+        # 寸法を振らない設定 (v15 まで) は上の float のまま (計算を 1 ビットも変えない)。
+        sizes = get_rope_sizes(env, cfg.rope_asset_name)
+        if sizes is not None:
+            self._rope_length = sizes.rope_length.unsqueeze(-1)
+            self._diameter = sizes.diameter.unsqueeze(-1)
+            self._drop_xy_max = lim.drop_xy_rel_frac * self._rope_length
+            self._drop_z_max = lim.drop_z_diameters * sizes.diameter
+            self._clear_dist = lim.clear_diameters * self._diameter
         self._release_tip_z = lim.release_tip_z
         self._grasp_clearance = lim.grasp_clearance
         self._grasp_obstacle_min_z = lim.grasp_obstacle_min_z
@@ -723,10 +734,12 @@ class PickPlaceActionCfg(ActionTermCfg):
     """指の関節名 (左右の順)。"""
 
     rope_length: float = MISSING
-    """ロープ全長 [m]。`drop_xy_rel` のスケールに使う。"""
+    """ロープ全長 [m]。`drop_xy_rel` のスケールに使う。寸法の DR (v16) では公称の値で、env ごとの全長は
+    `mdp.get_rope_sizes` から読む。"""
 
     rope_diameter: float = MISSING
-    """ロープ直径 [m]。`drop_z_rel` と `clear` 距離のスケールに使う。"""
+    """ロープ直径 [m]。`drop_z_rel` と `clear` 距離のスケールに使う。寸法の DR (v16) では公称の値で、env ごとの直径は
+    `mdp.get_rope_sizes` から読む。"""
 
     durations: phases.PhaseDurations = phases.DEFAULT_DURATIONS
     """各フェーズの尺。合計が 1 手 = 1 RL ステップの長さになる。"""

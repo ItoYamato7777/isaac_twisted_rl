@@ -48,6 +48,7 @@ from isaaclab.managers import EventTermCfg, ManagerTermBase, SceneEntityCfg
 from .. import state_archive as sa
 from .. import topology as tp
 from .observations import get_extractor, rope_zmax, stage_function
+from .rope_size import get_rope_sizes, per_env_diameter
 from .stages import stage_transition
 from .terminations import diverged_now
 
@@ -141,7 +142,7 @@ class ResetFromArchive(ManagerTermBase):
         """手の終わりの形状のうち、床に落ちていて発散していないものを保存する (`record_archive` から呼ぶ)。"""
         extractor = get_extractor(env, rope_cfg.name)
         cls = tp.topology_class(extractor.reduced_batch)
-        ok = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
+        ok = rope_zmax(env, rope_cfg) <= settled_height_diameters * per_env_diameter(env, rope_diameter)
         ok &= torch.isfinite(extractor.nodes).all(dim=-1).all(dim=-1)
         if diverged_term is not None:
             ok &= ~diverged_now(env, diverged_term)
@@ -379,8 +380,13 @@ class ResetToStage(ManagerTermBase):
         sel = torch.cat(ids_list)
         cls = torch.cat(cls_list)
         rope: Articulation = env.scene[rope_cfg.name]
+        rel_pose = torch.cat(pose_list)
+        sizes = get_rope_sizes(env, rope_cfg.name)
+        if sizes is not None:
+            # 寸法の DR (v16): アーカイブは公称の寸法で持つので、書き込み先の env の寸法に伸ばす (`sa.rescale_rel_pose`)。
+            rel_pose = sa.rescale_rel_pose(rel_pose, sizes.length_scale[sel], sizes.diameter_scale[sel])
         pose = sa.place_at_origin(
-            torch.cat(pose_list), env.scene.env_origins[sel], sa.random_yaw(sel.numel(), env.device, random_yaw)
+            rel_pose, env.scene.env_origins[sel], sa.random_yaw(sel.numel(), env.device, random_yaw)
         )
         joint_pos = torch.cat(joint_list)
         rope.write_root_pose_to_sim(pose, env_ids=sel)
@@ -416,7 +422,7 @@ class ResetToStage(ManagerTermBase):
         """
         extractor = get_extractor(env, rope_cfg.name)
         stage = stage_function(env).stage(extractor.batch, extractor.reduced_batch)
-        ok = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
+        ok = rope_zmax(env, rope_cfg) <= settled_height_diameters * per_env_diameter(env, rope_diameter)
         ok &= torch.isfinite(extractor.nodes).all(dim=-1).all(dim=-1)
         if diverged_term is not None:
             ok &= ~diverged_now(env, diverged_term)
@@ -445,6 +451,10 @@ class ResetToStage(ManagerTermBase):
             rope: Articulation = env.scene[rope_cfg.name]
             link_pos = rope.data.body_pos_w[rows][:, extractor.body_index]
             rel = sa.to_centroid_frame(rope.data.root_link_pose_w[rows], link_pos, env.scene.env_origins[rows])
+            sizes = get_rope_sizes(env, rope_cfg.name)
+            if sizes is not None:
+                # 寸法の DR (v16): 公称の寸法に割り戻して保存する (`sa.rescale_rel_pose`)。
+                rel = sa.rescale_rel_pose(rel, 1.0 / sizes.length_scale[rows], 1.0 / sizes.diameter_scale[rows])
             self.archive.add(stage[rows], rel, rope.data.joint_pos[rows])
             for s in self.stages:
                 self._sums[f"saved_s{s}"] += float((stage[rows] == s).sum())

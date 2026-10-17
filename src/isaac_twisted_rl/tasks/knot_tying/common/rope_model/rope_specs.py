@@ -46,7 +46,7 @@ from __future__ import annotations
 
 import math
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 _DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
@@ -351,6 +351,7 @@ def _make_physical_spec(
     damping_ratio: float = BEND_DAMPING_RATIO,
     friction: float = ROPE_FRICTION,
     twist_limit_deg: float | None = 90.0,
+    capsule_half_length: float | None = None,
 ) -> RopeSpec:
     """材料定数と寸法から関節ゲインを導出して `RopeSpec` を組み立てる。
 
@@ -366,10 +367,14 @@ def _make_physical_spec(
         捩り剛性            k_twist = TORSION_RATIO * k_bend
         減衰                c = 2 * zeta * sqrt(k * I_link) [N*m*s/rad]
         曲げ角度制限        theta_max = 2 * asin(L_seg / (2 * R_min))
+
+    `capsule_half_length` を省くと半径から導出する (`HALF_LENGTH_TO_RADIUS`)。寸法の DR (`make_size_variant`) だけが
+    長さと直径を別々に振るために与える。
     """
     # 円柱部の半長は半径から導出する。この比は 1 つ飛ばしのリンクが
     # 常時接触してしまうのを避けるための幾何拘束 (HALF_LENGTH_TO_RADIUS 参照)。
-    capsule_half_length = HALF_LENGTH_TO_RADIUS * capsule_radius
+    if capsule_half_length is None:
+        capsule_half_length = HALF_LENGTH_TO_RADIUS * capsule_radius
     segment_length = 2.0 * capsule_half_length
     total_length = segment_length + 2.0 * capsule_radius
 
@@ -589,7 +594,78 @@ _KNOT56 = _refine_chain(
 まっすぐな状態で接するので、`filter_neighbor_pairs=2` で接触を切る。
 """
 
-ROPE_SPECS: dict[str, RopeSpec] = {spec.name: spec for spec in (_SIMPLE, _STIFF, _TWIST, _FINE, _KNOT, _KNOT56)}
+# ---------------------------------------------------------------- 寸法の DR (v16)
+
+SIZE_LENGTH_SCALES = (0.8, 1.0, 1.25)
+"""寸法の DR の長さの 3 水準 (公称のリンク間隔 = `capsule_half_length` に掛ける倍率)。
+
+実機の紐 (全長 1.02 m) は ×0.895 で範囲の中。`docs/decisions/0029-v16-rope-size-dr.md` の「寸法の範囲」(ユーザー、2026-10-15)。
+"""
+
+SIZE_DIAMETER_SCALES = (0.4, 0.63, 1.0)
+"""寸法の DR の直径の 3 水準 (公称の `capsule_radius` に掛ける倍率)。8 mm / 12.6 mm / 20 mm。
+
+実機の紐の直径 8 mm (×0.4) を含むように、公称 (20 mm) を最大の水準にした (0029)。
+"""
+
+
+def size_variant_name(base: str, length_scale: float, diameter_scale: float) -> str:
+    """寸法の組のプリセット名。公称 (×1.0, ×1.0) は `base` そのもの (例: `knot_l080_d040`)。
+
+    公称の組を別の USD にしないのは、寸法を振らない env を継承元の版とまったく同じロープにするため。
+    """
+    if length_scale == 1.0 and diameter_scale == 1.0:
+        return base
+    return f"{base}_l{round(length_scale * 100):03d}_d{round(diameter_scale * 100):03d}"
+
+
+def make_size_variant(base: RopeSpec, length_scale: float, diameter_scale: float) -> RopeSpec:
+    """`base` と同じ材料・同じリンク数で、リンク間隔を `length_scale` 倍・半径を `diameter_scale` 倍にしたロープ。
+
+    `base` は `_make_physical_spec` で作ったプリセット (`knot`) を想定する。材料定数 (ヤング率 `TWIST_YOUNGS_MODULUS`・
+    密度・減衰比・最小曲げ半径) は同じにして、質量・慣性・関節のばね・減衰・曲げの角度制限を寸法から導き直す
+    (同じ材料の太さ・長さ違いの紐)。リンク数を変えないのは、DOF の数・観測 (197 次元)・`grasp_link_id` の範囲を
+    版の間で揃えるため (0029 の「採らなかった案」)。
+
+    最小曲げ半径 (直径の 2 倍) がリンク間隔の半分より小さい組 (直径 ×0.4 の 3 組) は、導出した角度制限が 180° に
+    張り付く。PhysX の曲げの制限 (swing) は 180° 未満でないと扱えないので、その組は角度制限を付けない
+    (`bend_limit_deg=None`。`simple` と同じ「制限なし」の経路)。1 本おきのリンクどうしの接触が折れ返りを止める。
+    """
+    if base.name != "knot":
+        raise ValueError(f"寸法の DR は knot だけを想定している (got {base.name})")
+    spec = _make_physical_spec(
+        name=size_variant_name(base.name, length_scale, diameter_scale),
+        description=f"{base.name} の長さ ×{length_scale:g}・直径 ×{diameter_scale:g} (寸法の DR、v16)",
+        color=base.color,
+        color_name=base.color_name,
+        num_links=base.num_links,
+        capsule_radius=base.capsule_radius * diameter_scale,
+        capsule_half_length=base.capsule_half_length * length_scale,
+        lock_twist=base.twist_stiffness is None,
+        youngs_modulus=TWIST_YOUNGS_MODULUS,
+        twist_limit_deg=base.twist_limit_deg,
+    )
+    if spec.bend_limit_deg is not None and spec.bend_limit_deg >= 180.0:
+        spec = replace(spec, bend_limit_deg=None)
+    return spec
+
+
+_SIZE_VARIANTS = tuple(
+    make_size_variant(_KNOT, ls, ds)
+    for ls in SIZE_LENGTH_SCALES
+    for ds in SIZE_DIAMETER_SCALES
+    if not (ls == 1.0 and ds == 1.0)
+)
+"""`knot` の寸法の格子 (3 × 3) のうち公称を除く 8 組。USD は `generate_assets.py --rope <名前>` で作る。"""
+
+SIZE_SCALES: dict[str, tuple[float, float]] = {
+    size_variant_name("knot", ls, ds): (ls, ds) for ls in SIZE_LENGTH_SCALES for ds in SIZE_DIAMETER_SCALES
+}
+"""寸法の組のプリセット名 -> (長さの倍率, 直径の倍率)。公称 (`knot`) を含む 9 組。"""
+
+ROPE_SPECS: dict[str, RopeSpec] = {
+    spec.name: spec for spec in (_SIMPLE, _STIFF, _TWIST, _FINE, _KNOT, _KNOT56, *_SIZE_VARIANTS)
+}
 """名前 -> `RopeSpec` のレジストリ。`--rope` の選択肢はここから引く。"""
 
 DEFAULT_ROPE = "simple"

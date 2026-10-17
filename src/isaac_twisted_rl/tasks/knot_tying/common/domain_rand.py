@@ -80,3 +80,37 @@ def normalize(scales: torch.Tensor, ranges: Mapping[str, tuple[float, float]]) -
 def damping_scale(stiffness_scale: torch.Tensor, mass_scale: torch.Tensor, ratio_scale: torch.Tensor) -> torch.Tensor:
     """減衰の倍率 `sqrt(s_k · s_m) · s_ζ` (臨界減衰に対する比を `ratio_scale` 倍にする)。"""
     return torch.sqrt(stiffness_scale * mass_scale) * ratio_scale
+
+
+# ---------------------------------------------------------------- 寸法の DR (v16)
+#
+# 物理の 6 軸と違い、寸法は reset で引き直さない (PhysX は実行中にカプセルの形を変えられない)。起動時に env ごとに
+# 1 組を割り当て、run の間変わらない。Isaac Lab への接続 (spawn と、env ごとの寸法を読む項) は
+# `rope_model/rope_cfg.py` の `RopeSizeSpawnerCfg` と `mdp/rope_size.py`。仕様は `docs/decisions/0029-v16-rope-size-dr.md`。
+
+SIZE_AXES = ("rope_length", "rope_diameter")
+"""寸法の軸の並び。critic の特権観測の `rope_size` の列の順 (長さの倍率、直径の倍率)。"""
+
+
+def size_assignment(num_envs: int, num_sizes: int, device: torch.device | str = "cpu") -> torch.Tensor:
+    """env ごとの寸法の組の番号 `(num_envs,)`。env `i` は組 `i % num_sizes`。
+
+    Isaac Lab 2.3.0 の `spawn_multi_asset` (`random_choice=False`) が env の prim に USD を割り当てる規則と同じ。
+    実際に spawn された寸法と合っているかは、起動時に USD の半径で確かめる (`mdp.check_rope_sizes`)。
+    """
+    if num_sizes < 1:
+        raise ValueError(f"寸法の組が無い (num_sizes={num_sizes})")
+    return torch.arange(num_envs, device=device) % num_sizes
+
+
+def normalize_size(scales: torch.Tensor, lo: torch.Tensor, hi: torch.Tensor) -> torch.Tensor:
+    """寸法の倍率 `(n, 2)` を、軸ごとの log2 の範囲 `[log2 lo, log2 hi]` で [−1, 1] に写す。
+
+    範囲は寸法の格子の最小と最大 (`rope_specs.SIZE_LENGTH_SCALES`・`SIZE_DIAMETER_SCALES`) で、使う組の数に依らない
+    (公称だけで評価しても、学習と同じ値が critic に入る)。範囲が 1 点の軸は 0。`normalize` と同じ写し方。
+    """
+    llo, lhi = torch.log2(lo), torch.log2(hi)
+    half = 0.5 * (lhi - llo)
+    mid = 0.5 * (lhi + llo)
+    out = (torch.log2(scales) - mid) / torch.where(half > 0, half, torch.ones_like(half))
+    return torch.where(half > 0, out, torch.zeros_like(out)).clamp(-1.0, 1.0)

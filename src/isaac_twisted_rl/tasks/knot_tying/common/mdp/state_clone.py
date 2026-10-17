@@ -23,6 +23,9 @@ env 原点からの相対位置は保ち、原点の差だけを足し直す (�
 
 ## 写せないもの
 
+寸法の DR (v16) の寸法の違う env の間では写せない (`__init__` が例外にする)。
+
+
 PhysX の内部状態 (接触のキャッシュ・ソルバのウォームスタート) は API から読み書きできない。同じ状態・
 同じ手でも、複製先と複製元の結果は完全には一致しない (`eval_search.py --mode clone_test` で測る)。
 
@@ -38,6 +41,7 @@ import torch
 from isaaclab.assets import Articulation
 
 from .observations import get_next_edge_goal, invalidate_extractor
+from .rope_size import get_rope_sizes
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -67,6 +71,13 @@ class EnvStateCloner:
         self.gripper: Articulation = env.scene[gripper_name]
         self.term = env.action_manager.get_term(action_name)
         self.next_edge = get_next_edge_goal(env)
+        # 寸法の DR (v16) で寸法の違う env の間で写すと、形も行動の範囲も合わない。探索は寸法を 1 組にして回す。
+        sizes = get_rope_sizes(env, rope_name)
+        if sizes is not None and len(set(sizes.names)) > 1:
+            raise ValueError(
+                f"寸法の組が {len(sizes.names)} 個ある env では状態を写せない。"
+                "env.scene.rope.spawn.scales で 1 組にすること (例: [[1.0,1.0]])"
+            )
 
     def _ids(self, env_ids: torch.Tensor | None) -> torch.Tensor:
         if env_ids is None:

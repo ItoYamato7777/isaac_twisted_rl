@@ -21,14 +21,15 @@ import os
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg
+from isaaclab.utils import configclass
 
 try:
-    from .rope_specs import DEFAULT_ROPE, RopeSpec, get_spec
+    from .rope_specs import DEFAULT_ROPE, RopeSpec, get_spec, size_variant_name
 except ImportError:  # スクリプトとして直接実行された場合
     import sys
 
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from rope_specs import DEFAULT_ROPE, RopeSpec, get_spec
+    from rope_specs import DEFAULT_ROPE, RopeSpec, get_spec, size_variant_name
 
 
 _SIM_HZ_REF = 240.0
@@ -99,6 +100,56 @@ def make_rope_cfg(name: str = DEFAULT_ROPE) -> ArticulationCfg:
         ),
         actuators={},
     )
+
+
+def spawn_rope_sizes(prim_path: str, cfg: RopeSizeSpawnerCfg, translation=None, orientation=None, **kwargs):
+    """寸法の組 (`cfg.scales`) ごとのロープの USD を、env の番号の順に割り当てて spawn する (v16、寸法の DR)。
+
+    各組の `UsdFileCfg` は `make_rope_cfg(<組のプリセット>)` の spawn 設定をそのまま使う。接触の設定
+    (`contact_offset`・`max_depenetration_velocity`) が半径に比例するので、組ごとに持たせる必要がある
+    (`MultiAssetSpawnerCfg` の `rigid_props`・`collision_props` に値を入れると全組を同じ値で上書きする)。
+    版が上書きする値 (ソルバの反復・めり込み解消速度) だけを、全組に同じに入れる。
+
+    割り当ては `MultiAssetSpawnerCfg(random_choice=False)` の「env の番号 % 組の数」(Isaac Lab 2.3.0 の
+    `spawn_multi_asset`)。env ごとの寸法を読む側 (`mdp/rope_size.py`) も同じ規則で決め、起動時に USD の半径で
+    検算する (`mdp.check_rope_sizes`)。
+
+    spawn の時点で組を展開するのは、Hydra の上書き (`env.scene.rope.spawn.scales=...`) を効かせるため。
+    設定の `__post_init__` で展開すると、上書きが届く前に spawn の設定が決まってしまう。
+    """
+    assets = []
+    for length_scale, diameter_scale in cfg.scales:
+        spawn = make_rope_cfg(size_variant_name(cfg.base, float(length_scale), float(diameter_scale))).spawn
+        if cfg.solver_position_iteration_count is not None:
+            spawn.articulation_props.solver_position_iteration_count = cfg.solver_position_iteration_count
+        if cfg.max_depenetration_velocity is not None:
+            spawn.rigid_props.max_depenetration_velocity = cfg.max_depenetration_velocity
+        assets.append(spawn)
+    multi = sim_utils.MultiAssetSpawnerCfg(assets_cfg=assets, random_choice=False)
+    return multi.func(prim_path, multi, translation=translation, orientation=orientation, **kwargs)
+
+
+@configclass
+class RopeSizeSpawnerCfg(sim_utils.SpawnerCfg):
+    """寸法の DR のロープの spawn 設定 (v16)。env `i` に `scales[i % len(scales)]` の寸法のロープを置く。
+
+    複数の組を置くときは `InteractiveSceneCfg.replicate_physics=False` が要る (env ごとに違う USD を PhysX に
+    読ませるため。`rope_task_cfg.apply_rope_sizes` が設定する)。
+    """
+
+    func = spawn_rope_sizes
+
+    base: str = "knot"
+    """公称のプリセット。寸法の組は `rope_specs.size_variant_name(base, 長さの倍率, 直径の倍率)` のプリセット。"""
+
+    scales: tuple[tuple[float, float], ...] = ((1.0, 1.0),)
+    """env に割り当てる (長さの倍率, 直径の倍率) の並び。`rope_specs.SIZE_SCALES` にある組だけを使える。"""
+
+    solver_position_iteration_count: int | None = None
+    """全組のソルバの位置反復の上書き (`KnotTyingEnvCfg.solver_position_iterations`)。`None` なら各組の既定。"""
+
+    max_depenetration_velocity: float | None = None
+    """全組のめり込み解消速度の上書き (`KnotTyingEnvCfg.rope_max_depenetration_velocity`)。`None` なら半径から決める既定。"""
 
 
 def make_rope_physx_cfg(spec: RopeSpec) -> sim_utils.PhysxCfg:

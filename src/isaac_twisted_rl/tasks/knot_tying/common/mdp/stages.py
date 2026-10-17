@@ -45,6 +45,7 @@ from isaaclab.managers import SceneEntityCfg
 
 from .. import topology as tp
 from .observations import get_extractor, rope_zmax, stage_function
+from .rope_size import per_env_diameter
 from .terminations import diverged_now
 
 if TYPE_CHECKING:
@@ -120,7 +121,7 @@ def _outcome(
     diverged = (
         diverged_now(env, diverged_term) if diverged_term is not None else torch.zeros_like(after, dtype=torch.bool)
     )
-    valid = (rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter) & ~diverged
+    valid = (rope_zmax(env, rope_cfg) <= settled_height_diameters * per_env_diameter(env, rope_diameter)) & ~diverged
     up = (after > before) & valid
     down = (after < before) & valid
     if strict_topology:

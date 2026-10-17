@@ -49,6 +49,7 @@ uv run train --task Isaac-Twisted-RL-Knot-v6 --headless   # 学習 (手順は sk
 | `v13` | v12 | **PPO の損失に、段ごとの方策の平均が行動の範囲 [−1, 1] の外へ出た分の罰則を足す** (`BoundedPPO`、`bounds_loss_coef` 0.01)。環境 (観測・報酬・終了・アーカイブの保存の規則・物理) と方策の構造は v12 のまま | 同上 | [versions/v13/README.md](versions/v13/README.md) |
 | `v14` | v13 | **3 つを足す (Hydra で個別に切れる)**: (1) 段 0 で交差なしのまま形を変えた手 (1 エピソード 1 回) の後の形も保存する (`save_on = "stage_up_s0_reshape"`)、(2) ロープの物理の DR (曲げ・捩り・減衰比・質量・ロープと指の摩擦を env ごとに ×0.5〜×2。減衰比だけ ×1.0〜×2)、(3) critic に引いた物理の倍率を特権観測として渡す。actor の観測・報酬・終了・PPO は v13 のまま。Play は DR を切る | 同上 | [versions/v14/README.md](versions/v14/README.md) |
 | `v15` | v14 | **段の変化・発散と同じ手では時間切れを立てない** (`time_out` を `mdp.time_out_unless_terminated` に差し替え。6 手目に段が上がった手を γ·V(s) で bootstrap する不具合の修正)。それ以外は v14 のまま。Play は v14 と同じ時間切れ | 同上 | [versions/v15/README.md](versions/v15/README.md) |
+| `v16` | v15 | **ロープの直径・長さを env ごとに振る DR** (長さ ×0.8/1.0/1.25 × 直径 ×0.4/0.63/1.0 の USD を起動時に env に順に割り当てる。run の間は変わらない)。critic の特権観測に寸法 2 次元 (203 -> 205)。行動の範囲・床の判定・アーカイブの復元は env ごとの寸法を使う。それ以外は v15 のまま。Play は公称の寸法 | 同上 | [versions/v16/README.md](versions/v16/README.md) |
 
 各版の状態 (学習したか、結果、比べた相手) は `docs/STATUS.md` の「版の状態」にある。
 
@@ -65,7 +66,7 @@ Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-{v0,v1}          # 20 タ
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2[-RNN|-LSTM]   # 30 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v2-R2[-RNN|-LSTM]   # 30 タスク
 Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-v3[-RNN|-LSTM]   # 30 タスク
-Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-{v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15} # 各 10 タスク (MLP のみ)
+Isaac-Twisted-RL-{Twist,Simple,Stiff,Fine,Knot}[-Play]-{v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16} # 各 10 タスク (MLP のみ)
 Isaac-Twisted-RL-RS-<紐モデル>[-Play]-v4                                # rope study (rope_study/__init__.py)
 ```
 

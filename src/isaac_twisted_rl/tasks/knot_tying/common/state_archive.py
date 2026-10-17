@@ -271,6 +271,30 @@ def place_at_origin(rel_pose: torch.Tensor, env_origins: torch.Tensor, yaw: torc
     return out
 
 
+def rescale_rel_pose(rel_pose: torch.Tensor, xy_scale: torch.Tensor, z_scale: torch.Tensor) -> torch.Tensor:
+    """`to_centroid_frame` の相対姿勢 `(N, 7)` の xy を `xy_scale` 倍、z を `z_scale` 倍にする (向きはそのまま)。v16 で追加。
+
+    寸法の DR (v16) のアーカイブは、形を **公称の寸法に割り戻して** 持つ。関節角は寸法に依らないが、root の
+    重心からの xy はリンク間隔に比例し (関節角が同じなら形全体がリンク間隔の倍率で伸び縮みする)、root の床からの
+    高さは半径に比例する。保存では保存した env の倍率で割り (`1 / 倍率` を渡す)、復元では書き込み先の env の倍率を
+    掛ける。寸法を振らない run のアーカイブ (v15 まで、`outputs/archive_seed/`) は倍率 1 で保存したものとして読める。
+
+    root 以外のリンクの高さは関節角とリンク間隔で決まるので、長さと直径の比が違う env の間で書き戻すと、交差の
+    上下のずれ (公称で直径 1 本ぶん) がリンク間隔の倍率で伸び縮みし、直径とは合わない (細い組では浮き、短い組では
+    めり込む)。浮いた分は最初の手の間に落ち、めり込みは PhysX のめり込みの解消で押し戻される。復元の検算
+    (`restore_mismatch`) がこのずれで段が変わった割合を数える。
+
+    Args:
+        rel_pose: `(N, 7)` の相対姿勢。
+        xy_scale: `(N,)` xy に掛ける倍率。
+        z_scale: `(N,)` z に掛ける倍率。
+    """
+    out = rel_pose.clone()
+    out[:, 0:2] *= xy_scale.unsqueeze(-1)
+    out[:, 2] *= z_scale
+    return out
+
+
 def random_yaw(n: int, device: torch.device | str, enabled: bool = True) -> torch.Tensor:
     """`(n,)` の一様乱数の yaw [rad] (`enabled=False` なら 0)。"""
     if not enabled:

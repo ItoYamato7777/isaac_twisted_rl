@@ -29,6 +29,7 @@ import して呼ぶ。ジェネレータ本体 (`generate_rope_usd.py` /
 
     # 一部だけ作り直す
     uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/generate_assets.py --rope fine
+    uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/generate_assets.py --only rope --rope knot_l080_d040 knot_l080_d063
     uv run python -u src/isaac_twisted_rl/tasks/knot_tying/demos/generate_assets.py --only gripper
 
 生成物 (いずれも .gitignore 対象):
@@ -58,9 +59,10 @@ parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.R
 parser.add_argument(
     "--rope",
     type=str,
-    default="all",
+    nargs="+",
+    default=["all"],
     choices=["all", *ROPE_SPECS],
-    help="生成するロープのプリセット。既定の 'all' は全プリセットを生成する。",
+    help="生成するロープのプリセット (複数可。寸法の DR の 8 組を 1 回の Kit の起動で作るため)。既定の 'all' は全プリセットを生成する。",
 )
 parser.add_argument(
     "--only",
@@ -93,7 +95,7 @@ def main() -> None:
     made: list[str] = []
 
     if args_cli.only in ("all", "rope"):
-        names = list(ROPE_SPECS) if args_cli.rope == "all" else [args_cli.rope]
+        names = list(ROPE_SPECS) if "all" in args_cli.rope else list(args_cli.rope)
         for name in names:
             # generate() は保存後に bodies 数 / joints 数 / ArticulationRootAPI を
             # assert で検算してくれる。壊れた USD を黙って作らせないために

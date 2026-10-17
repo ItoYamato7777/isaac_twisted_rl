@@ -82,6 +82,7 @@ import isaac_twisted_rl.tasks  # noqa: E402, F401
 from isaac_twisted_rl.tasks.knot_tying.common import state_archive as sa  # noqa: E402
 from isaac_twisted_rl.tasks.knot_tying.common import topology as tp  # noqa: E402
 from isaac_twisted_rl.tasks.knot_tying.common.mdp import phases  # noqa: E402
+from isaac_twisted_rl.tasks.knot_tying.common.mdp.rope_size import get_rope_sizes, per_env_diameter  # noqa: E402
 from isaac_twisted_rl.tasks.knot_tying.common.mdp.observations import (  # noqa: E402
     get_extractor,
     invalidate_extractor,
@@ -209,6 +210,11 @@ class SeedStarts:
         if drawn is None or pick.numel() == 0:
             return pick[:0]
         _, rel, joint = drawn
+        sizes = get_rope_sizes(self.uenv)
+        if (
+            sizes is not None
+        ):  # v16: アーカイブは公称の寸法なので、書き込み先の env の寸法に伸ばす (`ResetToStage` と同じ)
+            rel = sa.rescale_rel_pose(rel, sizes.length_scale[pick], sizes.diameter_scale[pick])
         pose = sa.place_at_origin(rel, self.uenv.scene.env_origins[pick], sa.random_yaw(pick.numel(), self.uenv.device))
         self.rope.write_root_pose_to_sim(pose, env_ids=pick)
         self.rope.write_root_velocity_to_sim(torch.zeros(pick.numel(), 6, device=self.uenv.device), env_ids=pick)
@@ -400,6 +406,9 @@ def _run(env, log: Log, out_dir: str) -> None:
     ep_end = {k: 0 for k in names}
     t0 = time.time()
     dr_term = None
+    # 寸法の DR (v16) では直径が env ごと (寸法を振らない設定では公称の float のまま)
+    diameter = per_env_diameter(uenv, term.cfg.rope_diameter)
+    sizes = get_rope_sizes(uenv)
     if "rope_dr" in uenv.event_manager.active_terms.get("reset", []):
         dr_term = uenv.event_manager.get_term_cfg("rope_dr").func  # v14: 手ごとの物理の倍率も残す
     for step in range(args_cli.steps):
@@ -427,9 +436,9 @@ def _run(env, log: Log, out_dir: str) -> None:
             # crossings_at_action_start も reset で 0 に戻るが、交差数は発散しなかった手でしか使わない
             "count0": term.crossings_at_action_start.clone(),
             "count1": post["count"],
-            "settled": post["zmax"] <= 3.0 * term.cfg.rope_diameter,
+            "settled": post["zmax"] <= 3.0 * diameter,
             # めり込みの深さ [m] (負なら離れている)。リンク番号が 2 以上離れたカプセルどうし
-            "penetration": term.cfg.rope_diameter - post["min_seg_dist"],
+            "penetration": diameter - post["min_seg_dist"],
             "first_bad": d["first_bad_phase"].clone(),
             "vmax": d["phase_vmax"].clone(),
             "held": d["held"].clone(),
@@ -450,6 +459,8 @@ def _run(env, log: Log, out_dir: str) -> None:
         }
         if dr_scales is not None:
             row["dr_scales"] = dr_scales
+        if sizes is not None:
+            row["size_index"] = sizes.index
         for k, v in row.items():
             cols.setdefault(k, []).append(v.detach().cpu())
         if seeds is not None and bool(ended.any()):
@@ -467,6 +478,12 @@ def _run(env, log: Log, out_dir: str) -> None:
     total_end = sum(ep_end.values())
     log("[エピソードの終わり方] " + "  ".join(f"{k} {_pct(v, total_end)}" for k, v in ep_end.items()))
     summarize(rec, log)
+    if "size_index" in rec:
+        sizes = get_rope_sizes(uenv)
+        log("[寸法の DR] 組ごとの 1 手あたりの発散率 (組 = env の番号 % 組の数):")
+        for k, name in enumerate(sizes.names):
+            m = rec["size_index"] == k
+            log(f"  [size] {name:16s} div={100 * float(rec['div'][m].float().mean()):5.2f}% ({int(m.sum())} 手)")
     if "dr_scales" in rec:
         from isaac_twisted_rl.tasks.knot_tying.common import domain_rand as dr
 

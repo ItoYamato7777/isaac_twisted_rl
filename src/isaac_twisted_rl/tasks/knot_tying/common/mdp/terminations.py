@@ -21,6 +21,7 @@ from isaaclab.managers import SceneEntityCfg
 
 from .. import topology as tp
 from .observations import get_extractor, rope_zmax
+from .rope_size import per_env_diameter
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -131,7 +132,7 @@ def ladder_class_reached(
     """
     extractor = get_extractor(env, rope_cfg.name)
     reached = tp.topology_class(extractor.ladder_batch(reduce_r2)) >= min_class
-    settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
+    settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * per_env_diameter(env, rope_diameter)
     done = reached & settled
     if diverged_term is not None:
         done &= ~diverged_now(env, diverged_term)

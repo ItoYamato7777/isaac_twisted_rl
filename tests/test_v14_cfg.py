@@ -19,6 +19,7 @@ v14 は 1 版 1 変数から外れる (ユーザーが了承済み) が、3 つ�
 from __future__ import annotations
 
 import ast
+import re
 
 import domain_rand as dr
 import state_archive as sa
@@ -116,8 +117,11 @@ def test_v14_agent_cfg_only_sets_log_name_and_critic_obs():
 
 
 def test_older_versions_do_not_use_v14_terms():
+    # v14 より後の版 (v15〜) は v14 を継ぐので名前を使ってよい (v16 は `rope_params` に寸法の項を足す)。
     for path in sorted(VERSIONS.glob("v*/**/*.py")):
-        if path.parts[-2] == "v14" or path.parts[-3:-1] == ("v14", "agents"):
+        ver = path.relative_to(VERSIONS).parts[0]
+        num = re.match(r"v(\d+)", ver)
+        if num and int(num.group(1)) >= 14:
             continue
         src = path.read_text()
         for word in ("rope_dr", "rope_params", "RandomizeRopePhysics", "stage_up_s0_reshape", "s0_min_change"):

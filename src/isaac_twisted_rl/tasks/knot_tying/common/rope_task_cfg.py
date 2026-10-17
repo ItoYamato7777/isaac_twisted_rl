@@ -30,8 +30,8 @@ from isaaclab.utils import configclass
 from .env_cfg_base import KnotTyingEnvCfg
 from .mdp import PickPlaceActionCfg
 from .parallel_gripper.gripper_cfg import PARALLEL_GRIPPER_CFG
-from .rope_model.rope_cfg import make_rope_cfg
-from .rope_model.rope_specs import RopeSpec, get_spec
+from .rope_model.rope_cfg import RopeSizeSpawnerCfg, make_rope_cfg
+from .rope_model.rope_specs import SIZE_SCALES, RopeSpec, get_spec, size_variant_name
 
 # 把持まわりの定数。すべて demos/topology_debug.py と同じ値。
 _FINGER_DAMPING_RATIO = 0.04
@@ -85,6 +85,11 @@ def _apply_rope(cfg: KnotTyingEnvCfg, rope_name: str) -> RopeSpec:
     if depenetration is not None:
         rope_cfg.spawn.rigid_props.max_depenetration_velocity = depenetration
 
+    # バージョンが寸法の DR を指定していれば、ロープの spawn を寸法の組ごとの USD に替える (v16)。
+    sizes = getattr(cfg, "rope_size_scales", None)
+    if sizes is not None:
+        apply_rope_sizes(cfg, rope_name, sizes)
+
     # -- アクション
     cfg.actions.pick_place = PickPlaceActionCfg(
         asset_name="gripper",
@@ -118,6 +123,47 @@ def _apply_rope(cfg: KnotTyingEnvCfg, rope_name: str) -> RopeSpec:
                 _term.params["rope_diameter"] = spec.diameter
 
     return spec
+
+
+SIZE_DR_AGGREGATE_PAIRS_CAPACITY = 2**20
+"""寸法の DR (replicate_physics なし) の PhysX の `gpu_total_aggregate_pairs_capacity`。実測の必要量 (約 1.8 万) の 50 倍超。
+
+Isaac Lab の既定 (2**21) より小さい。基底 (`KnotTyingEnvCfg.__post_init__`) の 16384 は replicate_physics ありでは足りていた。
+"""
+
+
+def apply_rope_sizes(cfg: KnotTyingEnvCfg, rope_name: str, scales) -> None:
+    """ロープの spawn を、寸法の組 `scales` ((長さの倍率, 直径の倍率) の並び) を env に順に割り当てる設定にする (v16)。
+
+    `_apply_rope` が `cfg.rope_size_scales` から呼ぶ。版が上書きするソルバの反復・めり込み解消速度は
+    `RopeSizeSpawnerCfg` が全組に入れる (組ごとの `UsdFileCfg` は spawn の時点で作るため、ここでは値を渡すだけ)。
+
+    行動 (`rope_length`・`rope_diameter`) と、`rope_diameter` を params に持つ項は公称のプリセットの値のままにする。
+    env ごとの値は、それらの項が `mdp.get_rope_sizes` / `mdp.per_env_diameter` で公称の値に倍率を掛けて作る。
+    指のゲインも公称のまま (0029 の判断 4: 実機は閉じる角度を手で決める位置サーボ)。
+    """
+    pairs = tuple((float(ls), float(ds)) for ls, ds in scales)
+    if not pairs:
+        raise ValueError("寸法の組が空")
+    for ls, ds in pairs:
+        name = size_variant_name(rope_name, ls, ds)
+        if name != rope_name and name not in SIZE_SCALES:
+            raise ValueError(f"寸法の組 ({ls}, {ds}) のプリセット {name} が無い (rope_specs.SIZE_SCALES)")
+    cfg.scene.rope.spawn = RopeSizeSpawnerCfg(
+        base=rope_name,
+        scales=pairs,
+        solver_position_iteration_count=getattr(cfg, "solver_position_iterations", None),
+        max_depenetration_velocity=getattr(cfg, "rope_max_depenetration_velocity", None),
+    )
+    # env ごとに違う USD を PhysX に読ませる (Isaac Lab の `InteractiveScene` の注意)。
+    cfg.scene.replicate_physics = False
+    # replicate_physics を切ると、PhysX の GPU の集約 (aggregate) のペアの数が基底の上限 16384 を超え、PhysX が
+    # 「interactions を取りこぼす」とエラーを出す (4096 env、ランダムな手で 9 組 18379・公称の 1 組でも 16652。
+    # `docs/experiments/2026-10-17_v16_rope-size-spawn.md`)。取りこぼすと寸法に関係なく発散が増えるので、上限を上げる。
+    # バッファの大きさだけで、あふれない限り物理は変わらない。
+    cfg.sim.physx.gpu_total_aggregate_pairs_capacity = max(
+        cfg.sim.physx.gpu_total_aggregate_pairs_capacity, SIZE_DR_AGGREGATE_PAIRS_CAPACITY
+    )
 
 
 ##

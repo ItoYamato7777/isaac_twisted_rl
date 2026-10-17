@@ -25,6 +25,14 @@ from .observations import *  # noqa: F401, F403
 from .phases import GraspLimits, PhaseDurations  # noqa: F401
 from .rewards import *  # noqa: F401, F403
 from .rope_dr import RandomizeRopePhysics, rope_physics_params  # noqa: F401
+from .rope_size import (  # noqa: F401
+    RopeSizes,
+    check_rope_sizes,
+    get_rope_sizes,
+    per_env_diameter,
+    rope_size_params,
+    size_scales,
+)
 from .stages import (  # noqa: F401
     current_stage,
     knot_stage_one_hot,

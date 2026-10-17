@@ -178,6 +178,16 @@ class KnotTyingEnvCfg(ManagerBasedRLEnvCfg):
     `rigid_props` に書き込む。根拠は `versions/v5/README.md` (下げると発散が減る)。
     """
 
+    rope_size_scales: tuple[tuple[float, float], ...] | None = None
+    """env ごとに割り当てるロープの寸法 (長さの倍率, 直径の倍率) の並び。`None` ならプリセットのロープ 1 種のまま。v16 で追加
+    (`None` の既定では v0〜v15 は変わらない)。
+
+    値があると、プリセット適用 (`rope_task_cfg._apply_rope`) がロープの spawn を `RopeSizeSpawnerCfg` にし、
+    `scene.replicate_physics` を偽にする (`rope_task_cfg.apply_rope_sizes`)。`solver_position_iterations` と同じく
+    Hydra の CLI からは効かない。CLI (評価で寸法を変えるとき) は `env.scene.rope.spawn.scales=...` を直接指定する。
+    仕様は `docs/decisions/0029-v16-rope-size-dr.md`。
+    """
+
     actions_per_episode: int = MISSING
     """1 エピソードで打てる手の数。
 

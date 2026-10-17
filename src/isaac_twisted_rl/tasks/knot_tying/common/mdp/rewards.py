@@ -35,6 +35,7 @@ from isaaclab.managers import ManagerTermBase, RewardTermCfg, SceneEntityCfg
 from .. import topology as tp
 from . import phases
 from .observations import get_extractor, rope_zmax
+from .rope_size import per_env_diameter
 from .terminations import diverged_now
 
 if TYPE_CHECKING:
@@ -93,7 +94,7 @@ def crossing_achieved(
     """
     extractor = get_extractor(env, rope_cfg.name)
     reached = extractor.ladder_batch(reduce_r2).count >= min_crossings
-    settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
+    settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * per_env_diameter(env, rope_diameter)
     return _zero_if_diverged(env, (reached & settled).float(), diverged_term)
 
 
@@ -237,7 +238,7 @@ class LadderProgressBonus(ManagerTermBase):
         best = torch.where(self._best < 0, before, torch.maximum(self._best, before))
 
         after = tp.topology_class(extractor.ladder_batch(reduce_r2))
-        settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
+        settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * per_env_diameter(env, rope_diameter)
         climbed = (after > best) & settled
         if diverged_term is not None:
             climbed &= ~diverged_now(env, diverged_term)
@@ -271,7 +272,7 @@ def overhand_achieved(
     """
     extractor = get_extractor(env, rope_cfg.name)
     reached = tp.is_overhand(extractor.ladder_batch(reduce_r2))
-    settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
+    settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * per_env_diameter(env, rope_diameter)
     return _zero_if_diverged(env, (reached & settled).float(), diverged_term)
 
 
@@ -322,7 +323,7 @@ def interleaved2_achieved(
     """
     extractor = get_extractor(env, rope_cfg.name)
     reached = tp.is_interleaved_two(extractor.ladder_batch(reduce_r2))
-    settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * rope_diameter
+    settled = rope_zmax(env, rope_cfg) <= settled_height_diameters * per_env_diameter(env, rope_diameter)
     return _zero_if_diverged(env, (reached & settled).float(), diverged_term)
 
 
@@ -380,7 +381,7 @@ def grasp_distance_penalty(
     """
     dist = _pick_place_term(env, action_name).grasp_distance
     if max_distance_diameters is not None:
-        dist = dist.clamp(max=max_distance_diameters * rope_diameter)
+        dist = dist.clamp(max=max_distance_diameters * per_env_diameter(env, rope_diameter))
     return _zero_if_diverged(env, dist, diverged_term)
 
 
@@ -421,7 +422,9 @@ def held_up_penalty(
     ことを **学習曲線ではなくログで** 気付けるようにする狙いもある
     (この項だけが立ち上がったら物理パラメータを疑う)。
     """
-    return _zero_if_diverged(env, (rope_zmax(env, rope_cfg) > height_diameters * rope_diameter).float(), diverged_term)
+    return _zero_if_diverged(
+        env, (rope_zmax(env, rope_cfg) > height_diameters * per_env_diameter(env, rope_diameter)).float(), diverged_term
+    )
 
 
 def diverged_by_class(

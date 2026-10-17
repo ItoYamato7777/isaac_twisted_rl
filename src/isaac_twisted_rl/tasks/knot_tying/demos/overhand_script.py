@@ -170,6 +170,7 @@ import isaac_twisted_rl.tasks  # noqa: E402, F401
 from isaac_twisted_rl.tasks.knot_tying.common import topology as tp  # noqa: E402
 from isaac_twisted_rl.tasks.knot_tying.common import state_archive as sa  # noqa: E402
 from isaac_twisted_rl.tasks.knot_tying.common.mdp import phases  # noqa: E402
+from isaac_twisted_rl.tasks.knot_tying.common.mdp.rope_size import get_rope_sizes  # noqa: E402
 from isaac_twisted_rl.tasks.knot_tying.common.rope_state import RopeTopologyExtractor  # noqa: E402
 from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
 
@@ -306,6 +307,11 @@ class ScriptRunner:
         pp = self.uenv.cfg.actions.pick_place
         self.rope_length = float(pp.rope_length)
         self.diameter = float(pp.rope_diameter)
+        # 寸法の DR (v16): 全長・直径を env ごとの `(N,)` にする (台本の長さは全長比、高さは直径比なので、寸法ごとに伸び縮みする)。
+        self.sizes = get_rope_sizes(self.uenv)
+        if self.sizes is not None:
+            self.rope_length = self.sizes.rope_length
+            self.diameter = self.sizes.diameter
 
         self.extractor = RopeTopologyExtractor(self.rope, env_origins=self.origins)
         self.body_index = self.extractor.body_index
@@ -464,7 +470,7 @@ class ScriptRunner:
         # 運んできた向きへ横へ抜けてから上げる (topology_debug の clear と同じ理由)
         d = place_xy - prev_last
         d = d / d.norm(dim=-1, keepdim=True).clamp_min(1e-6)
-        clear_xy = place_xy + d * 4.0 * self.diameter
+        clear_xy = place_xy + d * 4.0 * _col(self.diameter)
         self.segment(at(clear_xy, plan.place_z), g_yaw, OPEN, OPEN, CLEAR_TIME, "clear")
         self.segment(at(clear_xy, phases.HOME_PALM_Z), g_yaw, OPEN, OPEN, RETREAT_TIME, "retreat")
         self.hold(RELAX_TIME, tag="relax")
@@ -506,8 +512,17 @@ class ScriptRunner:
         rows = ok.nonzero(as_tuple=False).squeeze(-1)
         if rows.numel() > 0:
             rel = sa.to_centroid_frame(self.rope.data.root_link_pose_w[rows], links_w[rows], self.origins[rows])
+            if self.sizes is not None:  # v16: 公称の寸法に割り戻して持つ (`ResetToStage.record` と同じ)
+                rel = sa.rescale_rel_pose(
+                    rel, 1.0 / self.sizes.length_scale[rows], 1.0 / self.sizes.diameter_scale[rows]
+                )
             archive.add(stage[rows], rel, self.rope.data.joint_pos[rows])
         return torch.where(ok, stage, torch.full_like(stage, -1))
+
+
+def _col(x):
+    """env ごとの量 `(N,)` を xy `(N, 2)` に掛けられる `(N, 1)` にする (寸法を振らない設定の float はそのまま)。"""
+    return x.unsqueeze(-1) if torch.is_tensor(x) else x
 
 
 def gather(links: torch.Tensor, ids: torch.Tensor) -> torch.Tensor:
@@ -542,7 +557,7 @@ def build_move(k: int, runner: ScriptRunner, P: dict[str, torch.Tensor], state: 
     links = runner.links()
     xy = links[..., :2]
     n = runner.num_links
-    L = runner.rope_length
+    L = _col(runner.rope_length)
     dia = runner.diameter
     N = runner.num_envs
     dev = runner.device
@@ -658,7 +673,10 @@ def plan_to_action(plan: MovePlan, runner: ScriptRunner) -> tuple[torch.Tensor, 
     offsets = torch.arange(-term._max_delta, term._max_delta + 1, device=runner.device)
     cand = (g.unsqueeze(1) + offsets.unsqueeze(0)).clamp(0, n - 1)  # (N, 17)
     cand_xy = links[..., :2].gather(1, cand.unsqueeze(-1).expand(-1, -1, 2))
-    need = (place.unsqueeze(1) - cand_xy) / term._drop_xy_max  # (N, 17, 2)
+    drop_xy_max = term._drop_xy_max
+    if torch.is_tensor(drop_xy_max):  # v16: env ごとの (N, 1) -> (N, 1, 1)
+        drop_xy_max = drop_xy_max.view(-1, 1, 1)
+    need = (place.unsqueeze(1) - cand_xy) / drop_xy_max  # (N, 17, 2)
     best = need.abs().amax(dim=-1).argmin(dim=1)
     rows = torch.arange(runner.num_envs, device=runner.device)
     t = cand[rows, best]
@@ -744,6 +762,25 @@ class Log:
         print(text, flush=True)
         with open(self.path, "a", encoding="utf-8") as f:
             f.write(text + "\n")
+
+
+def _fmt_range(x, scale: float, fmt: str) -> str:
+    """float か env ごとの `(N,)` を表示用の文字列に (env ごとなら最小〜最大)。"""
+    if torch.is_tensor(x):
+        return f"{float(x.min()) * scale:{fmt}}~{float(x.max()) * scale:{fmt}}"
+    return f"{x * scale:{fmt}}"
+
+
+def _log_size_breakdown(sizes, ok: torch.Tensor, diverged: torch.Tensor, label: str, log) -> None:
+    """寸法の DR (v16) があれば、寸法の組ごとの `label` の割合と発散の数を書く (組 = env の番号 % 組の数)。"""
+    if sizes is None:
+        return
+    idx = sizes.index.cpu()
+    ok, diverged = ok.cpu(), diverged.cpu()
+    log(f"寸法の組ごとの{label} (組: {label} / env 数、発散):")
+    for k, name in enumerate(sizes.names):
+        m = idx == k
+        log(f"  [size] {name:16s} {label}={int(ok[m].sum())}/{int(m.sum())} diverged={int(diverged[m].sum())}")
 
 
 def _log_dr_breakdown(uenv, ok: torch.Tensor, label: str, log) -> None:
@@ -845,7 +882,8 @@ def main():
     P = make_params(runner.num_envs, runner.device, args_cli.jitter, args_cli.seed, args_cli.override)
     log(
         f"=== overhand_script task={args_cli.task} num_envs={runner.num_envs} links={runner.num_links} "
-        f"L={runner.rope_length:.3f} dia={runner.diameter * 1000:.1f}mm jitter={args_cli.jitter} mode={mode}"
+        f"L={_fmt_range(runner.rope_length, 1.0, '.3f')} dia={_fmt_range(runner.diameter, 1000.0, '.1f')}mm "
+        f"jitter={args_cli.jitter} mode={mode}"
     )
 
     runner.hold(SETTLE_TIME)
@@ -935,6 +973,7 @@ def main():
     for e in range(runner.num_envs):
         elog(f"final env{e:3d} cls_r2={int(cls_r2[e])} p='{pd[e]}' r2='{pd_r2[e]}'")
     _log_dr_breakdown(env.unwrapped, ok, "固結び", log)
+    _log_size_breakdown(runner.sizes, ok, runner.diverged, "固結び", log)
     # パラメータの値を 3 分位に分けたときの成功率 (探索の手がかり)。
     if args_cli.jitter > 0 and runner.num_envs >= 30:
         log("パラメータ別の成功率 (値の小 / 中 / 大 の 3 分位):")

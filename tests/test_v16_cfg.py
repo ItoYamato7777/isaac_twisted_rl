@@ -81,6 +81,37 @@ def test_bend_limit_is_removed_only_where_it_saturates():
     assert free == {"knot_l080_d040", "knot_l100_d040", "knot_l125_d040"}
 
 
+@pytest.mark.parametrize("ls", rs.SIZE_LENGTH_SCALES)
+def test_length_variants_keep_nominal_joint_limits(ls):
+    # v16 の学習の組 (ユーザー、2026-10-17): 長さだけを振り、曲げ ±60°・捩り ±90° を全組で揃える。
+    knot = rs.get_spec("knot")
+    name = rs.size_variant_name("knot", ls, 1.0, keep_joint_limits=True)
+    assert name == ("knot" if ls == 1.0 else f"knot_l{round(ls * 100):03d}")
+    assert rs.LENGTH_VARIANT_SCALES[name] == (ls, 1.0)
+    spec = rs.get_spec(name)
+    assert spec.bend_limit_deg == knot.bend_limit_deg
+    assert spec.twist_limit_deg == knot.twist_limit_deg == 90.0
+    # ばね・減衰・質量は角度制限を導出する組と同じ (変えたのは角度制限だけ)。
+    derived = rs.get_spec(rs.size_variant_name("knot", ls, 1.0))
+    for field in (
+        "capsule_radius",
+        "capsule_half_length",
+        "link_mass",
+        "bend_stiffness",
+        "bend_damping",
+        "twist_stiffness",
+    ):
+        assert getattr(spec, field) == getattr(derived, field), field
+    # 1 本おきのリンクの最も近い点はリンク間隔ぶん離れ、接触の届く範囲 (2 r + 2 contact_offset) より遠い。
+    assert spec.link_spacing > 2.0 * spec.capsule_radius + 2.0 * spec.contact_offset
+
+
+def test_kept_limits_only_for_length_only():
+    assert set(rs.LENGTH_VARIANT_SCALES) == {"knot_l080", "knot", "knot_l125"}
+    with pytest.raises(ValueError):
+        rs.size_variant_name("knot", 0.8, 0.4, keep_joint_limits=True)
+
+
 def test_size_variant_only_from_knot():
     with pytest.raises(ValueError):
         rs.make_size_variant(rs.get_spec("twist"), 0.8, 0.4)
@@ -166,6 +197,7 @@ def test_v16_env_cfg_adds_only_size_dr():
         "observations: ObservationsCfg = ObservationsCfg()",
         "events: EventCfg = EventCfg()",
         "rope_size_scales: tuple[tuple[float, float], ...] | None = ROPE_SIZE_SCALES",
+        "rope_size_keep_joint_limits: bool = KEEP_JOINT_LIMITS",
     ]
     ev = classes["EventCfg"]
     assert [ast.unparse(b) for b in ev.bases] == ["V14EventCfg"]
@@ -184,7 +216,9 @@ def test_v16_env_cfg_adds_only_size_dr():
 def test_v16_size_grid_and_play():
     tree = _parse("v16/env_cfg.py")
     src = ast.unparse(tree)
-    assert "ROPE_SIZE_SCALES = tuple(((ls, ds) for ls in SIZE_LENGTH_SCALES for ds in SIZE_DIAMETER_SCALES))" in src
+    # 長さの 3 組・直径 ×1.0・角度制限は公称のまま (ユーザー、2026-10-17)。
+    assert "ROPE_SIZE_SCALES = tuple(((ls, 1.0) for ls in SIZE_LENGTH_SCALES))" in src
+    assert "KEEP_JOINT_LIMITS = True" in src
     fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "play_post_init")
     assert [ast.unparse(s) for s in _body_without_docstring(fn)] == [
         "_v15_play_post_init(cfg)",
@@ -206,7 +240,14 @@ def test_v16_agent_cfg_only_sets_log_name():
 
 
 def test_older_versions_do_not_use_size_dr():
-    names = ("rope_size_scales", "check_rope_sizes", "rope_size_params", "RopeSizeSpawnerCfg", "apply_rope_sizes")
+    names = (
+        "rope_size_scales",
+        "rope_size_keep_joint_limits",
+        "check_rope_sizes",
+        "rope_size_params",
+        "RopeSizeSpawnerCfg",
+        "apply_rope_sizes",
+    )
     for path in sorted(VERSIONS.glob("v*/**/*.py")):
         if "v16" in path.parts:
             continue

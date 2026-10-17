@@ -31,7 +31,7 @@ from .env_cfg_base import KnotTyingEnvCfg
 from .mdp import PickPlaceActionCfg
 from .parallel_gripper.gripper_cfg import PARALLEL_GRIPPER_CFG
 from .rope_model.rope_cfg import RopeSizeSpawnerCfg, make_rope_cfg
-from .rope_model.rope_specs import SIZE_SCALES, RopeSpec, get_spec, size_variant_name
+from .rope_model.rope_specs import ROPE_SPECS, RopeSpec, get_spec, size_variant_name
 
 # 把持まわりの定数。すべて demos/topology_debug.py と同じ値。
 _FINGER_DAMPING_RATIO = 0.04
@@ -88,7 +88,7 @@ def _apply_rope(cfg: KnotTyingEnvCfg, rope_name: str) -> RopeSpec:
     # バージョンが寸法の DR を指定していれば、ロープの spawn を寸法の組ごとの USD に替える (v16)。
     sizes = getattr(cfg, "rope_size_scales", None)
     if sizes is not None:
-        apply_rope_sizes(cfg, rope_name, sizes)
+        apply_rope_sizes(cfg, rope_name, sizes, getattr(cfg, "rope_size_keep_joint_limits", False))
 
     # -- アクション
     cfg.actions.pick_place = PickPlaceActionCfg(
@@ -139,7 +139,7 @@ GPU のメモリの最大は 12.1 GB だった。必要量は飛んだロープ�
 """
 
 
-def apply_rope_sizes(cfg: KnotTyingEnvCfg, rope_name: str, scales) -> None:
+def apply_rope_sizes(cfg: KnotTyingEnvCfg, rope_name: str, scales, keep_joint_limits: bool = False) -> None:
     """ロープの spawn を、寸法の組 `scales` ((長さの倍率, 直径の倍率) の並び) を env に順に割り当てる設定にする (v16)。
 
     `_apply_rope` が `cfg.rope_size_scales` から呼ぶ。版が上書きするソルバの反復・めり込み解消速度は
@@ -153,12 +153,13 @@ def apply_rope_sizes(cfg: KnotTyingEnvCfg, rope_name: str, scales) -> None:
     if not pairs:
         raise ValueError("寸法の組が空")
     for ls, ds in pairs:
-        name = size_variant_name(rope_name, ls, ds)
-        if name != rope_name and name not in SIZE_SCALES:
-            raise ValueError(f"寸法の組 ({ls}, {ds}) のプリセット {name} が無い (rope_specs.SIZE_SCALES)")
+        name = size_variant_name(rope_name, ls, ds, keep_joint_limits)
+        if name not in ROPE_SPECS:
+            raise ValueError(f"寸法の組 ({ls}, {ds}) のプリセット {name} が無い (rope_specs.ROPE_SPECS)")
     cfg.scene.rope.spawn = RopeSizeSpawnerCfg(
         base=rope_name,
         scales=pairs,
+        keep_joint_limits=keep_joint_limits,
         solver_position_iteration_count=getattr(cfg, "solver_position_iterations", None),
         max_depenetration_velocity=getattr(cfg, "rope_max_depenetration_velocity", None),
     )

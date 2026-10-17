@@ -83,7 +83,8 @@ def _build(env: ManagerBasedRLEnv, rope_name: str) -> RopeSizes | None:
     if spawn is None or not (hasattr(spawn, "scales") and hasattr(spawn, "base")):
         return None
     pairs = [(float(ls), float(ds)) for ls, ds in spawn.scales]
-    names = tuple(size_variant_name(spawn.base, ls, ds) for ls, ds in pairs)
+    keep = bool(getattr(spawn, "keep_joint_limits", False))
+    names = tuple(size_variant_name(spawn.base, ls, ds, keep) for ls, ds in pairs)
     specs = [get_spec(n) for n in names]
     dev = env.device
     index = dr.size_assignment(env.num_envs, len(pairs), device=dev)
@@ -169,7 +170,35 @@ def check_rope_sizes(env: ManagerBasedRLEnv, env_ids, rope_asset_name: str = "ro
             f"ロープの寸法が割り当てと違う env が {int(bad.sum())} 個 (最初は env {first}: USD の半径 {float(radius[first]):.5f}・"
             f"半長 {float(half[first]):.5f}、割り当て {sizes.names[int(sizes.index[first])]})"
         )
+    _check_joint_limits(env, sizes, rope_asset_name)
     counts = torch.bincount(sizes.index.cpu(), minlength=len(sizes.names)).tolist()
     print(
-        f"[knot_tying] check_rope_sizes: {env.num_envs} env の寸法が割り当てと一致 ({dict(zip(sizes.names, counts))})"
+        f"[knot_tying] check_rope_sizes: {env.num_envs} env の寸法・関節の角度制限が割り当てと一致 "
+        f"({dict(zip(sizes.names, counts))})"
     )
+
+
+def _check_joint_limits(env: ManagerBasedRLEnv, sizes: RopeSizes, rope_asset_name: str, atol_deg: float = 0.01) -> None:
+    """PhysX から読んだ関節の角度制限 (`joint_pos_limits`) が、env の組のプリセットと一致するかを確かめる。
+
+    v16 は長さの組の角度制限を公称に揃える (`rope_specs.make_size_variant(..., keep_joint_limits=True)`)。揃っていないと、
+    寸法の間で書き戻した関節角が制限を超えて飛ぶ (`docs/experiments/2026-10-17_v16_size-gate.md`)。DOF の名前の規則
+    (`<関節>:0` = 捩り、`:1`・`:2` = 曲げ) は `RandomizeRopePhysics` と同じ。制限の無い組 (`bend_limit_deg=None`) は見ない。
+    """
+    import math
+
+    rope = env.scene[rope_asset_name]
+    suffix = [name.rsplit(":", 1)[-1] for name in rope.joint_names]
+    twist = torch.tensor([sfx == "0" for sfx in suffix])
+    upper = torch.rad2deg(rope.data.joint_pos_limits[..., 1]).cpu()  # (N, J)
+    for k, name in enumerate(sizes.names):
+        spec = get_spec(name)
+        rows = (sizes.index == k).cpu()
+        for mask, limit, label in ((~twist, spec.bend_limit_deg, "曲げ"), (twist, spec.twist_limit_deg, "捩り")):
+            if limit is None:
+                continue
+            err = (upper[rows][:, mask] - limit).abs().max()
+            if not math.isfinite(float(err)) or float(err) > atol_deg:
+                raise RuntimeError(
+                    f"{name} の{label}の角度制限が PhysX と違う (プリセット ±{limit:.2f}°、最大のずれ {float(err):.3f}°)"
+                )

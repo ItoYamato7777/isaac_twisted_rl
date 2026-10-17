@@ -188,6 +188,12 @@ class KnotTyingEnvCfg(ManagerBasedRLEnvCfg):
     仕様は `docs/decisions/0029-v16-rope-size-dr.md`。
     """
 
+    rope_size_keep_joint_limits: bool = False
+    """`rope_size_scales` の組の関節の角度制限を、公称のプリセットのまま揃えるか (`rope_specs.make_size_variant`)。v16 で追加。
+
+    真なら長さだけの組 (`knot_l080`・`knot_l125`) を使う。偽 (既定) なら角度制限を寸法から導き直した組。
+    """
+
     actions_per_episode: int = MISSING
     """1 エピソードで打てる手の数。
 

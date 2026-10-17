@@ -609,17 +609,25 @@ SIZE_DIAMETER_SCALES = (0.4, 0.63, 1.0)
 """
 
 
-def size_variant_name(base: str, length_scale: float, diameter_scale: float) -> str:
-    """寸法の組のプリセット名。公称 (×1.0, ×1.0) は `base` そのもの (例: `knot_l080_d040`)。
+def size_variant_name(base: str, length_scale: float, diameter_scale: float, keep_joint_limits: bool = False) -> str:
+    """寸法の組のプリセット名。公称 (×1.0, ×1.0) は `base` そのもの。
 
+    `keep_joint_limits=False` は角度制限を寸法から導き直した組 (例: `knot_l080_d040`)、`True` は角度制限を `base` の
+    まま揃えた長さだけの組 (例: `knot_l080`。直径は ×1.0 だけ。`make_size_variant` の docstring)。
     公称の組を別の USD にしないのは、寸法を振らない env を継承元の版とまったく同じロープにするため。
     """
     if length_scale == 1.0 and diameter_scale == 1.0:
         return base
+    if keep_joint_limits:
+        if diameter_scale != 1.0:
+            raise ValueError(f"角度制限を揃えた組は長さだけ (直径 ×1.0) を想定している (got 直径 ×{diameter_scale:g})")
+        return f"{base}_l{round(length_scale * 100):03d}"
     return f"{base}_l{round(length_scale * 100):03d}_d{round(diameter_scale * 100):03d}"
 
 
-def make_size_variant(base: RopeSpec, length_scale: float, diameter_scale: float) -> RopeSpec:
+def make_size_variant(
+    base: RopeSpec, length_scale: float, diameter_scale: float, keep_joint_limits: bool = False
+) -> RopeSpec:
     """`base` と同じ材料・同じリンク数で、リンク間隔を `length_scale` 倍・半径を `diameter_scale` 倍にしたロープ。
 
     `base` は `_make_physical_spec` で作ったプリセット (`knot`) を想定する。材料定数 (ヤング率 `TWIST_YOUNGS_MODULUS`・
@@ -630,12 +638,22 @@ def make_size_variant(base: RopeSpec, length_scale: float, diameter_scale: float
     最小曲げ半径 (直径の 2 倍) がリンク間隔の半分より小さい組 (直径 ×0.4 の 3 組) は、導出した角度制限が 180° に
     張り付く。PhysX の曲げの制限 (swing) は 180° 未満でないと扱えないので、その組は角度制限を付けない
     (`bend_limit_deg=None`。`simple` と同じ「制限なし」の経路)。1 本おきのリンクどうしの接触が折れ返りを止める。
+
+    `keep_joint_limits=True` (v16 で使う長さだけの組) は、曲げの角度制限を `base` の値 (`knot` の ±60°) のままにする。
+    捩りの制限 (±90°) はどの組も同じ。v16 のアーカイブは形を関節角で持ち、寸法の違う env の間で書き戻すので、
+    角度制限が組ごとに違うと、ある組で保存した関節角が書き戻し先の制限を超え、リセットの直後に飛ぶ
+    (`docs/experiments/2026-10-17_v16_size-gate.md`。v15 の学習のアーカイブの形は ±60° に張り付き、長さ ×0.8 の導出した
+    制限 ±47.2° を超える形が段 2 で 74%)。揃えると、どの組の関節角も全組で有効で、書き戻した形は保存した形と相似になる。
+    代わりに最小曲げ半径がリンク間隔に比例する (×0.8 で 32 mm = 直径の 1.6 倍、×1.25 で 50 mm = 2.5 倍。公称は 40 mm)。
+    リンク k と k+2 の最も近い点は角度に依らずリンク間隔ぶん (32 mm 以上) 離れていて、接触の届く範囲 (28 mm) より遠いので、
+    制限を広げても 1 本おきの自己接触は増えない。ばね・減衰・質量は `keep_joint_limits=False` と同じく寸法から導く。
     """
     if base.name != "knot":
         raise ValueError(f"寸法の DR は knot だけを想定している (got {base.name})")
+    limits = "角度制限は公称のまま" if keep_joint_limits else "角度制限は寸法から導出"
     spec = _make_physical_spec(
-        name=size_variant_name(base.name, length_scale, diameter_scale),
-        description=f"{base.name} の長さ ×{length_scale:g}・直径 ×{diameter_scale:g} (寸法の DR、v16)",
+        name=size_variant_name(base.name, length_scale, diameter_scale, keep_joint_limits),
+        description=f"{base.name} の長さ ×{length_scale:g}・直径 ×{diameter_scale:g}、{limits} (寸法の DR、v16)",
         color=base.color,
         color_name=base.color_name,
         num_links=base.num_links,
@@ -645,7 +663,9 @@ def make_size_variant(base: RopeSpec, length_scale: float, diameter_scale: float
         youngs_modulus=TWIST_YOUNGS_MODULUS,
         twist_limit_deg=base.twist_limit_deg,
     )
-    if spec.bend_limit_deg is not None and spec.bend_limit_deg >= 180.0:
+    if keep_joint_limits:
+        spec = replace(spec, bend_limit_deg=base.bend_limit_deg)
+    elif spec.bend_limit_deg is not None and spec.bend_limit_deg >= 180.0:
         spec = replace(spec, bend_limit_deg=None)
     return spec
 
@@ -656,7 +676,21 @@ _SIZE_VARIANTS = tuple(
     for ds in SIZE_DIAMETER_SCALES
     if not (ls == 1.0 and ds == 1.0)
 )
-"""`knot` の寸法の格子 (3 × 3) のうち公称を除く 8 組。USD は `generate_assets.py --rope <名前>` で作る。"""
+"""`knot` の寸法の格子 (3 × 3) のうち公称を除く 8 組 (角度制限を寸法から導出)。USD は `generate_assets.py --rope <名前>` で作る。
+
+v16 の物理のゲートで測っただけで、学習には使わない (直径 ×0.4・×0.63 は台本が結べず、長さの組は角度制限が組ごとに違う。
+`docs/experiments/2026-10-17_v16_size-gate.md`)。
+"""
+
+_LENGTH_VARIANTS = tuple(
+    make_size_variant(_KNOT, ls, 1.0, keep_joint_limits=True) for ls in SIZE_LENGTH_SCALES if ls != 1.0
+)
+"""`knot` の長さだけの組 (`knot_l080`・`knot_l125`。角度制限は公称の ±60°)。v16 の学習に使う (ユーザー、2026-10-17)。"""
+
+LENGTH_VARIANT_SCALES: dict[str, tuple[float, float]] = {
+    size_variant_name("knot", ls, 1.0, keep_joint_limits=True): (ls, 1.0) for ls in SIZE_LENGTH_SCALES
+}
+"""角度制限を揃えた長さだけの組のプリセット名 -> (長さの倍率, 直径の倍率)。公称 (`knot`) を含む 3 組。"""
 
 SIZE_SCALES: dict[str, tuple[float, float]] = {
     size_variant_name("knot", ls, ds): (ls, ds) for ls in SIZE_LENGTH_SCALES for ds in SIZE_DIAMETER_SCALES
@@ -664,7 +698,7 @@ SIZE_SCALES: dict[str, tuple[float, float]] = {
 """寸法の組のプリセット名 -> (長さの倍率, 直径の倍率)。公称 (`knot`) を含む 9 組。"""
 
 ROPE_SPECS: dict[str, RopeSpec] = {
-    spec.name: spec for spec in (_SIMPLE, _STIFF, _TWIST, _FINE, _KNOT, _KNOT56, *_SIZE_VARIANTS)
+    spec.name: spec for spec in (_SIMPLE, _STIFF, _TWIST, _FINE, _KNOT, _KNOT56, *_SIZE_VARIANTS, *_LENGTH_VARIANTS)
 }
 """名前 -> `RopeSpec` のレジストリ。`--rope` の選択肢はここから引く。"""
 

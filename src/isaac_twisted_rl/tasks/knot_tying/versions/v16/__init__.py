@@ -1,4 +1,4 @@
-"""v16: v15 + ロープの直径・長さを env ごとに振る DR (寸法の DR)。
+"""v16: v15 + ロープの長さを env ごとに振る DR (寸法の DR)。
 
     uv run train --task Isaac-Twisted-RL-Knot-v16 --headless
     uv run play  --task Isaac-Twisted-RL-Knot-Play-v16 --num_envs 16

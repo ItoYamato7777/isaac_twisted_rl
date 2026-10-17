@@ -119,7 +119,8 @@ def spawn_rope_sizes(prim_path: str, cfg: RopeSizeSpawnerCfg, translation=None, 
     """
     assets = []
     for length_scale, diameter_scale in cfg.scales:
-        spawn = make_rope_cfg(size_variant_name(cfg.base, float(length_scale), float(diameter_scale))).spawn
+        name = size_variant_name(cfg.base, float(length_scale), float(diameter_scale), cfg.keep_joint_limits)
+        spawn = make_rope_cfg(name).spawn
         if cfg.solver_position_iteration_count is not None:
             spawn.articulation_props.solver_position_iteration_count = cfg.solver_position_iteration_count
         if cfg.max_depenetration_velocity is not None:
@@ -143,7 +144,11 @@ class RopeSizeSpawnerCfg(sim_utils.SpawnerCfg):
     """公称のプリセット。寸法の組は `rope_specs.size_variant_name(base, 長さの倍率, 直径の倍率)` のプリセット。"""
 
     scales: tuple[tuple[float, float], ...] = ((1.0, 1.0),)
-    """env に割り当てる (長さの倍率, 直径の倍率) の並び。`rope_specs.SIZE_SCALES` にある組だけを使える。"""
+    """env に割り当てる (長さの倍率, 直径の倍率) の並び。`rope_specs.ROPE_SPECS` にプリセットがある組だけを使える。"""
+
+    keep_joint_limits: bool = False
+    """真なら、角度制限を `base` のまま揃えた長さだけの組 (`knot_l080` など) を使う (`rope_specs.make_size_variant`)。
+    偽なら角度制限を寸法から導き直した組 (`knot_l080_d100` など)。v16 は真。"""
 
     solver_position_iteration_count: int | None = None
     """全組のソルバの位置反復の上書き (`KnotTyingEnvCfg.solver_position_iterations`)。`None` なら各組の既定。"""

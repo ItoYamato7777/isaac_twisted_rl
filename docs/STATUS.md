@@ -2,11 +2,11 @@
 
 - 状態: 現行。上書きで更新する (追記しない。手順は skill `handoff`)
 - 読むべき状況: セッションの始め。今どこにいて、次に何をするかを知るとき
-- 最終更新: 2026-10-16 (v15 の学習の開始。v17 の予約を追記)
+- 最終更新: 2026-10-17 (v15 の評価の終わり。v16・v17 の継承元の判断待ち)
 
 ## 要点
 
-- **v15 (v14 + 時間切れの bootstrap の不具合の修正。継承元は v14、v14 の切り分けの run は回さない: ユーザー、2026-10-16) を実装し、ゲート (重なりが 124 手 -> 0 手) を通して、seed 43 / 44 の学習を 10-16 17:07 に始めた**。仕様は [0028](decisions/0028-v15-timeout-bootstrap-fix.md)、ゲートは [記録](experiments/2026-10-16_v15_timeout-gate.md)。
+- **v15 (v14 + 時間切れの bootstrap の修正) は学習・chain 評価が済んだ**: 2 シードとも崩れず V は 1/γ を超えない (予想 1〜4 は当たり)。`knot` の 2 シード平均は it200〜300 で v14 を 8〜14 ポイント上回るが、増加は s43 に集中し (s44 は v14 と同じ)、it70・100 は 9〜13 ポイント下回る ([記録](experiments/2026-10-16_v15_timeout-bootstrap-fix.md))。**次は v16・v17 の継承元 (v14 か v15) をユーザーが決める**。
 - **v14 は 2 シードとも段 0 で崩れず、公称の chain 評価で it100 以降に v13 を大きく上回った** ([記録](experiments/2026-10-15_v14_s0-reshape-dr-priv-critic.md))。3 つの変更のどれが効いたかは未確認。DR で頑健になる予想は外れ。
 - 崩れない run の頭打ちは段 2 の詰まりでほぼ説明できる ([記録](experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md)。マルコフ連鎖の模型の上)。
 
@@ -25,36 +25,27 @@
 | v12 | chain 評価 済み (seed 43・44、it70〜300)。s43 は横ばい、s44 は段 0 から崩れた | [v12](experiments/2026-10-13_v12_archive-stage-up.md) |
 | v13 | chain 評価 済み (seed 43・44、it70〜300)。罰則は張り付きの割合を減らさず、s44 は v12 s44 と同じ型に崩れた | [v13](experiments/2026-10-14_v13_bounds-loss.md) |
 | v14 | chain 評価 済み (seed 43・44、it70〜300、公称と DR 付き)。2 シードとも崩れず、it100 以降 v13 を大きく上回った。記録のある it300 の値で最も高い | [v14](experiments/2026-10-15_v14_s0-reshape-dr-priv-critic.md)・[0027](decisions/0027-v14-s0-reshape-dr-priv-critic.md)・[ゲート](experiments/2026-10-14_v14_physics-gate.md) |
-| v15 | **学習中** (seed 43 / 44、it300、10-16 17:07 開始)。v14 + 段の変化・発散と同じ手では時間切れを立てない (時間切れの bootstrap の不具合の修正)。ゲート済み、結果はまだ無い | [0028](decisions/0028-v15-timeout-bootstrap-fix.md)・[ゲート](experiments/2026-10-16_v15_timeout-gate.md) |
+| v15 | chain 評価 済み (seed 43・44、it70〜300、公称)。崩れず V は膨らまない。it200〜300 の 2 シード平均は v14 より高いが s43 に集中、it70・100 は低い。DR 付きの評価は未実施 | [記録](experiments/2026-10-16_v15_timeout-bootstrap-fix.md)・[ゲート](experiments/2026-10-16_v15_timeout-gate.md)・[0028](decisions/0028-v15-timeout-bootstrap-fix.md) |
 | v16 | 未着手 (継承元 + ロープの直径・長さの DR。継承元は v15 の結果が出てから v14・v15 から決める) | [0029](decisions/0029-v16-rope-size-dr.md) |
 | v17 | **実装の予約のみ** (継承元 + 待ちのフェーズの尺を詰める。1 手 759 → 591 ステップで 1.28 倍の見込み。物理は変えない。継承元は v15 の結果が出てから v14・v15 から決める) | [0030](decisions/0030-v17-shorter-wait-phases.md)・[計測](experiments/2026-10-16_physics-speed.md) |
 
 ## 走っているジョブ
 
-**v15 の学習 2 本** (commit `62331ac`、`Isaac-Twisted-RL-Knot-v15`、4096 env、`--max_iterations 301`、`agent.save_interval=10`、`run_job.sh --timeout 36h --detach`、10-16 17:07 起動):
-
-| シード | GPU | job | run | timeout の pid | 1 iteration | 終わる見込み |
-|---|---|---|---|---|---|---|
-| 43 | 0 | `outputs/jobs/2026-10-16_17-07-47_v15_s43` | `logs/rsl_rl/knot_tying_v15/2026-10-16_17-07-55_v15_s43` | 2491040 | 約 5.3 分 (it0〜1) | 10-17 夕方〜夜 (26〜30 時間後) |
-| 44 | 1 | `outputs/jobs/2026-10-16_17-07-47_v15_s44` | `logs/rsl_rl/knot_tying_v15/2026-10-16_17-07-55_v15_s44` | 2491142 | 約 6.7 分 (it0〜1) | 10-18 未明 (約 34 時間後)。**timeout 36h (10-18 05:07) にぎりぎり**。v14 は後半ほど 1 iteration が遅かった (s43 は it200〜300 に 10 時間)。止められたら最後の `model_N.pt` から `--resume` で続ける |
-
-終わったら `exit.txt` に `signal:` の行が無いことと `model_300.pt` で確かめる (exit 0 は完了を意味しない)。
+なし (自分のジョブ)。v15 の学習 2 本と評価は `exit: 0` で終わり、`model_300.pt` を確認済み。
 
 - **他のジョブ (触らない)**: anaconda の python の実機の作業 (pid 560983・616313・895144・2892930・876400)。GPU 0・1 は他のユーザーとも共有している。
 
 ## 次の作業
 
-1. **v15 の学習 (走行中) の待ち、そして chain 評価**。仕様・予想・手順は [0028](decisions/0028-v15-timeout-bootstrap-fix.md)。実装・ゲートは済み ([記録](experiments/2026-10-16_v15_timeout-gate.md))。
-   - 途中で見る: `Loss/value_mean_s0` が 1/γ = 1.053 を超えないか、`Curriculum/stage_log/timeout_s0` (予想 1・3)。`tb_table.py` で。
-   - 終わったら: chain 評価を it70 / 100 / 150 / 200 / 250 / 300 で (`--task Isaac-Twisted-RL-Knot-Play-v15`、標準の条件、Hydra の上書きなし。評価の `params` で Play の `time_out` が `mdp.time_out` に戻っていることも確かめる) -> v14 の同じシード (`2026-10-15_15-07-10_v14_s43`・`2026-10-15_16-07-22_v14_s44` の `eval_chain_it*.json`) と並べる。
-   - 予想 2: s44 の it150・it300 で `diag_stage_moves.py --dump_obs`、`chain_moves.py sequences` で、段 0 を初めて上げた手が 6 手目の環境が 5% を超えないか。
-   - 予想 1 の固定した観測での数え方: v15 のチェックポイントも `critic_stage_values.py --critic_prefix=0,0,-1,0,0,0` で数え、v14 の値 (ゲートの記録) と並べる。結果は skill `experiment-record`。
-2. **chain 評価の動画 (実装済み。skill `train-eval` §3 に `--video` を記述: ユーザー、2026-10-17。v15 s43 の評価は動画なし、s44 の評価から `--video` 付き)**。0031 のゲート 4 (512 環境で既存の JSON と全キー一致) と所要時間の実測が未了。s44 の評価で動画付きの値を s43 (動画なし) と並べるときは「動画付き」と書く。chain 評価を回すときに評価したエピソードの動画も `video/` に残す。仕様・ゲート・手順は [0031](decisions/0031-eval-chain-video.md)。v15 の評価 (1) の前に入れられれば入れる。ゲートは「`--video` 付きで v14 s43 it300 を評価して既存の JSON と全キーが一致」。GPU を使う確認は v15 の学習中はユーザーに確かめてから。ルート直下の `knot_*_mock.mp4` と `README.md` の未コミットの変更はユーザーのもの (触らない・commit に混ぜない)。
+1. **v16・v17 の継承元を決める** (ユーザーの判断。v14 か v15)。材料は [v15 の記録](experiments/2026-10-16_v15_timeout-bootstrap-fix.md): v15 は it150 以降 v14 以上で害は見えない・発散は it200 以降低い、一方 it70・100 の落ち込みと s44 の伸びなしが残る。決まったら v16 を新しい session で実装する ([0029](decisions/0029-v16-rope-size-dr.md) の「実装の順序」)。
+   - 判断を固めるなら seed 42 を v15・v14 で回し、シード間の差を確かめる (GPU を使う前にユーザーに確かめる)。
+   - v15 の初期の落ち込み (it70・100 で `time_out` が増える) を調べるなら、`diag_stage_moves.py` で v15・v14 の it70・100 を数えて並べる。DR 付きの v15 の評価は未実施。
+2. **chain 評価の動画 (実装済み。評価は `--video` 付きの 1 回だけ。動画なしの 2 回目は回さない)**。0031 のゲート 4 は v15 s44 の it300 で通った (動画ありなしで 23 キー一致)。**動画は撮るが、中身は Claude が見ない・判断しない (ユーザーが判断する。`CLAUDE.md`・0031 の決定 3)**。v15 s44 の it300 の動画はあるが未確認 (`video/sim/knot_tying_v15/2026-10-16_17-07-55_v15_s44/eval_chain_it300_video/`)。ルート直下の `knot_*_mock.mp4` と `README.md` の変更はユーザーのもの (触らない)。
 3. DR 付きの評価の内訳を見るなら、`eval_chain.py` に env ごとの倍率の記録を足す (既定の評価とビット単位で一致することを確かめる)。
 4. 段 0・段 1 から 1 手で固結びに達したエピソード (v14 s44 it100 で 2%・8%) が正しい判定かを、その手の前後の形で確かめる (優先度は低い)。
 5. **頭打ち (段 2) の切り分けの計測** (GPU を使う前にユーザーに確かめる。コマンドの案は[記録](experiments/2026-10-15_timeout-bootstrap-and-stage2-bottleneck.md)の「次の作業」): 段 2 の形ごとの最良の 1 手 (`eval_search.py --mode shapes --shape_moves 1`)、6 手目の山がほかの崩れた run にもあるか、36 手の chain 評価。
-6. **v17 の実装 (予約。待ちのフェーズの尺を詰めて学習を 1.28 倍に速くする版)**。仕様・予想・手順は [0030](decisions/0030-v17-shorter-wait-phases.md)、根拠の計測は [記録](experiments/2026-10-16_physics-speed.md)。コードの実装・テストは先に進めてよい (版は `durations` を上書きするだけ。継承元は v15 の結果が出てから v14・v15 から決める)。GPU を使うゲート (ゲート 1・`bench_step_time.py`・スモークテスト) は v15 の学習が走っている間はユーザーに確かめてから。最初に確かめること: `bench_step_time.py --task Isaac-Twisted-RL-Knot-v17` の `meta` が `decimation` 591・`max_episode_length` 6 (Play は 18) か (積の浮動小数の誤差で 1 手増える事故)。速さの次の候補: 反復 6 (Hydra の上書きで学習できる。D4 とは別の学習で確かめる)、環境数 (2048・8192) を変えたときの速さ (GPU が空いたとき)。
-7. v16 の実装 ([0029](decisions/0029-v16-rope-size-dr.md) の「実装の順序」に従う。`add-version` -> `physics-check` -> スモークテスト -> commit。v15 の結果が出てから、継承元を v14・v15 から決める)。未確認: `MultiAssetSpawnerCfg` が Articulation で動くか、`replicate_physics=False` での起動時間と学習速度。
+6. **v17 の実装 (予約。待ちのフェーズの尺を詰めて学習を 1.28 倍に速くする版)**。仕様・予想・手順は [0030](decisions/0030-v17-shorter-wait-phases.md)、根拠の計測は [記録](experiments/2026-10-16_physics-speed.md)。コードの実装・テストは先に進めてよい (版は `durations` を上書きするだけ。継承元は v14・v15 から決める (「次の作業」1))。GPU は v15 の学習が終わったので空いているが、共有なので `nvidia-smi` を見てから。最初に確かめること: `bench_step_time.py --task Isaac-Twisted-RL-Knot-v17` の `meta` が `decimation` 591・`max_episode_length` 6 (Play は 18) か (積の浮動小数の誤差で 1 手増える事故)。速さの次の候補: 反復 6 (Hydra の上書きで学習できる。D4 とは別の学習で確かめる)、環境数 (2048・8192) を変えたときの速さ (GPU が空いたとき)。
+7. v16 の実装 ([0029](decisions/0029-v16-rope-size-dr.md) の「実装の順序」に従う。`add-version` -> `physics-check` -> スモークテスト -> commit。継承元は「次の作業」1 で決める)。未確認: `MultiAssetSpawnerCfg` が Articulation で動くか、`replicate_physics=False` での起動時間と学習速度。
 8. v7 s44 を it300 まで延ばす (比べる相手を 2 シードにする。GPU が空いてから、順番はユーザーに確かめる): `uv run train --task Isaac-Twisted-RL-Knot-v7 --headless --device cuda:N --seed 44 --resume --load_run 2026-10-04_22-37-47_v7_s44 --checkpoint model_100.pt --max_iterations 201 --run_name v7_s44_to300 agent.device=cuda:N agent.save_interval=10 env.events.reset_to_stage.params.load_paths=[/home/itoyama/work/isaac_twisted_rl/logs/rsl_rl/knot_tying_v7/2026-10-04_22-37-47_v7_s44/archive.pt]` (`run_job.sh --timeout 20h --detach`)。
 9. v11 s43 の延長の chain 評価を it400 / 500 / 600 / 700 / 800 で (it1000 は済み)。
 10. 探索の設定を 1 つずつ比べる (`--slots 8` / `4`、`--rank random`、`--no_mean_first`。v7 s43 / s44 の `model_100.pt`)。

@@ -50,7 +50,8 @@ hiro_knot はこのリポジトリのコードに次の形で依存している�
 
 - 観測・行動・段の定義・フェーズ・位相の関数を変える版は、hiro_knot 側の `constants.py`・移植した計算・ダンプの更新が要る。新しい版の README か実験記録に「hiro_knot 側の更新が要るか」を書く (ここでは見ない。hiro_knot の変更はユーザーの指示で、別のリポジトリで行う)。
 - 報酬・PPO・DR・アーカイブ・物理の変更は、実機に渡す方策の中身だけを変える。インタフェース (観測 197・行動 6・段の定義) が同じなら、hiro_knot 側は `use-policy` で run を替えるだけでよい (v14 の run が今の `CURRENT`。v15・v16 は観測 197 次元のまま、critic だけが 203・205 次元)。
-- 確認していないこと: hiro_knot が v15・v16 の run を `use-policy` で export して `check_env_yaml` を通すか (未確認)。
+- 確認したこと (2026-10-19): v15 s43 (`model_300.pt`) と v16 s43 (`model_299.pt`) は、`use-policy --no-switch` で写す・export・ONNX と TorchScript の一致 (最大の差 1.4e-06・1.9e-06)・`check_env_yaml` まで通る。critic が 203・205 次元でも、actor の観測 197・行動 6 は同じなので export に影響しない。`policies/CURRENT` は変えていない (v14 s43 のまま)。
+  - 未確認: seed 44 の run、実機側のテスト (`tests/policy/test_config_policy.py` など) と DRY_RUN、実機での動作。この確認は export と env.yaml の照合までで、実機で動くことの確認ではない。
 
 ## 今の実装
 

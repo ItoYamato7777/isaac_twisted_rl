@@ -10,6 +10,11 @@ a kinematic parallel gripper picks and places a rope, the rope's topology (cross
 extracted every step, and that topology defines the stages, rewards and termination. The goal is to tie an
 overhand knot starting from a straight rope.
 
+This repository stops at reinforcement learning in simulation; the learned policy is deployed on a real robot in a
+separate repository (`hiro_knot`). The aim is a policy that is robust to the sim-to-real gap: what the policy can do in
+simulation it should also do on the real robot. Start states are currently straight ropes; they will be widened to
+varied crossing-free shapes later. See [`docs/decisions/0032-sim-only-sim2real-goal.md`](docs/decisions/0032-sim-only-sim2real-goal.md).
+
 In the current design (v4 and later), one RL step is one whole pick&place move; each topological stage
 (`round(3Φ)`: 0 = trivial, 3 = knot) has its own policy head; an episode is one stage transition; and training
 resets from an archive of reached states. See [`knot_tying/README.md`](src/isaac_twisted_rl/tasks/knot_tying/README.md).

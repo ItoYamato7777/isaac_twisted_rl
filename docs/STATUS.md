@@ -60,4 +60,5 @@
 |---|---|---|---|
 | 推論時探索 | 再開中 (2026-10-05、ユーザーの指示)。v6・v5 の止めた評価を再開するかはユーザーの判断 | 「次の作業」9 | [v7](experiments/2026-10-06_inference_search_v7.md)・[中間](experiments/2026-10-03_inference_search.md) |
 | eval_chain.py の提案 #4〜#6 | ユーザーが後回しにした (2026-10-15) | 二項の揺れを実測するなら #6 か `--num_envs` を変える評価 | [記録](experiments/2026-10-15_eval-chain-repro.md) |
+| 評価の初期状態を交差なしの様々な形へ広げる | ユーザーの指示待ち (まっすぐな状態の成功率が高くなるか、直す内容が尽きたとき。Claude は先に始めない)。決定は [0032](decisions/0032-sim-only-sim2real-goal.md) | ユーザーの指示を受けたら 0032 の「広げるときに決めること」から | [0032](decisions/0032-sim-only-sim2real-goal.md) |
 | rope study | 打ち切り中 (2026-10-03)。再開はユーザーの判断 | XPBD の段 0 の崩れの切り分け (不具合も候補)。発散の数値の数え方の過大の疑いも確かめる | [要約](experiments/2026-10-02_rope_models.md) |

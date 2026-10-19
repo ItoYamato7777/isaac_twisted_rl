@@ -3,6 +3,11 @@
 Isaac Lab 上で、ロボットハンドがロープを固結び (overhand knot) にする強化学習の研究コード。
 現在地は `docs/STATUS.md`、文書の地図は `docs/README.md`、用語は `docs/glossary.md`。
 
+## 最終的な目標 (`docs/decisions/0032-sim-only-sim2real-goal.md`)
+
+- 実機 (別リポジトリ `hiro_knot`) で固結びにすること。このリポジトリは Sim の学習にとどめる。実機の達成条件は「Sim でできることを実機でもできる」で、Sim2Real のギャップに強い方策を作ることを判断の軸にする。
+- 評価の初期状態は今はまっすぐなロープ。交差なしの様々な形へ広げるのは、ユーザーが明示的に指示したとき (まっすぐな状態の成功率が高くなるか、直す内容が尽きたとき)。Claude が先に始めない。
+
 ## セッションの始めと終わり
 
 - 始め: git status・`docs/STATUS.md` の要点・走っているジョブ (`nvidia-smi`) を確かめる (SessionStart hook が冒頭に出す)。次の作業は STATUS の「次の作業」の 1 番目から。

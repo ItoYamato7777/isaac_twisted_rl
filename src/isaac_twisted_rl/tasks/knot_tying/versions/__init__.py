@@ -21,6 +21,7 @@
     v14/    v13 + 段 0 の形を変えた手の保存 + ロープの物理の DR + critic の特権観測
     v15/    v14 + 段の変化・発散と同じ手では時間切れを立てない (時間切れの bootstrap の不具合の修正)
     v16/    v15 + ロープの長さを env ごとに振る DR (寸法の DR。critic の特権観測に寸法 2 次元)
+    v17/    v15 + 待ちのフェーズ (close・hold・release・settle_out・relax) の尺を詰める (v16 は継承しない)
 
 バージョンの増やし方は skill `add-version` (`.claude/skills/add-version/SKILL.md`)。この一覧は
 `tests/test_docs.py` が `versions/` のフォルダと `_VERSIONS` に照らして検査する。

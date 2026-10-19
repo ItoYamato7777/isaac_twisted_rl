@@ -1,12 +1,12 @@
 # 0030 v17 は待ちのフェーズの尺を詰める (学習を速くするため。物理は変えない)
 
-- 状態: 有効 (v17 以降。2026-10-16 にユーザーが実装の予約を指示した。**未実装**。継承元は v15 の結果が出てから決める)
+- 状態: 有効 (v17 以降。2026-10-16 にユーザーが実装の予約を指示した。**未実装**。継承元は **v15** (ユーザー、2026-10-19))
 - 読むべき状況: v17 を実装・学習・評価するとき。フェーズの尺 (`PhaseDurations`)・1 手の物理ステップ数 (`decimation`)・報酬の重みの `step_dt` のスケールを変えるとき。学習の速さのために物理の設定を変えたくなったとき
-- 最終更新: 2026-10-16
+- 最終更新: 2026-10-19 (継承元を v15 に決めた)
 
 ## 決定 (案。数値は計測で決めた。ユーザーの承認は「新しい版として実装を予約する」まで)
 
-v17 = 継承元 (v14 または v15。**v15 の結果が出てから決める**。目安: v15 が v14 と同じかそれ以上なら v15、崩れたら v14) + **待ちのフェーズの尺を詰める**。
+v17 = **v15** + **待ちのフェーズの尺を詰める**。継承元を v15 にしたのは、ユーザーの判断 (2026-10-19): v16 (長さの DR) は最後の点で v15 と同じ成績で、中盤は v15 より低く、DR の効果は確認できておらず (v15 の寸法を振った評価は 2026-10-19 に実行中)、実機との差で効くのは長さ (実機側の実行スクリプトが xy を約 1.12 倍して補正済み) より太さ・重さ・摩擦と見ているため。v16 の仕組み (env ごとの寸法の spawn・PhysX のバッファ・アーカイブの寸法の換算) は継承しない。
 
 | フェーズ | 継承元 (v3 の `KNOT_DURATIONS`) [s] | v17 [s] |
 |---|---|---|
@@ -24,7 +24,7 @@ v17 = 継承元 (v14 または v15。**v15 の結果が出てから決める**�
 - **物理は変えない**: dt 1/240、ソルバの位置反復 8・速度反復 1、めり込み解消速度 0.96 m/s、接触の設定、摩擦はすべて継承元のまま。行動・観測・報酬の項・終了・PPO・DR・段の定義も継承元のまま。
 - 1 版 1 変数 ([0022](0022-p2-one-version-each.md))。反復 6 など物理を軽くする案はこの版に混ぜない (下の「検討して採らなかった案」)。
 - 報酬の重みは、版の `durations` から基底の `__post_init__` が `step_dt` (= 591 / 240 = 2.4625 s) で割り直すので、「1 手あたり」の大きさのまま (継承元と同じ)。
-- 学習: seed 43 / 44、0 から iteration 300 (継承元のチェックポイントからは再開しない)。比べる相手は継承元の同じシード。
+- 学習: seed 43 / 44、0 から iteration 300 (継承元のチェックポイントからは再開しない)。比べる相手は継承元 (v15) の同じシード。
 
 ## 理由
 
@@ -70,7 +70,7 @@ v17 の 2 シードを、継承元の同じシードと比べる。chain 評価�
 (`kt/` = `src/isaac_twisted_rl/tasks/knot_tying/`。手順は skill `add-version`)
 
 1. **`kt/versions/v17/`** を作る (`__init__.py`・`agents/__init__.py` は docstring だけ。Kit の起動前に import されるので isaaclab を import しない)。
-   - `env_cfg.py`: 継承元 (`KnotTyingV15EnvCfg` か `KnotTyingV14EnvCfg`) を継承し、`durations` のフィールドだけを上書きする。v3 の `KNOT_DURATIONS` と同じ書き方で、全項目を明示する。
+   - `env_cfg.py`: `KnotTyingV15EnvCfg` を継承し、`durations` のフィールドだけを上書きする。v3 の `KNOT_DURATIONS` と同じ書き方で、全項目を明示する。
 
      ```python
      V17_DURATIONS = phases.PhaseDurations(
@@ -78,15 +78,15 @@ v17 の 2 シードを、継承元の同じシードと比べる。chain 評価�
          lower=0.3, release=0.15, settle_out=0.15, clear=0.0, retreat=0.105, relax=0.25,
      )
      @configclass
-     class KnotTyingV17EnvCfg(<継承元>EnvCfg):
+     class KnotTyingV17EnvCfg(KnotTyingV15EnvCfg):
          durations: phases.PhaseDurations = V17_DURATIONS
      ```
 
      `__post_init__` は書かない。基底の `__post_init__` が `durations` から `decimation` (591)・`episode_length_s`・`render_interval`・報酬の重みのスケールを計算し、`make_preset_cfgs` が `_apply_rope` で `actions.pick_place.durations` に渡す。
-   - `play_post_init`: 継承元のものをそのまま呼ぶ。Play の `episode_length_s` は `_play_post_init` が `cfg.decimation` から作り直すので、尺に追随する。
+   - `play_post_init`: 継承元のものを呼んだ後、`episode_length_s` を 17.5 手ぶん (`(actions_per_episode - 0.5) * decimation * dt`) にする。v4 の `_play_post_init` の `18 * decimation * dt` のままだと、Isaac Lab の `ceil(episode_length_s / (dt * decimation))` が 591 で浮動小数の誤差のため 19 になる (実装のときに計算で確かめた。759 では 18、学習の 6 手は 591 でも 6)。0030 の計測の chain 評価も 17.5 手ぶんだった。
    - `agents/rsl_rl_ppo_cfg.py`: 継承元の Runner を継承し、`experiment_name = "knot_tying_v17"` だけを書く。
    - `README.md`: この文書の「決定」と「理由」の要約 (結果は書かない)。
-2. **登録と一覧**: `kt/__init__.py` の `_VERSIONS` に `"v17"`、`kt/versions/__init__.py` の docstring の一覧と `kt/README.md` の版の系譜に 1 行ずつ、`docs/STATUS.md` の版の状態の表。**番号は v17** (v16 は [0029](0029-v16-rope-size-dr.md) の予約で、実装が v15 の結果の後なので、v17 を先に実装してもよい。v16 と v17 のどちらを先に学習するかはユーザーが決める)。
+2. **登録と一覧**: `kt/__init__.py` の `_VERSIONS` に `"v17"`、`kt/versions/__init__.py` の docstring の一覧と `kt/README.md` の版の系譜に 1 行ずつ、`docs/STATUS.md` の版の状態の表。**番号は v17** (v16 は [0029](0029-v16-rope-size-dr.md) で実装・学習・評価が済んでいる。v17 は v16 を継承しない)。
 3. **確かめること** (学習の前。skill `physics-check` と skill `train-eval` のスモークテスト):
    - `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run python -m pytest tests/ -q` (版の一覧の整合と `__init__.py` の import)。
    - `bench_step_time.py --task Isaac-Twisted-RL-Knot-v17 --num_envs 256 --moves 2` の `meta` が `decimation` 591、`max_episode_length` 6、`phase_steps` が上の表と合う。Play (`Isaac-Twisted-RL-Knot-Play-v17`) は `max_episode_length` が 18 になること。**積の浮動小数の誤差で手数が 1 つ増える事故** (`divergence_bench.py` の注: descend 0.5 s = 807 ステップで 12 手ちょうどが 13 手になった) がここで起きないことを見る。起きたら `episode_length_s` を半手ぶん引く。
@@ -97,8 +97,9 @@ v17 の 2 シードを、継承元の同じシードと比べる。chain 評価�
 
 ## 実装の予約
 
-- 実装・テスト・ゲートは先に進めてよい。ただし GPU を使うもの (ベンチ・ゲート 1・スモークテスト) は、v15 の学習 (2 本とも 10-16 17:07 起動。GPU 0・1 を使用中) が終わるか、ユーザーが空きを確かめてから。
-- 学習は v15 の結果が出て、継承元を決めてから。
+- 実装・テストは先に進めてよい。GPU を使うもの (ベンチ・ゲート 1・スモークテスト) は、`nvidia-smi` で空きを見て、ユーザーに確かめてから。
+- 学習は GPU が空いてから (ユーザーに確かめる)。比べる相手は v15 の同じシード (s43・s44、`logs/rsl_rl/knot_tying_v15/2026-10-16_17-07-55_v15_s{43,44}`)。
+- **hiro_knot 側の更新の要否**: 尺は観測・行動・段の定義ではないが、実機側の `check_env_yaml` や `phases.py` の移植が尺の定数を持つ可能性がある ([0032](0032-sim-only-sim2real-goal.md) の「hiro_knot との境界」)。実装のときに `~/work/hiro_knot` の `constants.py`・移植した `phases.py` を読んで、版の README に「更新が要るか」を書く (読むだけ。hiro_knot は変更しない)。実機の紐は sim の紐より落ち着き方が違いうるので、1 手の終わりにまだ動いているロープが 7% → 20% に増える点も README に書く。
 - v17 の結果が良ければ、次の候補は反復 6 (1.25 倍。Hydra の上書きで学習できる。別の学習として、v17 と同じシード・評価で比べる)。D4 + 反復 6 はそれぞれが学習で確かめられてから。
 
 ## 出典

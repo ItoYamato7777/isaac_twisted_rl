@@ -26,6 +26,7 @@ Isaac Lab 上で、ロボットハンドがロープを固結び (overhand knot)
 - フォルダ名 `mdp` を変えない。タスクの登録から外す除外の一覧が、この名前の部分一致で決まる。
 - `common/topology/` と `common/state_archive.py` は isaaclab・omni・pxr を import しない。Isaac Sim なしで単体テストを回すため。
 - `common/mdp/` の項は追加だけ。削除・改名しない。過去の版の設定が名前で参照している。
+- 観測・行動・フェーズ・段の定義・`common/topology/` の関数を変える版は、実機側 `hiro_knot` の再実装とずれる (エラーは出ない)。変えるときは `docs/decisions/0032-sim-only-sim2real-goal.md` の「hiro_knot との境界」を読み、版の README に hiro_knot 側の更新の要否を書く。
 - 既存の版 (`versions/vN/`) の挙動を変えない。変えたいときは新しい版を作る (skill `add-version`)。
 
 ## 実験の約束

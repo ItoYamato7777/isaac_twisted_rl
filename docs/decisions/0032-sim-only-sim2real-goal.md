@@ -35,6 +35,23 @@
 - 版どうしの比較の基準をどうするか。まっすぐなロープからの `knot` を併記して残すか。
 - 学習の初期状態の分布を評価に合わせるか。
 
+## hiro_knot との境界 (版や共通層を変えるときに効くこと)
+
+方策は `~/work/hiro_knot` の `use-policy` (skill `swap-policy`) が受け取る。受け取るのは学習の run のフォルダで、`model_<N>.pt`・`params/`・`git/`・`eval_chain*.json` を写し、このリポジトリの `.venv` (CPU) で `scripts/rsl_rl/export_policy.py` を実行して `exported/policy.{onnx,pt}` と `export_info.json` を作る。使う run は hiro_knot の `policies/CURRENT` で決まる。ユーザーが run と iteration を選ぶ。選ぶ基準は chain 評価の `knot` (2 シードの平均が高く、前後の iteration も高いもの。崩れた run は選ばない)。
+
+hiro_knot はこのリポジトリのコードに次の形で依存している。**新しい版や共通層の変更が、実機側を壊しうる**ので、観測・行動・フェーズ・段・位相に触るときはここを思い出す。
+
+| 依存 | 内容 | 壊れ方 |
+|---|---|---|
+| `common/topology/` を import | `tp.polyline_from_link_centers`・`segment_intersections`・`reduce_r2`・`p_data_from_batch`・`get_stage_function`・`STAGE_GOAL`・`get_next_edge_table`・`crossing_positions`・`partner_gaps` など | 関数の名前・引数・戻り値を変えると hiro_knot の位相の計算が落ちる。`common/topology/` が isaaclab を import しない制約 ([CLAUDE.md](../../CLAUDE.md)) は、hiro_knot が Kit なしで import するためでもある |
+| `common/mdp/` の観測・行動・フェーズ・段の計算を、行単位で移植 | `observations.py`・`actions.py`・`phases.py`・`stages.py`。観測 197 次元・行動 6 次元。移植元の関数名と行番号がコメントに残る | 観測の並び・次元・行動のデコード・1 手の軌道・段の判定を変えると、実機側の再実装がずれる。ずれてもエラーは出ず、実機で方策が違う動きをする |
+| run の `params/env.yaml` を正とする定数 | hiro_knot の `check_env_yaml` が env.yaml と定数を照合する。段の定義は env.yaml の `stage_definition` から読む (行が無ければ `bfs`、v11 だけ `bfs_dead_end`) | 版が変わって env.yaml のキーや意味が変わると照合が落ちる (落ちて切り替えが止まるのは安全側) |
+| 正解データ `scripts/rsl_rl/dump_real_deploy_check.py` | Sim の手ごとの観測・行動・軌道を npz に書く。hiro_knot が `tests/data/` に置き、実機側の組み立てが Sim と一致するかを Isaac Sim なしで試験する | 観測・軌道を変えたら、ダンプを作り直す必要がある (GPU と Isaac Sim が要る。ユーザーと決める) |
+
+- 観測・行動・段の定義・フェーズ・位相の関数を変える版は、hiro_knot 側の `constants.py`・移植した計算・ダンプの更新が要る。新しい版の README か実験記録に「hiro_knot 側の更新が要るか」を書く (ここでは見ない。hiro_knot の変更はユーザーの指示で、別のリポジトリで行う)。
+- 報酬・PPO・DR・アーカイブ・物理の変更は、実機に渡す方策の中身だけを変える。インタフェース (観測 197・行動 6・段の定義) が同じなら、hiro_knot 側は `use-policy` で run を替えるだけでよい (v14 の run が今の `CURRENT`。v15・v16 は観測 197 次元のまま、critic だけが 203・205 次元)。
+- 確認していないこと: hiro_knot が v15・v16 の run を `use-policy` で export して `check_env_yaml` を通すか (未確認)。
+
 ## 今の実装
 
 | 何 | 場所 | 今の実装と合っているか |

@@ -5,6 +5,8 @@ uv run train --task Isaac-Twisted-RL-Knot-v17 --headless           # v15 + 待�
 uv run play  --task Isaac-Twisted-RL-Knot-Play-v17 --num_envs 16   # v15 と同じ chain 評価 (18 手。尺は v17)
 ```
 
+**不採用** (2026-10-20、ユーザー。固結びの成功率が v15 より下がった。結果は [`docs/experiments/2026-10-20_v17_shorter-wait-phases.md`](../../../../../../docs/experiments/2026-10-20_v17_shorter-wait-phases.md))。後の版は v17 を継承しない。下の hiro_knot の更新も要らない。
+
 ログ: `logs/rsl_rl/knot_tying_v17/`。**学習には `Knot` プリセットを使う** (v3〜v16 と同じ)。継承元は **v15** (v16 の寸法の DR は継承しない。ユーザー、2026-10-19)。
 仕様と理由の正本は [`docs/decisions/0030-v17-shorter-wait-phases.md`](../../../../../../docs/decisions/0030-v17-shorter-wait-phases.md)。ここには配線と、見るべき指標を書く。
 初期アーカイブは v15 と同じ (形の静的な配置なので、尺を変えても作り直さない)。

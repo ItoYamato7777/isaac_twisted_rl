@@ -50,7 +50,7 @@ uv run train --task Isaac-Twisted-RL-Knot-v6 --headless   # 学習 (手順は sk
 | `v14` | v13 | **3 つを足す (Hydra で個別に切れる)**: (1) 段 0 で交差なしのまま形を変えた手 (1 エピソード 1 回) の後の形も保存する (`save_on = "stage_up_s0_reshape"`)、(2) ロープの物理の DR (曲げ・捩り・減衰比・質量・ロープと指の摩擦を env ごとに ×0.5〜×2。減衰比だけ ×1.0〜×2)、(3) critic に引いた物理の倍率を特権観測として渡す。actor の観測・報酬・終了・PPO は v13 のまま。Play は DR を切る | 同上 | [versions/v14/README.md](versions/v14/README.md) |
 | `v15` | v14 | **段の変化・発散と同じ手では時間切れを立てない** (`time_out` を `mdp.time_out_unless_terminated` に差し替え。6 手目に段が上がった手を γ·V(s) で bootstrap する不具合の修正)。それ以外は v14 のまま。Play は v14 と同じ時間切れ | 同上 | [versions/v15/README.md](versions/v15/README.md) |
 | `v16` | v15 | **ロープの長さを env ごとに振る DR** (長さ ×0.8/1.0/1.1 の USD を起動時に env に順に割り当てる。直径と関節の角度制限は公称のまま。run の間は変わらない)。critic の特権観測に寸法 2 次元 (203 -> 205)。行動の範囲・床の判定・アーカイブの復元は env ごとの寸法を使う。それ以外は v15 のまま。Play は公称の寸法 | 同上 | [versions/v16/README.md](versions/v16/README.md) |
-| `v17` | v15 | **待ちのフェーズの尺を詰める** (close 0.3→0.2・hold 0.2→0.1・release 0.25→0.15・settle_out 0.3→0.15・relax 0.5→0.25 s。1 手 759 → 591 物理ステップ)。物理・行動・観測・報酬・PPO は v15 のまま (v16 の寸法の DR は継承しない)。Play は 18 手の上限が浮動小数の誤差で 19 にならないよう 17.5 手ぶんの長さ | 同上 | [versions/v17/README.md](versions/v17/README.md) |
+| `v17` | v15 | **(不採用: 固結びの成功率が v15 より下がった)** **待ちのフェーズの尺を詰める** (close 0.3→0.2・hold 0.2→0.1・release 0.25→0.15・settle_out 0.3→0.15・relax 0.5→0.25 s。1 手 759 → 591 物理ステップ)。物理・行動・観測・報酬・PPO は v15 のまま (v16 の寸法の DR は継承しない)。Play は 18 手の上限が浮動小数の誤差で 19 にならないよう 17.5 手ぶんの長さ | 同上 | [versions/v17/README.md](versions/v17/README.md) |
 
 各版の状態 (学習したか、結果、比べた相手) は `docs/STATUS.md` の「版の状態」にある。
 

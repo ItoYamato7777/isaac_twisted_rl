@@ -57,10 +57,6 @@ logs/
 .claude/settings.local.json
 # P4-9 の設定のダンプ (各 3.5 MB。sha256 は docs/history/refactor/README.md)
 /docs/history/refactor/phase4/env_cfgs_*.json
-# chain 評価の動画 (docs/system/video.md)。sim・real は manifest.json だけを追跡する。highlights/ と video/README.md は動画ごと追跡する
+# chain 評価の動画 (docs/system/video.md)。sim・real の中身は全部追跡しない。highlights/ と video/README.md は動画ごと追跡する
 /video/sim/**
-!/video/sim/**/
-!/video/sim/**/manifest.json
 /video/real/**
-!/video/real/**/
-!/video/real/**/manifest.json

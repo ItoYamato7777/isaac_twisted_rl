@@ -2,7 +2,7 @@
 
 - 状態: 現行 (記録を足すたびに 1 行足す)
 - 読むべき状況: 過去の学習・評価・計測の結果を探すとき。数値の正本は各記録で、この一覧には数値を書かない
-- 最終更新: 2026-10-20
+- 最終更新: 2026-10-22
 
 各記録は凍結 (本文を書き換えない)。後で分かったことは、冒頭の引用ブロックの注記か新しい記録で足す。書き方は skill `experiment-record`。
 評価の定義は [`docs/system/evaluation.md`](../system/evaluation.md)、ログのフォルダ名・run 名・チェックポイントの意味は [`docs/system/logs.md`](../system/logs.md)。
@@ -49,6 +49,7 @@ run のフォルダは `logs/rsl_rl/` の下 (git の管理外)。日時付き�
 | 2026-10-19 | v15 を寸法を振ったロープで chain 評価し、長さの DR (v16) の効果を判定 | 凍結 | 寸法を振ったロープでの成績は v16 と v15 で同じ。公称からの落ちは v15 の 1 シードだけが大きく、v16 は落ちない。長さの DR は寸法による差を消したが、成績は上げていない | `knot_tying_v15/` (`eval_chain_*_sizes.json`・`*_v16play.json`) | [2026-10-19_v15-sized-eval_length-dr-effect.md](2026-10-19_v15-sized-eval_length-dr-effect.md) |
 | 2026-10-19 | v17 (v15 + 待ちのフェーズの尺を詰める) の学習の前の確認 (尺の配線・速さ・発散・ゲート 1・スモークテスト) | 凍結 | 尺は学習・Play とも意図どおり (Play の上限 18 手)。1 手の時間は v15 の約 0.77 倍、発散は 5% の線の下、ゲート 1 は 0030 の D4 と同じ。1 手の終わりに動いているロープは v15 の約 3 倍 | `knot_tying_v17/` (smoke)・`outputs/bench_step_time/v1{5,7}_n4096`・`outputs/overhand_script/speed/v17_fast` | [2026-10-19_v17_gate.md](2026-10-19_v17_gate.md) |
 | 2026-10-20 | v17 (v15 + 待ちのフェーズの尺を詰める) の学習 (seed 43 / 44) と chain 評価、v15 との比較 | 凍結 | 2 シードとも it150〜300 で v15 を下回った (0030 の予想 1 は外れ、速さの予想 2 は当たり)。chain 評価の発散が v15 より高い。学習ログの指標には差が出なかった | `knot_tying_v17/` | [2026-10-20_v17_shorter-wait-phases.md](2026-10-20_v17_shorter-wait-phases.md) |
+| 2026-10-22 | v15・v16 の物理 DR 付き chain 評価 (seed 43 / 44、it200 / 最後の点、公称の寸法) | 凍結 | 最後の点の DR 付きの `knot` は v15・v16 とも約 54%、公称から約 −11 ポイント。v14 (it300、50.7%) とも 2 シードでは区別できない。v15 の s43 の公称の高さは DR 付きで消えた (推測)。どの軸で落ちるかは未確認 | `knot_tying_v15/`・`knot_tying_v16/` (`eval_chain_dr_it*.json`) | [2026-10-22_v15-v16_physics-dr-eval.md](2026-10-22_v15-v16_physics-dr-eval.md) |
 
 ## v0〜v6 と、打ち切り中の研究
 
